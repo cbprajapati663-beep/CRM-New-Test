@@ -983,7 +983,7 @@
             }
 
             const doButtonHtml = (l.status === 'Sanctioned' || l.status === 'Disbursed')
-                ? `<button class="btn-quick btn-do" onclick="generateDO('${l.docId}')" title="Print Delivery Order">📄 DO</button>`
+                ? `<button class="btn-quick btn-do" onclick="generateDO('${escapeJsString(l.docId)}')" title="Print Delivery Order">📄 DO</button>`
                 : '';
 
             row.innerHTML = `
@@ -1006,9 +1006,9 @@
                 <td>
                     <div style="display:flex; flex-direction:column; gap:4px;">
                         <div style="display:flex; gap:4px;">
-                            <button class="btn-quick btn-edit" onclick="editLead('${l.docId}')">✏️</button>
-                            <button class="btn-quick" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);" onclick="showLeadAudit('${l.docId}')" title="Audit details">🧾</button>
-                            <button class="btn-quick btn-del" onclick="deleteLead('${l.docId}')">🗑️</button>
+                            <button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}')">✏️</button>
+                            <button class="btn-quick" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);" onclick="showLeadAudit('${escapeJsString(l.docId)}')" title="Audit details">🧾</button>
+                            <button class="btn-quick btn-del" onclick="deleteLead('${escapeJsString(l.docId)}')">🗑️</button>
                         </div>
                         ${doButtonHtml}
                     </div>
@@ -1055,9 +1055,9 @@
                 <td><span class="badge ${l.rtoStatus === 'Completed' ? 'badge-Sanctioned' : 'badge-New'}">${escapeHtml(l.rtoStatus || 'Pending')}</span></td>
                 <td>
                     <div style="display:flex; flex-direction:column; gap:4px;">
-                        <button class="btn-quick btn-edit" onclick="openRtoHoldModal('${l.docId}')">⚙️ Manage</button>
-                        <button class="btn-quick btn-do" onclick="generateDO('${l.docId}')">📄 DO</button>
-                        <button class="btn-quick btn-reopen" onclick="revertToLive('${l.docId}')">↩ Revert</button>
+                        <button class="btn-quick btn-edit" onclick="openRtoHoldModal('${escapeJsString(l.docId)}')">⚙️ Manage</button>
+                        <button class="btn-quick btn-do" onclick="generateDO('${escapeJsString(l.docId)}')">📄 DO</button>
+                        <button class="btn-quick btn-reopen" onclick="revertToLive('${escapeJsString(l.docId)}')">↩ Revert</button>
                     </div>
                 </td>
             `;
@@ -1226,7 +1226,7 @@
                 <td><strong style="color:var(--primary);">${formatINR(disAmt)}</strong></td>
                 <td><strong style="color:${cut > 0 ? 'var(--danger)' : 'var(--text-muted)'}; font-size:0.95rem;">${formatINR(cut)}</strong></td>
                 <td>
-                    <button class="btn-quick btn-edit" onclick="openEditDealerCutModal('${l.docId}')">⚙️ Set Cut</button>
+                    <button class="btn-quick btn-edit" onclick="openEditDealerCutModal('${escapeJsString(l.docId)}')">⚙️ Set Cut</button>
                 </td>
             `;
             tbody.appendChild(row);
@@ -1324,7 +1324,7 @@
                 <td><strong style="color:var(--success); font-size:0.95rem;">${formatINR(net)}</strong></td>
                 <td><span class="badge ${payoutBadge}">${pStatus}</span></td>
                 <td>
-                    <button class="btn-quick btn-edit" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; cursor:pointer;" onclick="openPayoutModal('${l.docId}')">💰 Edit</button>
+                    <button class="btn-quick btn-edit" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; cursor:pointer;" onclick="openPayoutModal('${escapeJsString(l.docId)}')">💰 Edit</button>
                 </td>
             `;
             tbody.appendChild(row);
@@ -1465,7 +1465,7 @@
                 <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${escapeHtml(l.status)}</span></td>
                 <td style="color:#fbbf24; font-weight:600;">${l.followDate || 'Today'}</td>
                 <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
-                <td><button class="btn-quick btn-edit" onclick="editLead('${l.docId}'); switchView('pipeline');">✏️ Update</button></td>
+                <td><button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}'); switchView('pipeline');">✏️ Update</button></td>
             `;
             tbody.appendChild(row);
         });
