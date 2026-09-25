@@ -486,6 +486,13 @@
             <div class="panel-title">🔔 Urgent & Scheduled Follow-ups</div>
             <div style="color:var(--text-muted); font-size:0.8rem;">Clients needing attention today</div>
         </div>
+        <div class="followup-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;">
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('urgent')">⚠️ Overdue + Today</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('overdue')">Overdue</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('today')">Today</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('upcoming')">Next 7 Days</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('all')">All Pending</button>
+        </div>
         <div class="table-responsive">
             <table>
                 <thead>
