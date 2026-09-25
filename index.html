@@ -1,0 +1,2971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Heritage FinTech Core - Multi-Tenant Auto Finance SaaS</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d4af37">
+    <style>
+        :root {
+            --bg: #0b0d13;
+            --card-bg: #141722;
+            --card-border: #242938;
+            --primary: #d4af37;
+            --primary-hover: #b89628;
+            --text: #f3f4f6;
+            --text-muted: #8b92a5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #38bdf8;
+            --saas: #a855f7;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 18px; }
+        
+        #authOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #080a0f;
+            z-index: 99999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .login-box {
+            background: var(--card-bg);
+            border: 1px solid var(--primary);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 420px;
+            padding: 28px;
+            box-shadow: 0 12px 45px rgba(0,0,0,0.95);
+            text-align: center;
+            position: relative;
+            z-index: 100000;
+        }
+        .auth-toggle-group {
+            display: flex;
+            background: #0b0d13;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+            border: 1px solid var(--card-border);
+        }
+        .auth-toggle-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .auth-toggle-btn.active {
+            background: #1e2433;
+            color: var(--primary);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--card-border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 { color: var(--primary); font-size: 1.45rem; display: flex; align-items: center; gap: 8px; }
+        .sync-status {
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .sync-dot {
+            width: 8px; height: 8px; background: var(--success); border-radius: 50%;
+            display: inline-block; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn-action {
+            background: #1e2433;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .btn-action:hover { background: var(--primary); color: #000; }
+        .btn-install { background: var(--primary); color: #000; border: none; font-weight: 700; display: none; }
+
+        .crm-nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 8px;
+            overflow-x: auto;
+        }
+        .tab-link {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .tab-link.active {
+            background: #1e2433;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+        .tab-badge {
+            background: var(--primary);
+            color: #000;
+            padding: 1px 6px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .metric-title { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 1.18rem; font-weight: 700; margin-top: 5px; color: var(--text); }
+        .metric-gold { color: var(--primary); }
+
+        .crm-container { display: grid; grid-template-columns: 390px 1fr; gap: 18px; }
+        .crm-container.admin-mode { grid-template-columns: 1fr !important; }
+        @media (max-width: 1080px) { .crm-container { grid-template-columns: 1fr; } }
+        
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 18px;
+        }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .panel-title { font-size: 1rem; color: var(--primary); font-weight: 600; }
+        .section-title {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 600;
+            margin: 12px 0 6px 0;
+            border-bottom: 1px solid #1f2536;
+            padding-bottom: 3px;
+        }
+        .form-group { margin-bottom: 9px; }
+        label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 3px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 7px 9px;
+            background: #0f121a;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.82rem;
+        }
+        input:focus, select:focus, textarea:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: #0f121a;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+        }
+        .checkbox-item { display: flex; align-items: center; gap: 7px; font-size: 0.78rem; cursor: pointer; color: var(--text); }
+        .checkbox-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--primary);
+            color: #000;
+            font-weight: 600;
+            padding: 9px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.88rem;
+        }
+        .btn-submit:hover { background: var(--primary-hover); }
+
+        .user-master-card {
+            background: #0f121a;
+            border: 1px solid #242938;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            transition: border-color 0.2s;
+        }
+        .user-master-card:hover { border-color: var(--saas); }
+        .user-stat-pill {
+            background: #141722;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #1f2536;
+        }
+        .user-stat-pill .num { font-weight: 700; font-size: 1rem; color: var(--text); }
+        .user-stat-pill .sub { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
+
+        .table-responsive { overflow-x: auto; max-height: 620px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.81rem; }
+        th {
+            background: #0f121a;
+            padding: 9px;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-muted);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        td { padding: 9px; border-bottom: 1px solid var(--card-border); vertical-align: middle; }
+
+        .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+        .badge-New { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+        .badge-Contacted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .badge-DocumentsPending { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
+        .badge-LoginDone { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+        .badge-Sanctioned { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .badge-Disbursed { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .badge-Active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .badge-Suspended { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .badge-Rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        
+        .payout-Pending { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+        .payout-Processing { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .payout-Received { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .payout-Cleared { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .payout-OnHold { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+        .quick-actions { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .btn-quick {
+            text-decoration: none; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px;
+            display: inline-flex; align-items: center; gap: 3px; font-weight: 600; border: none; cursor: pointer;
+        }
+        .btn-call { background: #1e293b; color: #38bdf8; border: 1px solid #334155; }
+        .btn-wa { background: rgba(37, 211, 102, 0.15); color: #4ade80; border: 1px solid rgba(37, 211, 102, 0.3); }
+        .btn-edit { background: rgba(212, 175, 55, 0.15); color: var(--primary); border: 1px solid rgba(212, 175, 55, 0.3); }
+        .btn-reopen { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+        .btn-do { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); }
+        .btn-do:hover { background: #a855f7; color: #000; }
+        .btn-del { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 999999; justify-content: center; align-items: center; padding: 15px;
+        }
+        .modal-card {
+            background: var(--card-bg); border: 1px solid var(--primary); border-radius: 10px;
+            width: 100%; max-width: 500px; padding: 22px; box-shadow: 0 10px 35px rgba(0,0,0,0.9);
+            position: relative; z-index: 1000000;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            .printable-section, .printable-section * { visibility: visible; }
+            .printable-section {
+                position: absolute; left: 0; top: 0; width: 100%; background: #fff !important;
+                color: #000 !important; padding: 25px; border: none !important;
+            }
+        }
+        .do-paper {
+            background: #ffffff; color: #111111; padding: 28px; border-radius: 8px;
+            font-family: 'Segoe UI', Arial, sans-serif; border: 2px solid #d4af37; box-shadow: 0 0 25px rgba(0,0,0,0.7);
+        }
+        .do-paper h2 { color: #000; font-size: 1.4rem; text-align: center; text-transform: uppercase; margin-bottom: 2px; }
+        .do-paper h4 { color: #b89628; text-align: center; font-size: 0.85rem; letter-spacing: 1px; margin-bottom: 20px; }
+        .do-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.86rem; margin-bottom: 20px; }
+        .do-grid-item { padding: 6px 10px; border-bottom: 1px dashed #ccc; }
+        .do-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.86rem; }
+        .do-table th, .do-table td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+        .do-table th { background: #f9f9f9; color: #333; font-weight: 700; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- DUAL AUTHENTICATION SCREEN -->
+<div id="authOverlay" style="display: flex;">
+    <div class="login-box">
+        <div class="auth-toggle-group">
+            <button class="auth-toggle-btn active" id="btnAuthClient" onclick="setAuthTab('client')">🏢 Client / Staff Login</button>
+            <button class="auth-toggle-btn" id="btnAuthAdmin" onclick="setAuthTab('admin')">👑 IT Admin Master</button>
+        </div>
+
+        <h2 style="color:var(--primary); margin-bottom:4px;" id="authHeaderTitle">Client Tenant Portal</h2>
+        <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:18px;" id="authHeaderSub">Sign in to your auto finance workspace</p>
+        
+        <form onsubmit="handleUserLogin(event)">
+            <div class="form-group" style="text-align:left;" id="authFieldUserIdGroup">
+                <label id="authLabelUserId">Tenant ID / Username</label>
+                <input type="text" id="loginUserId" placeholder="e.g. heritage auto finance" value="heritage auto finance" required>
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter secure password" required>
+            </div>
+            <div id="loginError" style="color:var(--danger); font-size:0.75rem; margin-bottom:10px; display:none;">Invalid credentials!</div>
+            <button type="submit" class="btn-submit" id="authSubmitBtn">Launch Portal</button>
+        </form>
+
+        <div style="margin-top:14px; text-align:center;">
+            <a href="javascript:void(0)" onclick="openResetPasswordModal(); return false;" style="color:var(--info); font-size:0.78rem; text-decoration:none; display:inline-block; padding:6px; cursor:pointer;">🔑 Forgot Password / Reset PIN?</a>
+        </div>
+    </div>
+</div>
+
+<header>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <h1 id="headerTenantBrand">🚗 Heritage Auto Finance CRM</h1>
+        <div class="sync-status"><span class="sync-dot"></span> Cloud Secure Live</div>
+    </div>
+    <div class="header-actions">
+        <span id="activeUserBadge" style="background:#1e2433; border:1px solid var(--primary); padding:5px 10px; border-radius:6px; font-size:0.75rem; color:var(--primary); font-weight:700;">👤 Admin</span>
+        <button id="btnChangeMyPass" class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openChangeMyPasswordModal()">🔑 Change Password</button>
+        <button id="btnExitUserView" class="btn-action" style="background:#ef4444; color:#fff; display:none;" onclick="exitUserView()">↩ Exit to Admin Master Desk</button>
+        <button class="btn-action btn-install" id="btnInstallApp" onclick="installPWA()">📲 Install App</button>
+        <button class="btn-action" id="btnExportExcel" onclick="exportToCSV()" style="display:none;">📥 Export Excel</button>
+        <button class="btn-action" style="background:#ef4444; color:#fff;" onclick="logoutCurrentUser()">🚪 Logout</button>
+        <div style="color: var(--text-muted); font-size: 0.8rem;" id="current-date"></div>
+    </div>
+</header>
+
+<!-- CRM Navigation Tabs -->
+<div class="crm-nav-tabs" id="crmNavTabsBar">
+    <button class="tab-link active" id="tabPipeline" onclick="switchView('pipeline')">📊 Active Live Pipeline <span class="tab-badge" id="badge-live-count">0</span></button>
+    <button class="tab-link" id="tabDisbursed" onclick="switchView('disbursedhub')">📑 Disbursed Files & Clearance Hub <span class="tab-badge" id="badge-disbursed-count">0</span></button>
+    <button class="tab-link" id="tabDealers" onclick="switchView('dealers')">🤝 Dealer / Broker Ledger <span class="tab-badge" id="badge-dealers-count">0</span></button>
+    <button class="tab-link" id="tabSecretPayouts" onclick="switchView('payoutdesk')">🔒 Secret DSA Payouts</button>
+    <button class="tab-link" id="tabFollowups" onclick="switchView('followups')">🔔 Today's Follow-ups <span class="tab-badge" id="badge-followup-count">0</span></button>
+</div>
+
+<!-- Operational Stats Bar -->
+<div class="dashboard-grid">
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-live-leads">Live Open Files</div>
+        <div class="metric-value" id="m-live-leads">0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-login-leads">Login Files</div>
+        <div class="metric-value" id="m-login-leads">0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-login-amount">Total Login Amount (₹)</div>
+        <div class="metric-value metric-gold" id="m-login-amount">₹0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-disburse-leads">Disbursed (Closed)</div>
+        <div class="metric-value" id="m-disburse-leads">0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-month-business">Total Disbursed Amount (₹)</div>
+        <div class="metric-value metric-gold" id="m-month-business">₹0</div>
+    </div>
+    <div class="metric-card" id="cardCustomerHold">
+        <div class="metric-title">Customer Hold Pending</div>
+        <div class="metric-value" style="color:var(--danger);" id="m-total-hold">₹0</div>
+    </div>
+</div>
+
+<!-- VIEW 1: Main Container -->
+<div id="view-pipeline" class="crm-container">
+    <div id="colAddLeadForm">
+        <div class="panel">
+            <div class="panel-title" id="form-heading">Add New Lead</div>
+            <form id="leadForm">
+                <input type="hidden" id="editDocId" value="">
+                
+                <div class="form-group">
+                    <label>Customer Name *</label>
+                    <input type="text" id="custName" required placeholder="Full Name">
+                </div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Mobile Number *</label>
+                        <input type="tel" id="mobile" required placeholder="10-digit">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>City</label>
+                        <input type="text" id="city" placeholder="e.g. Mehsana">
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Vehicle Model</label>
+                        <input type="text" id="vehModel" placeholder="e.g. Swift / Bolero">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Vehicle Type</label>
+                        <select id="vehType">
+                            <option value="New">New</option>
+                            <option value="Used">Used</option>
+                            <option value="Commercial">Commercial</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Requested Loan (₹) *</label>
+                        <input type="number" id="loanAmount" required placeholder="e.g. 500000" oninput="syncApproveAmountDefault()">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Bank & NBFC (Login)</label>
+                        <input type="text" id="bankNbfc" placeholder="e.g. AU / Chola / HDFC">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                        <label style="color:#c084fc; margin-bottom:0;">Dealer / Sub-Broker (Sourcing Partner)</label>
+                        <div style="display:flex; gap:6px;">
+                            <button type="button" onclick="promptAddNewDealer()" style="background:none; border:none; color:#10b981; font-size:0.75rem; cursor:pointer; font-weight:700;">➕ Add New</button>
+                            <button type="button" onclick="openManageDealersModal()" style="background:none; border:none; color:#fbbf24; font-size:0.75rem; cursor:pointer; font-weight:700;">⚙️ Manage</button>
+                        </div>
+                    </div>
+                    <select id="dealerNameSelect">
+                        <option value="Direct Customer">Direct Customer (No Dealer)</option>
+                    </select>
+                </div>
+
+                <div class="section-title">📌 Status & Follow-up</div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Lead Status</label>
+                        <select id="status" onchange="handleStatusChange()">
+                            <option value="New">🟡 New</option>
+                            <option value="Contacted">🔵 Contacted</option>
+                            <option value="Documents Pending">🟠 Documents Pending</option>
+                            <option value="Login Done">🟣 Login Done</option>
+                            <option value="Sanctioned">🟢 Sanctioned</option>
+                            <option value="Disbursed">✅ Disbursed (Moves to Disbursed Hub)</option>
+                            <option value="Rejected">🔴 Rejected</option>
+                            <option value="Not Interested">⚫ Not Interested</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Next Follow-up</label>
+                        <input type="date" id="followDate">
+                    </div>
+                </div>
+
+                <div id="sanctionedBox" style="display: none; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(74, 222, 128, 0.35); padding: 12px; border-radius: 8px; margin: 10px 0;">
+                    <div class="section-title" style="margin-top: 0; color: #4ade80;">🟢 Sanctioned & Disbursed Details</div>
+                    <div class="form-group" style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label style="color:#4ade80; font-weight:600;">Approved Amount (₹) *</label>
+                            <input type="number" id="approvedAmount" placeholder="Sanctioned Amt">
+                        </div>
+                        <div style="flex: 1;">
+                            <label>Disbursed Amount (₹)</label>
+                            <input type="number" id="disbursedAmount" placeholder="Net Disbursed Amt">
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label style="color:#c084fc; font-weight:600;">Dealer Cut / Payout (₹)</label>
+                            <input type="number" id="formDealerCut" placeholder="e.g. 5000">
+                        </div>
+                        <div style="flex: 1;" id="disbursedDateGroup">
+                            <label style="color:var(--primary); font-weight:600;">Disbursement Date *</label>
+                            <input type="date" id="disbursedDate">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="docChecklistSection" style="display: none; margin: 10px 0;">
+                    <div class="section-title">📋 Document Received Checklist</div>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-item"><input type="checkbox" id="chkAadhaar"> Aadhaar Card</label>
+                        <label class="checkbox-item"><input type="checkbox" id="chkPan"> PAN Card</label>
+                        <label class="checkbox-item"><input type="checkbox" id="chkBank"> Bank Statement</label>
+                        <label class="checkbox-item"><input type="checkbox" id="chkRc"> RC Book / Valuation</label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Remarks / Notes</label>
+                    <textarea id="lastConv" rows="2" placeholder="Discussion notes..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">Save to Cloud</button>
+                <button type="button" class="btn-submit" id="cancelBtn" style="background:#334155; color:#fff; display:none; margin-top:6px;" onclick="resetForm()">Cancel Edit</button>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <!-- ADMIN VIEW: Rented Users Cards -->
+        <div id="adminUserMasterDeck" style="display:none;">
+            <div class="panel" style="border: 1px solid #a855f7;">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title" style="color:#c084fc; font-size:1.15rem;">🏢 Rented Clients & Agency Master Cards</div>
+                        <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Manage licenses, active/inactive status, rent bills & performance reports</div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="exportAllClientsToCSV()">📥 Export All Agency Data</button>
+                        <button class="btn-action" style="background:#a855f7; color:#000; font-weight:700;" onclick="openAddTenantModal()">➕ Onboard New Client</button>
+                    </div>
+                </div>
+                <div id="userCardsContainer"></div>
+            </div>
+        </div>
+
+        <!-- CLIENT VIEW: Active Live Pipeline Table -->
+        <div id="clientPipelineTablePanel">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title" id="pipelineTableTitle">Active Live Pipeline (In-Process Files Only)</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <div>
+                            <input type="month" id="liveMonthFilter" onchange="renderViews()" style="width:140px; padding:5px 8px;">
+                        </div>
+                        <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=''; renderViews();" style="padding:5px 10px;">All Months</button>
+                        <input type="text" id="searchQuery" placeholder="🔍 Search..." onkeyup="renderViews()" style="width:150px;">
+                        <select id="filterStatus" onchange="renderViews()" style="width:130px;">
+                            <option value="All">All Live Files</option>
+                            <option value="Sanctioned">🟢 Sanctioned</option>
+                            <option value="Login Done">🟣 Login Done</option>
+                            <option value="Documents Pending">🟠 Documents Pending</option>
+                            <option value="Contacted">🔵 Contacted</option>
+                            <option value="New">🟡 New</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Vehicle</th>
+                                <th>Lead Date</th>
+                                <th>Requested Loan</th>
+                                <th>Approved Amt</th>
+                                <th>Dealer/Partner</th>
+                                <th>Status</th>
+                                <th>Documents Status</th>
+                                <th>Remarks</th>
+                                <th>Manage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leadsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 2: Disbursed Files & Clearance Hub -->
+<div id="view-disbursedhub" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">📑 Disbursed Files & Clearance Hub</div>
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Monitor RTO & Customer Hold with Month Filter</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div>
+                    <input type="month" id="disbursedMonthFilter" onchange="renderDisbursedHubTable()" style="width:150px; padding:5px 8px;">
+                </div>
+                <button class="btn-action" onclick="document.getElementById('disbursedMonthFilter').value=''; renderDisbursedHubTable();">All Months</button>
+                <div style="background:#1e2433; border:1px solid var(--danger); padding:6px 14px; border-radius:8px;">
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Hold Pending: </span>
+                    <strong style="color:var(--danger); font-size:1rem;" id="tab-total-hold">₹0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Vehicle & Financier</th>
+                        <th>Disbursed Date</th>
+                        <th>Approved Amt</th>
+                        <th>Disbursed Amt</th>
+                        <th>Customer Hold Amt</th>
+                        <th>Reason for Hold</th>
+                        <th>Hold Remarks</th>
+                        <th>Hold Status</th>
+                        <th>RTO Charges</th>
+                        <th>RTO Process Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="disbursedHubTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 3: DEALER / BROKER LEDGER -->
+<div id="view-dealers" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title" style="color:#c084fc;">🤝 Sourcing Partner / Car Dealer Ledger</div>
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Track individual customer files and generate printable PDF statement</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <select id="dealerSelectFilter" onchange="renderDealerLedgerTable()" style="width:180px; padding:6px 10px; background:#0f121a; border:1px solid #a855f7; color:#f3f4f6; border-radius:6px;">
+                    <option value="All">All Dealers / Partners</option>
+                </select>
+                <button class="btn-action" onclick="openDealerStatementModal()" style="background:#a855f7; color:#000; font-weight:700;">📄 View & Print PDF Statement</button>
+                <div style="background:#1e2433; border:1px solid #a855f7; padding:6px 14px; border-radius:8px;">
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Total Dealer Payable Cut: </span>
+                    <strong style="color:#c084fc; font-size:1.1rem;" id="tab-dealer-payout-total">₹0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dealer / Partner</th>
+                        <th>Customer Name</th>
+                        <th>Vehicle Model</th>
+                        <th>File Status</th>
+                        <th>Approved Loan</th>
+                        <th>Disbursed Loan</th>
+                        <th>Dealer Cut / Payable (₹)</th>
+                        <th>Manage</th>
+                    </tr>
+                </thead>
+                <tbody id="dealerLedgerTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 4: SECRET DSA COMMISSIONS & PAYOUT DESK -->
+<div id="view-payoutdesk" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title" style="color:var(--primary);">🔒 Private DSA Commission & Bank Payout Desk</div>
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Payouts calculated on <strong>Approved Sanctioned Amount</strong></div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div>
+                    <input type="month" id="payoutMonthFilter" onchange="renderPayoutDeskTable()" style="width:150px; padding:5px 8px;">
+                </div>
+                <button class="btn-action" onclick="document.getElementById('payoutMonthFilter').value=''; renderPayoutDeskTable();">All Months</button>
+                <button class="btn-action" onclick="lockPayoutDesk()">🔒 Lock Desk</button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" style="margin-bottom: 20px;">
+            <div class="metric-card" style="border-color: rgba(212,175,55,0.4);">
+                <div class="metric-title">Total Gross Commission</div>
+                <div class="metric-value metric-gold" id="sec-gross-comm">₹0</div>
+            </div>
+            <div class="metric-card" style="border-color: rgba(239,68,68,0.4);">
+                <div class="metric-title">Dealer / Broker Cuts</div>
+                <div class="metric-value" style="color:var(--danger);" id="sec-dealer-cuts">₹0</div>
+            </div>
+            <div class="metric-card" style="border-color: rgba(16,185,129,0.4);">
+                <div class="metric-title">Total Net Earning</div>
+                <div class="metric-value" style="color:var(--success);" id="sec-net-comm">₹0</div>
+            </div>
+            <div class="metric-card" style="border-color: rgba(56,189,248,0.4);">
+                <div class="metric-title">Received in Bank</div>
+                <div class="metric-value" style="color:var(--info);" id="sec-received-payout">₹0</div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Financier</th>
+                        <th>Dealer/Partner</th>
+                        <th>Disbursed Date</th>
+                        <th>Approved Amt (Base)</th>
+                        <th>Comm Rate</th>
+                        <th>Gross Payout</th>
+                        <th>Dealer Cut</th>
+                        <th>Net Earning</th>
+                        <th>Payout Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="payoutDeskTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 5: Today's Follow-ups -->
+<div id="view-followups" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">🔔 Urgent & Scheduled Follow-ups</div>
+            <div style="color:var(--text-muted); font-size:0.8rem;">Clients needing attention today</div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Mobile & Action</th>
+                        <th>Loan Amount</th>
+                        <th>Status</th>
+                        <th>Follow-up Date</th>
+                        <th>Latest Remarks & Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="followupsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: PASSWORD GATE FOR SECRET PAYOUTS -->
+<div id="passwordGateModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 380px; text-align: center;">
+        <h3 style="color: var(--primary); margin-bottom: 8px;">🔒 Secure Payout Desk</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px;">Enter 4-digit Master PIN to unlock private commissions:</p>
+        <form onsubmit="handlePinSubmit(event)">
+            <div class="form-group" style="text-align: left;">
+                <label>Security PIN</label>
+                <input type="password" id="secretPinInput" placeholder="Enter PIN" maxlength="4" style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;" required>
+            </div>
+            <div id="pinErrorMsg" style="color: var(--danger); font-size: 0.75rem; margin-bottom: 10px; display: none;">Invalid PIN!</div>
+            <button type="submit" class="btn-submit">Unlock Desk</button>
+            <button type="button" class="btn-submit" style="background: #334155; color: #fff; margin-top: 6px;" onclick="closePasswordGate()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: CLIENT CHANGE OWN PASSWORD -->
+<div id="changeMyPasswordModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+        <h3 style="color: var(--info); margin-bottom: 8px;">🔑 Change My Password</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px;">Update your login password securely:</p>
+        <form onsubmit="handleSaveMyPassword(event)">
+            <div class="form-group">
+                <label>Current Password *</label>
+                <input type="password" id="cmp_oldPass" placeholder="Enter current password" required>
+            </div>
+            <div class="form-group">
+                <label>New Password *</label>
+                <input type="password" id="cmp_newPass" placeholder="Enter new password" required>
+            </div>
+            <div id="cmpError" style="color: var(--danger); font-size: 0.75rem; margin-bottom: 10px; display: none;">Current password incorrect!</div>
+            <button type="submit" class="btn-submit" style="background: var(--info); color: #000;">Update Password</button>
+            <button type="button" class="btn-submit" style="background: #334155; color: #fff; margin-top: 6px;" onclick="document.getElementById('changeMyPasswordModal').style.display='none';">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: EDIT PAYOUT STATUS & COMMISSION SETTINGS -->
+<div id="editPayoutModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 440px;">
+        <h3 style="color:var(--primary); margin-bottom:10px;" id="ep_modalTitle">💰 Edit Payout & Commission Calculator</h3>
+        <form onsubmit="handleSavePayoutData(event)">
+            <input type="hidden" id="ep_docId">
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Customer: <strong id="ep_custName" style="color:var(--text);"></strong></p>
+            
+            <div class="form-group">
+                <label style="color:#4ade80; font-weight:600;">Approved Amount (₹) [Base]</label>
+                <input type="number" id="ep_approvedAmt" oninput="recalcPayoutModal()" required>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label style="color:var(--primary); font-weight:600;">Bank Comm (%)</label>
+                    <input type="number" step="0.01" id="ep_commRate" oninput="recalcPayoutModal()" required placeholder="e.g. 3.75">
+                </div>
+                <div style="flex:1;">
+                    <label>Gross Payout (₹)</label>
+                    <input type="text" id="ep_calcGross" readonly style="background:#1a1e2b; font-weight:700; color:var(--primary);">
+                </div>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label style="color:#c084fc; font-weight:600;">Dealer Cut Type</label>
+                    <select id="ep_cutType" onchange="toggleCutTypeInput()">
+                        <option value="amount">₹ Fixed Amount</option>
+                        <option value="percent">% Percentage</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="color:#c084fc; font-weight:600;" id="ep_cutLabel">Dealer Cut Value</label>
+                    <input type="number" step="0.01" id="ep_dealerCutVal" oninput="recalcPayoutModal()" required placeholder="e.g. 5000">
+                </div>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label>Calculated Cut (₹)</label>
+                    <input type="text" id="ep_calcCutAmt" readonly style="background:#1a1e2b; color:var(--danger); font-weight:700;">
+                </div>
+                <div style="flex:1;">
+                    <label style="color:var(--success); font-weight:600;">Net DSA Payout (₹)</label>
+                    <input type="text" id="ep_calcNet" readonly style="background:#1a1e2b; color:var(--success); font-weight:700;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:6px;">
+                <label>Payout Status</label>
+                <select id="ep_status">
+                    <option value="Pending">🟡 Pending</option>
+                    <option value="Processing">🔵 Processing</option>
+                    <option value="Received">🟢 Received in Bank</option>
+                    <option value="Cleared">✅ Cleared</option>
+                    <option value="On Hold">🔴 On Hold</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit" style="background:var(--primary); color:#000; margin-top:10px;">Save Payout Record</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="document.getElementById('editPayoutModal').style.display='none';">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: MANAGE DEALERS / SUB-BROKERS LIST -->
+<div id="manageDealersModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:#fbbf24; margin-bottom:12px;">⚙️ Manage Dealers / Sub-Brokers</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">List of saved sourcing partners:</p>
+        <div id="dealersListContainer" style="max-height: 250px; overflow-y: auto; margin-bottom: 14px;"></div>
+        <button type="button" class="btn-submit" style="background:#334155; color:#fff;" onclick="closeManageDealersModal()">Close</button>
+    </div>
+</div>
+
+<!-- MODAL: ADD / EDIT RENTED CLIENT TENANT -->
+<div id="saasTenantModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:#c084fc; margin-bottom:12px;" id="tenantModalTitle">➕ Onboard New Client (Tenant Agency)</h3>
+        <form onsubmit="handleSaveTenantClient(event)">
+            <input type="hidden" id="isEditingTenant" value="false">
+            <div class="form-group">
+                <label>Client Tenant ID (Username) *</label>
+                <input type="text" id="t_tenantId" placeholder="e.g. shreeji_auto, bhavani_finance" required>
+            </div>
+            <div class="form-group">
+                <label>Agency / Client Name *</label>
+                <input type="text" id="t_agencyName" placeholder="e.g. Shree Auto Consultant" required>
+            </div>
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label>Head Office Address *</label>
+                    <input type="text" id="t_headOffice" placeholder="e.g. Mehsana, Gujarat" required>
+                </div>
+                <div style="flex:1;">
+                    <label>Contact Phone number *</label>
+                    <input type="tel" id="t_contactPhone" placeholder="e.g. +91 7600211085" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Login Password *</label>
+                <input type="text" id="t_password" placeholder="Set secure password" required>
+            </div>
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label>Monthly Rent (₹)</label>
+                    <input type="number" id="t_monthlyRent" placeholder="e.g. 3000" value="3000" required>
+                </div>
+                <div style="flex:1;">
+                    <label>Rent Expiry Date</label>
+                    <input type="date" id="t_expiryDate" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>License Status</label>
+                <select id="t_status">
+                    <option value="Active">🟢 Active (Running)</option>
+                    <option value="Suspended">🔴 Suspended / Inactive (Payment Due)</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-submit" style="background:#a855f7; color:#000;">Save Client License</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="closeAddTenantModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: DEDICATED PASSWORD RESET -->
+<div id="passwordResetModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:var(--primary); margin-bottom:6px;">🔑 Reset Credentials / Password</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:14px;">Verify your Registered Mobile to set a new password:</p>
+        
+        <form onsubmit="handleResetPasswordSubmit(event)">
+            <div class="form-group">
+                <label>Select Target Role</label>
+                <select id="resetRoleTarget" onchange="toggleResetUserField()">
+                    <option value="client">Client / Staff Account</option>
+                    <option value="admin">IT Admin Master Key</option>
+                </select>
+            </div>
+            <div class="form-group" id="resetUserIdField">
+                <label>Tenant ID / Username</label>
+                <input type="text" id="resetInputUserId" placeholder="e.g. heritage auto finance">
+            </div>
+            <div class="form-group">
+                <label>Registered Verification Phone</label>
+                <input type="tel" id="resetInputPhone" placeholder="Enter 10-digit mobile" required>
+            </div>
+            <div class="form-group">
+                <label>New Password / Master PIN</label>
+                <input type="password" id="resetInputNewPass" placeholder="Set new password" required>
+            </div>
+            <div id="resetErrorMsg" style="color:var(--danger); font-size:0.75rem; margin-bottom:10px; display:none;">Invalid Phone Number or User ID!</div>
+            <button type="submit" class="btn-submit">Reset & Update Password</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="closeResetPasswordModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: RENT BILL / INVOICE GENERATOR -->
+<div id="adminRentBillModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 680px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <button class="btn-action" style="background:#10b981; color:#000;" onclick="window.print()">🖨️ Print / Save Bill as PDF</button>
+            <button class="btn-action" onclick="document.getElementById('adminRentBillModal').style.display='none';">✕ Close</button>
+        </div>
+        
+        <div id="printableRentBillArea" class="do-paper printable-section">
+            <h2 style="color:#a855f7;">HERITAGE FINTECH CORE</h2>
+            <h4>OFFICIAL RENT INVOICE & SUBSCRIPTION BILL</h4>
+            
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Invoice Date:</strong> <span id="billDate"></span></div>
+                <div class="do-grid-item"><strong>Invoice Number:</strong> <span id="billInvNo"></span></div>
+                <div class="do-grid-item"><strong>Client Agency Name:</strong> <span id="billAgencyName" style="color:#b89628; font-weight:700;"></span></div>
+                <div class="do-grid-item"><strong>Tenant Username:</strong> <span id="billTenantId"></span></div>
+                <div class="do-grid-item"><strong>Billing Period:</strong> <span id="billPeriod"></span></div>
+                <div class="do-grid-item"><strong>License Valid Upto:</strong> <span id="billExpiry"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Software Subscription Particulars</th>
+                        <th style="text-align:right;">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Heritage FinTech Core - Multi-Tenant Monthly SaaS License Rent</td>
+                        <td style="text-align:right; font-weight:700;" id="billRentAmt">₹0</td>
+                    </tr>
+                    <tr>
+                        <td>Cloud Database Storage & Realtime Firebase Sync Support</td>
+                        <td style="text-align:right;">Included (Free)</td>
+                    </tr>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td style="color:#0f5132; font-size:1rem;">TOTAL RENT PAYABLE DUE</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1.15rem;" id="billTotalPayable">₹0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="font-size:0.75rem; color:#444; line-height:1.4; margin-bottom: 30px;">
+                * Note: Please make your monthly rent payment via UPI / Bank Transfer before the expiry date to avoid automatic account suspension. Thank you for your business!
+            </p>
+
+            <div style="display:flex; justify-content:space-between; margin-top:35px; font-size:0.82rem;">
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>Client Acknowledgment</strong>
+                </div>
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>Authorized Signatory (IT Company)</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ADMIN AUDIT REPORT GENERATOR -->
+<div id="adminTenantReportModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 820px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; gap:8px; align-items:center;">
+                <label style="font-size:0.78rem; color:var(--text-muted);">Scope:</label>
+                <select id="admRptScope" onchange="generateAdminTenantReportView()" style="width:150px; padding:5px 8px;">
+                    <option value="All">All Files (Combined)</option>
+                    <option value="Live">Live Pipeline Only</option>
+                    <option value="Disbursed">Disbursed Files Only</option>
+                </select>
+                <label style="font-size:0.78rem; color:var(--text-muted); margin-left:6px;">Month:</label>
+                <input type="month" id="admRptMonth" onchange="generateAdminTenantReportView()" style="width:140px; padding:4px 8px;">
+                <button class="btn-action" onclick="document.getElementById('admRptMonth').value=''; generateAdminTenantReportView();" style="padding:4px 8px;">All Months</button>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="window.print()">🖨️ Print / Save as PDF</button>
+                <button class="btn-action" onclick="document.getElementById('adminTenantReportModal').style.display='none';">✕ Close</button>
+            </div>
+        </div>
+
+        <div id="printableAdminTenantReport" class="do-paper printable-section">
+            <h2 id="admRptAgencyTitle">AGENCY PERFORMANCE AUDIT REPORT</h2>
+            <h4 style="color:#a855f7; letter-spacing:1px; margin-bottom:14px;">POWERED BY HERITAGE FINTECH CORE</h4>
+            
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Generated On:</strong> <span id="admRptDate"></span></div>
+                <div class="do-grid-item"><strong>Agency Tenant ID:</strong> <span id="admRptTenantId" style="color:#b89628; font-weight:700;"></span></div>
+                <div class="do-grid-item"><strong>Report Filter:</strong> <span id="admRptFilterStatus"></span></div>
+                <div class="do-grid-item"><strong>Total Records:</strong> <span id="admRptTotalCount"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Customer Name</th>
+                        <th>Vehicle</th>
+                        <th>Lead Date</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Approved Loan</th>
+                        <th style="text-align:right;">Disbursed Loan</th>
+                        <th>Dealer / Sourcing</th>
+                    </tr>
+                </thead>
+                <tbody id="admRptTableBody"></tbody>
+                <tfoot>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td colspan="4" style="text-align:right; color:#0f5132;">TOTAL APPROVED VOLUME:</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1rem;" id="admRptSumApproved">₹0</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1rem;" id="admRptSumDisbursed">₹0</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="display:flex; justify-content:space-between; margin-top:35px; font-size:0.8rem;">
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>Authorized Agency Signatory</strong>
+                </div>
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>IT SaaS Platform Administrator</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EDIT DEALER CUT IN LEDGER -->
+<div id="editDealerCutModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:#c084fc; margin-bottom:8px;">💰 Manage Dealer Cut</h3>
+        <form id="editDealerCutForm" onsubmit="handleSaveDealerCutFromLedger(event)">
+            <input type="hidden" id="dc_leadDocId">
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Customer: <strong id="dc_custName" style="color:var(--text);"></strong></p>
+            <div class="form-group">
+                <label>Dealer / Sub-Broker Name</label>
+                <input type="text" id="dc_dealerName" readonly style="background:#1a1e2b;">
+            </div>
+            <div class="form-group">
+                <label>Approved Loan Amount (₹)</label>
+                <input type="number" id="dc_approvedAmt" readonly style="background:#1a1e2b; color:#4ade80; font-weight:700;">
+            </div>
+            <div class="form-group">
+                <label style="color:#c084fc; font-weight:700;">Dealer Cut / Payable Brokerage (₹) *</label>
+                <input type="number" id="dc_dealerCut" placeholder="Enter cut amount" required>
+            </div>
+            <button type="submit" class="btn-submit" style="background:#a855f7; color:#000;">Save Dealer Cut</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="document.getElementById('editDealerCutModal').style.display='none';">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: PRINTABLE DEALER STATEMENT -->
+<div id="dealerStatementModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 780px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <button class="btn-action" style="background:#10b981; color:#000;" onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <button class="btn-action" onclick="closeDealerStatementModal()">✕ Close</button>
+        </div>
+        
+        <div id="printableDealerArea" class="do-paper printable-section">
+            <h2 id="stmt_brand_title">HERITAGE AUTO FINANCE</h2>
+            <h4>PARTNER COMMISSION STATEMENT & FILE SUMMARY</h4>
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Statement Date:</strong> <span id="stmt_date"></span></div>
+                <div class="do-grid-item"><strong>Dealer / Partner Name:</strong> <span id="stmt_dealer" style="color:#b89628; font-weight:700;"></span></div>
+                <div class="do-grid-item"><strong>Total Files Processed:</strong> <span id="stmt_total_files"></span></div>
+                <div class="do-grid-item"><strong>Total Approved Business:</strong> <span id="stmt_total_approved"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Customer Name</th>
+                        <th>Vehicle Model</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Approved Amt</th>
+                        <th style="text-align:right;">Disbursed Amt</th>
+                        <th style="text-align:right;">Dealer Cut (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="stmt_table_body"></tbody>
+                <tfoot>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td colspan="5" style="text-align:right; color:#0f5132;">TOTAL PAYABLE COMMISSION TO DEALER:</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1.05rem;" id="stmt_total_payable">₹0</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RTO & HOLD CLEARANCE -->
+<div id="rtoHoldModal" class="modal-overlay">
+    <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--card-border); padding-bottom:8px;">
+            <div style="color:var(--primary); font-weight:700; font-size:1rem;" id="modalCustTitle">Manage Clearance</div>
+            <button onclick="closeRtoHoldModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        
+        <form id="rtoHoldForm">
+            <input type="hidden" id="modalDocId" value="">
+
+            <div class="section-title" style="color:#4ade80; margin-top:0;">💳 Sanctioned & Disbursed Amounts</div>
+            <div class="form-group" style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <label>Approved Amount (₹)</label>
+                    <input type="number" id="m_approvedAmount" placeholder="Approved Amt">
+                </div>
+                <div style="flex: 1;">
+                    <label>Disbursed Amount (₹)</label>
+                    <input type="number" id="m_disbursedAmount" placeholder="Disbursed Amt">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="color:var(--primary);">Disbursement Date</label>
+                <input type="date" id="m_disbursedDate">
+            </div>
+
+            <div class="section-title" style="color:#fbbf24; margin-top:14px;">📑 RTO Work Management</div>
+            <div class="form-group" style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <label>RTO Charges / Fee (₹)</label>
+                    <input type="number" id="m_rtoCharges" placeholder="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>RTO Process Status</label>
+                    <select id="m_rtoStatus">
+                        <option value="Pending">🟡 Pending (Not Applied)</option>
+                        <option value="File Submitted">🔵 File Submitted to RTO</option>
+                        <option value="Passing In-Progress">🟠 Passing / Fitness In-Progress</option>
+                        <option value="RC Dispatched">🟣 RC Dispatched / Generated</option>
+                        <option value="Completed">✅ Completed & Cleared</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-title" style="color:#f87171; margin-top:14px;">🛑 Customer Payment Hold Management</div>
+            <div class="form-group" style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <label>Hold Amount (₹)</label>
+                    <input type="number" id="m_holdAmount" placeholder="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>Reason for Hold</label>
+                    <select id="m_holdReason">
+                        <option value="None">None (No Hold)</option>
+                        <option value="RC Book Transfer">RC Book Transfer</option>
+                        <option value="Original Invoice / Bill">Original Invoice / Bill</option>
+                        <option value="Insurance Policy">Insurance Policy</option>
+                        <option value="NOC / Form 35 Clearance">NOC / Form 35 Clearance</option>
+                        <option value="Other">Other Reason</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Hold Remarks (Kyu roka hai)</label>
+                <input type="text" id="m_holdRemarks" placeholder="e.g. RC transfer hone par release karenge">
+            </div>
+
+            <div class="form-group">
+                <label>Hold Payment Status</label>
+                <select id="m_holdStatus">
+                    <option value="Hold Kept">🔴 Hold Kept (Payment Pending)</option>
+                    <option value="Released">🟢 Released to Customer</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit" style="margin-top:15px;">Update Clearance Records</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: PRINTABLE DELIVERY ORDER (DO) -->
+<div id="doModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 680px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <button class="btn-action" style="background:#10b981; color:#000;" onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <button class="btn-action" onclick="closeDoModal()">✕ Close</button>
+        </div>
+        
+        <div id="printableDOArea" class="do-paper printable-section">
+            <h2 id="do_brand_title">HERITAGE AUTO FINANCE</h2>
+            <h4 id="do_brand_sub">HEAD OFFICE: MEHSANA, GUJARAT | CONTACT: +91 7600211085</h4>
+            <div style="text-align:center; font-weight:700; border: 1px solid #111; padding: 4px; margin-bottom: 18px; text-transform:uppercase; background:#f4f4f4;">
+                VEHICLE DELIVERY ORDER (D.O.) & PAYMENT ADVICE
+            </div>
+
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Date:</strong> <span id="do_date"></span></div>
+                <div class="do-grid-item"><strong>DO Reference No:</strong> <span id="do_ref"></span></div>
+                <div class="do-grid-item"><strong>Customer Name:</strong> <span id="do_cust"></span></div>
+                <div class="do-grid-item"><strong>Mobile Number:</strong> <span id="do_mobile"></span></div>
+                <div class="do-grid-item"><strong>Vehicle Model:</strong> <span id="do_vehicle"></span></div>
+                <div class="do-grid-item"><strong>Financier (Bank/NBFC):</strong> <span id="do_bank"></span></div>
+                <div class="do-grid-item"><strong>Dealer / Sub-broker:</strong> <span id="do_dealer"></span></div>
+                <div class="do-grid-item"><strong>City:</strong> <span id="do_city"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Payment Particulars & Deductions</th>
+                        <th style="text-align:right;">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Sanctioned / Approved Loan Amount</strong></td>
+                        <td style="text-align:right; font-weight:700; color:#111;" id="do_approved">₹0</td>
+                    </tr>
+                    <tr>
+                        <td>Less: Bank Charges / Processing Deductions</td>
+                        <td style="text-align:right; color:#d9534f;" id="do_bank_charges">₹0</td>
+                    </tr>
+                    <tr style="background:#fdfdfd; font-weight:600;">
+                        <td>Gross Disbursed Loan Amount</td>
+                        <td style="text-align:right; color:#2563eb;" id="do_gross_disbursed">₹0</td>
+                    </tr>
+                    <tr>
+                        <td>Less: RTO Passing, Fitness & Registration Charges</td>
+                        <td style="text-align:right; color:#d9534f;" id="do_rto">₹0</td>
+                    </tr>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td style="color:#0f5132; font-size:0.95rem;">NET PAYABLE TO DEALER</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1.15rem;" id="do_net_dealer_payable">₹0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="font-size:0.75rem; color:#444; line-height:1.4; margin-bottom: 30px;">
+                * This document authorizes the dealership to deliver the above mentioned vehicle to the customer. All bank deduction and RTO registration charges have been factored as per advice. Hypothecation must be endorsed in favor of the financier bank.
+            </p>
+
+            <div style="display:flex; justify-content:space-between; margin-top:30px; font-size:0.82rem;">
+                <div style="text-align:center;">
+                    <div style="margin-bottom:40px;">_________________________</div>
+                    <strong>Customer Signature</strong>
+                </div>
+                <div style="text-align:center;">
+                    <div style="margin-bottom:40px;">_________________________</div>
+                    <strong>Authorized Signatory</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyACLaRm5yH301JVqlvl8KYglANOc3uh6w",
+        authDomain: "heritage-crm-f179a.firebaseapp.com",
+        projectId: "heritage-crm-f179a",
+        storageBucket: "heritage-crm-f179a.firebasestorage.app",
+        messagingSenderId: "434634669830",
+        appId: "1:434634669830:web:afa939caa85df772066887"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const leadsCollection = db.collection('leads');
+    const tenantsCollection = db.collection('tenants');
+    let tenantsCache = [];
+    let tenantsReady = false;
+
+    let leads = [];
+    let pModalApprovedBase = 0;
+    let isPayoutDeskUnlocked = false;
+    let inspectingTenantId = null;
+    let activeReportingTenantId = null;
+    let currentAuthMode = 'client';
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+
+    window.setAuthTab = function(mode) {
+        currentAuthMode = mode;
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('loginPassword').value = '';
+        if (mode === 'admin') {
+            document.getElementById('btnAuthAdmin').classList.add('active');
+            document.getElementById('btnAuthClient').classList.remove('active');
+            document.getElementById('authHeaderTitle').textContent = "👑 IT Admin Master Access";
+            document.getElementById('authHeaderSub').textContent = "Sign in to SaaS Master Console";
+            document.getElementById('authFieldUserIdGroup').style.display = 'none';
+            document.getElementById('loginUserId').value = 'admin';
+            document.getElementById('authSubmitBtn').textContent = "Unlock IT Master Console";
+        } else {
+            document.getElementById('btnAuthClient').classList.add('active');
+            document.getElementById('btnAuthAdmin').classList.remove('active');
+            document.getElementById('authHeaderTitle').textContent = "🏢 Client Tenant Portal";
+            document.getElementById('authHeaderSub').textContent = "Sign in to your auto finance workspace";
+            document.getElementById('authFieldUserIdGroup').style.display = 'block';
+            document.getElementById('loginUserId').value = 'heritage auto finance';
+            document.getElementById('authSubmitBtn').textContent = "Launch Portal";
+        }
+    };
+
+    function getStoredTenants() {
+        return Array.isArray(tenantsCache) ? tenantsCache : [];
+    }
+
+    async function loadTenantsFromFirestore() {
+        try {
+            const snapshot = await tenantsCollection.orderBy('tenantId').get();
+            tenantsCache = [];
+            snapshot.forEach(doc => {
+                tenantsCache.push({ docId: doc.id, ...doc.data() });
+            });
+            tenantsReady = true;
+            return tenantsCache;
+        } catch (error) {
+            console.error("Tenant load error:", error);
+            tenantsReady = false;
+            return [];
+        }
+    }
+
+    async function ensureDefaultTenantAndMigrateLocalData() {
+        try {
+            const snapshot = await tenantsCollection.get();
+            const existingIds = new Set();
+            snapshot.forEach(doc => existingIds.add((doc.data().tenantId || doc.id).toLowerCase()));
+
+            const defaultTenant = {
+                tenantId: "heritage auto finance",
+                agencyName: "Heritage Auto Finance (Chirag Prajapati)",
+                headOffice: "Mehsana, Gujarat",
+                contactPhone: "+91 7600211085",
+                role: "client",
+                password: "123",
+                rentAmount: 3500,
+                expiryDate: "2029-12-31",
+                status: "Active"
+            };
+
+            if (!existingIds.has(defaultTenant.tenantId)) {
+                await tenantsCollection.doc(defaultTenant.tenantId).set(defaultTenant);
+            }
+            await loadTenantsFromFirestore();
+        } catch (error) {
+            console.error("Tenant initialization error:", error);
+            await loadTenantsFromFirestore();
+        }
+    }
+
+    function getAdminPassword() {
+        return localStorage.getItem('haf_master_admin_pass') || 'admin123';
+    }
+
+    function getCurrentSessionUser() {
+        try {
+            const data = localStorage.getItem('haf_active_session_user_v2');
+            if (!data || data === "undefined") return null;
+            return JSON.parse(data);
+        } catch(e) {
+            localStorage.removeItem('haf_active_session_user_v2');
+            return null;
+        }
+    }
+
+    function setCurrentSessionUser(userObj) {
+        try {
+            if (!userObj) {
+                localStorage.removeItem('haf_active_session_user_v2');
+            } else {
+                localStorage.setItem('haf_active_session_user_v2', JSON.stringify(userObj));
+            }
+        } catch(e) {
+            console.error("Storage write error:", e);
+        }
+        applyPortalPermissions();
+    }
+
+    async function handleUserLogin(e) {
+        e.preventDefault();
+        const pass = document.getElementById('loginPassword').value.trim();
+
+        if (currentAuthMode === 'admin') {
+            if (pass === getAdminPassword()) {
+                document.getElementById('loginError').style.display = 'none';
+                document.getElementById('authOverlay').style.display = 'none';
+                setCurrentSessionUser({ tenantId: "admin", agencyName: "IT Master Company", role: "superadmin" });
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        } else {
+            const uid = document.getElementById('loginUserId').value.trim().toLowerCase();
+            const loginError = document.getElementById('loginError');
+
+            if (!uid || !pass) {
+                loginError.style.display = 'block';
+                return;
+            }
+
+            const btn = document.getElementById('authSubmitBtn');
+            const oldText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Checking...";
+
+            try {
+                const snapshot = await tenantsCollection
+                    .where('tenantId', '==', uid)
+                    .limit(1)
+                    .get();
+
+                if (!snapshot.empty) {
+                    const doc = snapshot.docs[0];
+                    const matched = { docId: doc.id, ...doc.data() };
+
+                    if (matched.password === pass) {
+                        if (matched.status === 'Suspended') {
+                            alert("⚠️ Aapka software rent subscription suspend / inactive hai. Kripya IT Provider se sampark karein.");
+                            return;
+                        }
+
+                        loginError.style.display = 'none';
+                        document.getElementById('authOverlay').style.display = 'none';
+                        setCurrentSessionUser(matched);
+                    } else {
+                        loginError.style.display = 'block';
+                    }
+                } else {
+                    loginError.style.display = 'block';
+                }
+            } catch (error) {
+                console.error("Client login error:", error);
+                loginError.textContent = "Login service error.";
+                loginError.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = oldText;
+            }
+        }
+    }
+
+    function logoutCurrentUser() {
+        if (!confirm("Kya aap logout karna chahte hain?")) return;
+        setCurrentSessionUser(null);
+        location.reload();
+    }
+
+    window.openChangeMyPasswordModal = function() {
+        document.getElementById('cmp_oldPass').value = '';
+        document.getElementById('cmp_newPass').value = '';
+        document.getElementById('cmpError').style.display = 'none';
+        document.getElementById('changeMyPasswordModal').style.display = 'flex';
+    };
+
+    window.handleSaveMyPassword = async function(e) {
+        e.preventDefault();
+        const oldP = document.getElementById('cmp_oldPass').value.trim();
+        const newP = document.getElementById('cmp_newPass').value.trim();
+        const u = getCurrentSessionUser();
+
+        if (!u) return;
+
+        if (u.role === 'superadmin') {
+            const currentMaster = getAdminPassword();
+            if (oldP === currentMaster) {
+                localStorage.setItem('haf_master_admin_pass', newP);
+                alert("✓ Admin Master Password successfully update ho gaya!");
+                document.getElementById('changeMyPasswordModal').style.display = 'none';
+            } else {
+                document.getElementById('cmpError').style.display = 'block';
+            }
+        } else {
+            try {
+                const uid = u.tenantId.toLowerCase();
+                const snapshot = await tenantsCollection
+                    .where('tenantId', '==', uid)
+                    .limit(1)
+                    .get();
+
+                if (!snapshot.empty) {
+                    const doc = snapshot.docs[0];
+                    const target = doc.data();
+
+                    if (target.password === oldP) {
+                        await doc.ref.update({
+                            password: newP,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        u.password = newP;
+                        setCurrentSessionUser(u);
+                        alert("✓ Aapka password successfully update ho gaya!");
+                        document.getElementById('changeMyPasswordModal').style.display = 'none';
+                    } else {
+                        document.getElementById('cmpError').style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('cmpError').style.display = 'block';
+                }
+            } catch (error) {
+                console.error("Change tenant password error:", error);
+            }
+        }
+    };
+
+    window.switchView = function(viewKey) {
+        if (viewKey === 'payoutdesk' && !isPayoutDeskUnlocked) {
+            document.getElementById('passwordGateModal').style.display = 'flex';
+            document.getElementById('secretPinInput').value = '';
+            document.getElementById('pinErrorMsg').style.display = 'none';
+            return;
+        }
+
+        document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('active'));
+        
+        const targetBtn = document.getElementById(
+            viewKey === 'pipeline' ? 'tabPipeline' :
+            viewKey === 'disbursedhub' ? 'tabDisbursed' :
+            viewKey === 'dealers' ? 'tabDealers' :
+            viewKey === 'payoutdesk' ? 'tabSecretPayouts' : 'tabFollowups'
+        );
+        if (targetBtn) targetBtn.classList.add('active');
+
+        document.getElementById('view-pipeline').style.display = (viewKey === 'pipeline') ? 'grid' : 'none';
+        document.getElementById('view-disbursedhub').style.display = (viewKey === 'disbursedhub') ? 'block' : 'none';
+        document.getElementById('view-dealers').style.display = (viewKey === 'dealers') ? 'block' : 'none';
+        document.getElementById('view-payoutdesk').style.display = (viewKey === 'payoutdesk') ? 'block' : 'none';
+        document.getElementById('view-followups').style.display = (viewKey === 'followups') ? 'block' : 'none';
+
+        if (viewKey === 'pipeline') renderViews();
+        if (viewKey === 'disbursedhub') renderDisbursedHubTable();
+        if (viewKey === 'dealers') renderDealerLedgerTable();
+        if (viewKey === 'payoutdesk') renderPayoutDeskTable();
+        if (viewKey === 'followups') renderFollowups();
+    };
+
+    function lockPayoutDesk() {
+        isPayoutDeskUnlocked = false;
+        switchView('pipeline');
+        alert("🔒 Payout Desk has been locked successfully.");
+    }
+
+    function closePasswordGate() {
+        document.getElementById('passwordGateModal').style.display = 'none';
+    }
+
+    function handlePinSubmit(e) {
+        e.preventDefault();
+        const entered = document.getElementById('secretPinInput').value;
+        if (entered === (localStorage.getItem('haf_payout_pin') || '7600')) {
+            isPayoutDeskUnlocked = true;
+            document.getElementById('passwordGateModal').style.display = 'none';
+            switchView('payoutdesk');
+        } else {
+            document.getElementById('pinErrorMsg').style.display = 'block';
+        }
+    }
+
+    function applyPortalPermissions() {
+        const u = getCurrentSessionUser();
+        if (!u) {
+            document.getElementById('authOverlay').style.display = 'flex';
+            return;
+        }
+        document.getElementById('authOverlay').style.display = 'none';
+
+        if (inspectingTenantId) {
+            document.getElementById('activeUserBadge').textContent = `👁️ Viewing: ${inspectingTenantId}`;
+            document.getElementById('headerTenantBrand').textContent = `🚗 ${inspectingTenantId.toUpperCase()} CRM`;
+            document.getElementById('btnExitUserView').style.display = 'inline-block';
+            document.getElementById('btnChangeMyPass').style.display = 'none';
+            document.getElementById('btnExportExcel').style.display = 'none';
+            
+            document.getElementById('crmNavTabsBar').style.display = 'flex';
+            document.getElementById('colAddLeadForm').style.display = 'block';
+            document.querySelector('.crm-container').classList.remove('admin-mode');
+            document.getElementById('adminUserMasterDeck').style.display = 'none';
+            document.getElementById('clientPipelineTablePanel').style.display = 'block';
+            document.getElementById('cardCustomerHold').style.display = 'block';
+            document.getElementById('tabSecretPayouts').style.display = 'flex';
+            refreshDealerDropdowns();
+            switchView('pipeline');
+            return;
+        }
+
+        document.getElementById('btnExitUserView').style.display = 'none';
+
+        if (u.role === 'superadmin') {
+            document.getElementById('crmNavTabsBar').style.display = 'none';
+            document.getElementById('activeUserBadge').textContent = `👑 IT Master Admin`;
+            document.getElementById('headerTenantBrand').textContent = `⚡ Heritage FinTech Core`;
+            document.getElementById('btnChangeMyPass').style.display = 'inline-block';
+            document.getElementById('btnExportExcel').style.display = 'none'; 
+            
+            document.getElementById('colAddLeadForm').style.display = 'none';
+            document.querySelector('.crm-container').classList.add('admin-mode');
+            document.getElementById('cardCustomerHold').style.display = 'none';
+
+            document.getElementById('adminUserMasterDeck').style.display = 'block';
+            document.getElementById('clientPipelineTablePanel').style.display = 'none';
+            renderAdminMasterUserCards();
+        } else {
+            document.getElementById('crmNavTabsBar').style.display = 'flex';
+            document.getElementById('activeUserBadge').textContent = `👤 ${u.agencyName}`;
+            document.getElementById('headerTenantBrand').textContent = `🚗 ${u.agencyName} CRM`;
+            document.getElementById('btnChangeMyPass').style.display = 'inline-block';
+            document.getElementById('btnExportExcel').style.display = 'none'; 
+
+            document.getElementById('colAddLeadForm').style.display = 'block';
+            document.querySelector('.crm-container').classList.remove('admin-mode');
+            document.getElementById('adminUserMasterDeck').style.display = 'none';
+            document.getElementById('clientPipelineTablePanel').style.display = 'block';
+            document.getElementById('cardCustomerHold').style.display = 'block';
+            document.getElementById('tabSecretPayouts').style.display = 'flex';
+            refreshDealerDropdowns();
+            switchView('pipeline');
+        }
+    }
+
+    function renderAdminMasterUserCards() {
+        const tenants = getStoredTenants();
+        if (!Array.isArray(tenants)) return;
+        const container = document.getElementById('userCardsContainer');
+        container.innerHTML = '';
+
+        tenants.forEach(t => {
+            let uLiveFiles = 0, uLiveAmt = 0;
+            let uDisFiles = 0, uDisAmt = 0;
+
+            leads.forEach(l => {
+                const c = (l.tenantId || l.createdBy || 'heritage auto finance').toLowerCase();
+                const isMatch = (c === t.tenantId.toLowerCase()) || 
+                                (t.tenantId.includes('heritage') && (!c || c === 'admin'));
+
+                if (isMatch) {
+                    const lAmt = Number(String(l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+                    const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+                    if (l.status !== 'Disbursed' && l.status !== 'Rejected') {
+                        uLiveFiles++;
+                        uLiveAmt += lAmt;
+                    }
+                    if (l.status === 'Disbursed') {
+                        uDisFiles++;
+                        uDisAmt += disAmt;
+                    }
+                }
+            });
+
+            const card = document.createElement('div');
+            card.className = 'user-master-card';
+            card.innerHTML = `
+                <div>
+                    <div style="font-size:1.1rem; font-weight:700; color:var(--primary);">🏢 ${t.agencyName}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
+                        Username: <strong style="color:var(--text);">${t.tenantId}</strong> | Office: <strong style="color:#38bdf8;">${t.headOffice || 'Mehsana'}</strong> | Phone: <strong style="color:#4ade80;">${t.contactPhone || '-'}</strong> | Rent: <strong>₹${t.rentAmount}/mo</strong> | Status: <span class="badge ${t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'}">${t.status}</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div class="user-stat-pill">
+                        <div class="num" style="color:var(--primary);">${uLiveFiles}</div>
+                        <div class="sub">Live Files</div>
+                    </div>
+                    <div class="user-stat-pill">
+                        <div class="num">${formatINR(uLiveAmt)}</div>
+                        <div class="sub">Live Amt</div>
+                    </div>
+                    <div class="user-stat-pill">
+                        <div class="num" style="color:var(--success);">${uDisFiles}</div>
+                        <div class="sub">Disbursed</div>
+                    </div>
+                    <div class="user-stat-pill">
+                        <div class="num" style="color:var(--success);">${formatINR(uDisAmt)}</div>
+                        <div class="sub">Disbursed Amt</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button class="btn-action" style="background:#f59e0b; color:#000; font-weight:700;" onclick="openEditTenantModal('${t.tenantId}')">⚙️ Manage License</button>
+                    <button class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openAdminRentBillModal('${t.tenantId}', '${t.agencyName}', ${t.rentAmount}, '${t.expiryDate}')">🧾 Bill</button>
+                    <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="openAdminTenantReportModal('${t.tenantId}', '${t.agencyName}')">📊 Report</button>
+                    <button class="btn-action" style="background:var(--saas); color:#000; font-weight:700;" onclick="inspectUserPortal('${t.tenantId}')">👁️ View</button>
+                    <button class="btn-quick btn-del" onclick="deleteTenantAccount('${t.tenantId}')">🗑️</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    window.openEditTenantModal = function(tid) {
+        const tenants = getStoredTenants();
+        const t = tenants.find(x => x.tenantId && x.tenantId.toLowerCase() === tid.toLowerCase());
+        if (!t) return;
+
+        document.getElementById('tenantModalTitle').textContent = "⚙️ Manage Client License & Validity";
+        document.getElementById('isEditingTenant').value = "true";
+        document.getElementById('t_tenantId').value = t.tenantId;
+        document.getElementById('t_tenantId').readOnly = true;
+        document.getElementById('t_agencyName').value = t.agencyName || '';
+        document.getElementById('t_headOffice').value = t.headOffice || 'Mehsana, Gujarat';
+        document.getElementById('t_contactPhone').value = t.contactPhone || '+91 7600211085';
+        document.getElementById('t_password').value = t.password || '';
+        document.getElementById('t_monthlyRent').value = t.rentAmount || 0;
+        document.getElementById('t_expiryDate').value = t.expiryDate || '';
+        document.getElementById('t_status').value = t.status || 'Active';
+
+        document.getElementById('saasTenantModal').style.display = 'flex';
+    };
+
+    window.openAddTenantModal = function() {
+        document.getElementById('tenantModalTitle').textContent = "➕ Onboard New Client (Tenant Agency)";
+        document.getElementById('isEditingTenant').value = "false";
+        document.getElementById('t_tenantId').value = '';
+        document.getElementById('t_tenantId').readOnly = false;
+        document.getElementById('t_agencyName').value = '';
+        document.getElementById('t_headOffice').value = 'Mehsana, Gujarat';
+        document.getElementById('t_contactPhone').value = '+91 7600211085';
+        document.getElementById('t_password').value = '';
+        document.getElementById('t_monthlyRent').value = '3000';
+        const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+        document.getElementById('t_expiryDate').value = d.toISOString().split('T')[0];
+        document.getElementById('t_status').value = 'Active';
+
+        document.getElementById('saasTenantModal').style.display = 'flex';
+    };
+
+    function closeAddTenantModal() {
+        document.getElementById('saasTenantModal').style.display = 'none';
+    }
+
+    async function handleSaveTenantClient(e) {
+        e.preventDefault();
+        const isEditing = document.getElementById('isEditingTenant').value === "true";
+        const tid = document.getElementById('t_tenantId').value.trim().toLowerCase();
+        const agency = document.getElementById('t_agencyName').value.trim();
+        const headOffice = document.getElementById('t_headOffice').value.trim();
+        const contactPhone = document.getElementById('t_contactPhone').value.trim();
+        const pass = document.getElementById('t_password').value.trim();
+        const rent = Number(document.getElementById('t_monthlyRent').value) || 0;
+        const exp = document.getElementById('t_expiryDate').value;
+        const stat = document.getElementById('t_status').value;
+
+        if (!tid || !agency || !pass || !headOffice || !contactPhone) {
+            alert("Sabhi fields bharein (Client ID, Agency Name, Head Office, Contact Phone, Password).");
+            return;
+        }
+
+        try {
+            const docRef = tenantsCollection.doc(tid);
+            const existing = await docRef.get();
+
+            if (!isEditing && existing.exists) {
+                alert("Ye Client ID pehle se registered hai.");
+                return;
+            }
+
+            const tenantData = {
+                tenantId: tid,
+                agencyName: agency,
+                headOffice: headOffice,
+                contactPhone: contactPhone,
+                role: "client",
+                password: pass,
+                rentAmount: rent,
+                expiryDate: exp,
+                status: stat,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            await docRef.set(tenantData, { merge: true });
+            closeAddTenantModal();
+            alert(`✓ Client "${agency}" successfully save ho gaya!`);
+        } catch (error) {
+            console.error("Save tenant error:", error);
+            alert("❌ User save nahi hua.");
+        }
+    }
+
+    window.openAdminRentBillModal = function(tid, agencyName, rentAmt, expiryDate) {
+        document.getElementById('billDate').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        document.getElementById('billInvNo').textContent = 'INV/' + Math.floor(100000 + Math.random() * 900000);
+        document.getElementById('billAgencyName').textContent = agencyName;
+        document.getElementById('billTenantId').textContent = tid;
+        document.getElementById('billPeriod').textContent = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+        document.getElementById('billExpiry').textContent = expiryDate;
+        document.getElementById('billRentAmt').textContent = formatINR(rentAmt);
+        document.getElementById('billTotalPayable').textContent = formatINR(rentAmt);
+        document.getElementById('adminRentBillModal').style.display = 'flex';
+    };
+
+    window.openAdminTenantReportModal = function(tid, agencyName) {
+        activeReportingTenantId = tid;
+        document.getElementById('admRptAgencyTitle').textContent = agencyName.toUpperCase();
+        document.getElementById('admRptTenantId').textContent = tid;
+        document.getElementById('admRptDate').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        document.getElementById('admRptMonth').value = '';
+        document.getElementById('admRptScope').value = 'All';
+
+        generateAdminTenantReportView();
+        document.getElementById('adminTenantReportModal').style.display = 'flex';
+    };
+
+    window.generateAdminTenantReportView = function() {
+        if (!activeReportingTenantId) return;
+
+        const scope = document.getElementById('admRptScope').value;
+        const monthFilter = document.getElementById('admRptMonth').value;
+
+        let tenantLeads = leads.filter(l => {
+            const c = (l.tenantId || l.createdBy || 'heritage auto finance').toLowerCase();
+            return (c === activeReportingTenantId.toLowerCase()) || 
+                   (activeReportingTenantId.includes('heritage') && (!c || c === 'admin'));
+        });
+
+        if (scope === 'Live') {
+            tenantLeads = tenantLeads.filter(l => l.status !== 'Disbursed' && l.status !== 'Rejected');
+        } else if (scope === 'Disbursed') {
+            tenantLeads = tenantLeads.filter(l => l.status === 'Disbursed');
+        }
+
+        if (monthFilter) {
+            tenantLeads = tenantLeads.filter(l => {
+                const checkDate = (l.status === 'Disbursed' && l.disbursedDate) ? l.disbursedDate : (l.leadDate || '');
+                return checkDate.startsWith(monthFilter);
+            });
+        }
+
+        document.getElementById('admRptFilterStatus').textContent = `${scope} Files (${monthFilter ? monthFilter : 'All Months'})`;
+        document.getElementById('admRptTotalCount').textContent = `${tenantLeads.length} Records`;
+
+        const tbody = document.getElementById('admRptTableBody');
+        tbody.innerHTML = '';
+
+        let sumApproved = 0, sumDisbursed = 0;
+
+        if (tenantLeads.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#888; padding:20px;">Chune gaye filter ke liye koi files nahi mili.</td></tr>';
+            document.getElementById('admRptSumApproved').textContent = '₹0';
+            document.getElementById('admRptSumDisbursed').textContent = '₹0';
+            return;
+        }
+
+        tenantLeads.forEach(l => {
+            const app = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+            const dis = (l.status === 'Disbursed') ? (Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0) : 0;
+            sumApproved += app;
+            sumDisbursed += dis;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${l.name || 'Unnamed'}</strong><br><small style="color:#666;">${l.city || 'Mehsana'}</small></td>
+                <td>${l.vehModel || '-'}<br><small style="color:#666;">${l.vehType || 'Car'}</small></td>
+                <td>${l.leadDate || todayStr}</td>
+                <td><span style="font-weight:700; color:${l.status === 'Disbursed' ? '#10b981' : '#d4af37'};">${l.status}</span></td>
+                <td style="text-align:right;">${formatINR(app)}</td>
+                <td style="text-align:right; font-weight:700; color:#10b981;">${formatINR(dis)}</td>
+                <td>${l.dealerName || 'Direct'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('admRptSumApproved').textContent = formatINR(sumApproved);
+        document.getElementById('admRptSumDisbursed').textContent = formatINR(sumDisbursed);
+    };
+
+    window.inspectUserPortal = function(tid) {
+        inspectingTenantId = tid;
+        applyPortalPermissions();
+        renderMetrics();
+        renderViews();
+    };
+
+    window.exitUserView = function() {
+        inspectingTenantId = null;
+        applyPortalPermissions();
+        renderMetrics();
+        renderViews();
+    };
+
+    async function deleteTenantAccount(tid) {
+        if (!confirm(`Kya aap client "${tid}" ko delete karna chahte hain?`)) return;
+
+        try {
+            await tenantsCollection.doc(tid.toLowerCase()).delete();
+            tenantsCache = tenantsCache.filter(t => !t.tenantId || t.tenantId.toLowerCase() !== tid.toLowerCase());
+            renderAdminMasterUserCards();
+            alert("✓ Client account delete ho gaya.");
+        } catch (error) {
+            console.error("Delete tenant error:", error);
+        }
+    }
+
+    function toggleResetUserField() {
+        const r = document.getElementById('resetRoleTarget').value;
+        document.getElementById('resetUserIdField').style.display = (r === 'admin') ? 'none' : 'block';
+    }
+
+    function openResetPasswordModal() {
+        document.getElementById('resetErrorMsg').style.display = 'none';
+        document.getElementById('resetInputPhone').value = '';
+        document.getElementById('resetInputNewPass').value = '';
+        document.getElementById('passwordResetModal').style.display = 'flex';
+        toggleResetUserField();
+    }
+
+    function closeResetPasswordModal() {
+        document.getElementById('passwordResetModal').style.display = 'none';
+    }
+
+    async function handleResetPasswordSubmit(e) {
+        e.preventDefault();
+        const role = document.getElementById('resetRoleTarget').value;
+        const phone = document.getElementById('resetInputPhone').value.trim();
+        const newPass = document.getElementById('resetInputNewPass').value.trim();
+
+        if (phone === '7600211085' || phone === '917600211085') {
+            if (role === 'admin') {
+                localStorage.setItem('haf_master_admin_pass', newPass);
+                alert("✓ IT Admin Master Password successfully reset ho gaya!");
+                closeResetPasswordModal();
+            } else {
+                const uid = document.getElementById('resetInputUserId').value.trim().toLowerCase();
+
+                try {
+                    const snapshot = await tenantsCollection
+                        .where('tenantId', '==', uid)
+                        .limit(1)
+                        .get();
+
+                    if (!snapshot.empty) {
+                        const doc = snapshot.docs[0];
+                        await doc.ref.update({
+                            password: newPass,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        alert(`✓ Password update ho gaya!`);
+                        closeResetPasswordModal();
+                    } else {
+                        alert("User ID nahi mili!");
+                    }
+                } catch (error) {
+                    console.error("Reset password error:", error);
+                }
+            }
+        } else {
+            document.getElementById('resetErrorMsg').style.display = 'block';
+        }
+    }
+
+    function getLeadScopedList() {
+        const u = getCurrentSessionUser();
+        if (inspectingTenantId) {
+            return leads.filter(l => {
+                const c = (l.tenantId || l.createdBy || '').toLowerCase();
+                return (c === inspectingTenantId.toLowerCase()) || 
+                       (inspectingTenantId.includes('heritage') && (!c || c === 'admin'));
+            });
+        }
+        if (u && u.role === 'superadmin') {
+            return leads;
+        }
+        if (u) {
+            return leads.filter(l => {
+                const c = (l.tenantId || l.createdBy || '').toLowerCase();
+                const isHeritage = u.tenantId.toLowerCase().includes('heritage');
+                return (c === u.tenantId.toLowerCase()) || (isHeritage && (!c || c === 'admin'));
+            });
+        }
+        return [];
+    }
+
+    function renderMetrics() {
+        const scopedLeads = getLeadScopedList();
+        const u = getCurrentSessionUser();
+        const isAdmin = (u && u.role === 'superadmin' && !inspectingTenantId);
+
+        let liveCount = 0;
+        let loginCount = 0, loginAmount = 0;
+        let disburseCount = 0, disbursedAmount = 0;
+        let totalHoldPending = 0;
+
+        scopedLeads.forEach(l => {
+            const amt = Number(String(l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+            const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+
+            if (l.status !== 'Disbursed' && l.status !== 'Rejected' && l.status !== 'Not Interested') {
+                liveCount++;
+                loginCount++;
+                loginAmount += amt;
+            }
+            if (l.status === 'Disbursed') {
+                disburseCount++;
+                disbursedAmount += disAmt;
+                if (l.holdStatus === 'Hold Kept') {
+                    totalHoldPending += Number(String(l.holdAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+                }
+            }
+        });
+
+        document.getElementById('lbl-live-leads').textContent = isAdmin ? "All Users Live Files" : "Live Open Files";
+        document.getElementById('lbl-login-leads').textContent = isAdmin ? "All Users Login Files" : "Login Files";
+        document.getElementById('lbl-login-amount').textContent = isAdmin ? "All Users Login Amt (₹)" : "Total Login Amt (₹)";
+        document.getElementById('lbl-disburse-leads').textContent = isAdmin ? "All Users Disbursed (No)" : "Disbursed (Closed)";
+        document.getElementById('lbl-month-business').textContent = isAdmin ? "All Users Disbursed Amt (₹)" : "Total Disbursed (₹)";
+
+        document.getElementById('m-live-leads').textContent = liveCount;
+        document.getElementById('badge-live-count').textContent = liveCount;
+        document.getElementById('m-login-leads').textContent = loginCount;
+        document.getElementById('m-login-amount').textContent = formatINR(loginAmount);
+        document.getElementById('m-disburse-leads').textContent = disburseCount;
+        document.getElementById('badge-disbursed-count').textContent = disburseCount;
+        document.getElementById('m-month-business').textContent = formatINR(disbursedAmount);
+        document.getElementById('m-total-hold').textContent = formatINR(totalHoldPending);
+        document.getElementById('tab-total-hold').textContent = formatINR(totalHoldPending);
+    }
+
+    function renderViews() {
+        const q = (document.getElementById('searchQuery').value || '').toLowerCase();
+        const statusFilter = document.getElementById('filterStatus').value;
+        const liveMonthVal = document.getElementById('liveMonthFilter') ? document.getElementById('liveMonthFilter').value : '';
+
+        const scopedLeads = getLeadScopedList();
+        let liveLeads = scopedLeads.filter(l => l.status !== 'Disbursed');
+
+        if (liveMonthVal) {
+            liveLeads = liveLeads.filter(l => {
+                let dateStr = l.leadDate || '';
+                if (!dateStr && l.updatedAt && typeof l.updatedAt.toDate === 'function') {
+                    dateStr = l.updatedAt.toDate().toISOString().split('T')[0];
+                }
+                return dateStr.startsWith(liveMonthVal);
+            });
+        }
+
+        const filtered = liveLeads.filter(l => {
+            const matchesQuery = (l.name || '').toLowerCase().includes(q) || 
+                                 (l.mobile || '').includes(q) || 
+                                 (l.dealerName || '').toLowerCase().includes(q) || 
+                                 (l.bankNbfc || '').toLowerCase().includes(q);
+            const matchesStatus = statusFilter === 'All' || l.status === statusFilter;
+            return matchesQuery && matchesStatus;
+        });
+
+        const tbody = document.getElementById('leadsTableBody');
+        tbody.innerHTML = '';
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:20px;">Koi active live lead match nahi hui.</td></tr>';
+            return;
+        }
+
+        filtered.forEach(l => {
+            const row = document.createElement('tr');
+            const cleanMobile = (l.mobile || '').replace(/\D/g, '');
+
+            let docStatusHtml = '';
+            if (l.status === 'Documents Pending') {
+                const docs = l.docsReceived || {};
+                let rCount = 0;
+                if (docs.aadhaar) rCount++;
+                if (docs.pan) rCount++;
+                if (docs.bank) rCount++;
+                if (docs.rc) rCount++;
+                docStatusHtml = `<span class="badge ${rCount === 4 ? 'badge-Sanctioned' : 'badge-New'}">${rCount}/4 Docs</span>`;
+            } else if (l.status === 'Login Done' || l.status === 'Sanctioned') {
+                docStatusHtml = `<span style="color:var(--success); font-size:0.75rem;">✓ Verified for Login</span>`;
+            } else {
+                docStatusHtml = `<span style="color:var(--text-muted); font-size:0.75rem;">-</span>`;
+            }
+
+            const rawApp = l.approvedAmount || l.loanAmount || 0;
+            const appAmt = Number(String(rawApp).replace(/[^0-9.]/g, '')) || 0;
+            const approvedDisplay = appAmt > 0 
+                ? `<strong style="color:#4ade80;">${formatINR(appAmt)}</strong>` 
+                : `<span style="color:var(--text-muted); font-size:0.75rem;">Pending</span>`;
+
+            let lDateDisplay = l.leadDate || '';
+            if (!lDateDisplay && l.updatedAt && typeof l.updatedAt.toDate === 'function') {
+                lDateDisplay = l.updatedAt.toDate().toISOString().split('T')[0];
+            }
+
+            const doButtonHtml = (l.status === 'Sanctioned' || l.status === 'Disbursed')
+                ? `<button class="btn-quick btn-do" onclick="generateDO('${l.docId}')" title="Print Delivery Order">📄 DO</button>`
+                : '';
+
+            row.innerHTML = `
+                <td>
+                    <strong>${l.name || 'Unnamed Client'}</strong><br>
+                    <span style="color:var(--text-muted); font-size:0.75rem;">${l.city || 'Mehsana'}</span>
+                    <div class="quick-actions">
+                        <a class="btn-quick btn-call" href="tel:${cleanMobile}">📞</a>
+                        <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WA</a>
+                    </div>
+                </td>
+                <td>${l.vehModel || '-'}<br><span style="color:var(--text-muted); font-size:0.72rem;">${l.vehType || 'Used'}</span></td>
+                <td><small style="color:var(--primary);">📅 ${lDateDisplay || todayStr}</small></td>
+                <td><strong style="color:var(--primary);">${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
+                <td>${approvedDisplay}</td>
+                <td><strong style="color:#c084fc;">${l.dealerName || 'Direct Customer'}</strong><br><small style="color:#60a5fa;">${l.bankNbfc || 'Pending'}</small></td>
+                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status || 'New'}</span></td>
+                <td>${docStatusHtml}</td>
+                <td style="max-width: 155px; font-size:0.78rem; color:#f4b41a;">💬 ${l.lastConv || '-'}</td>
+                <td>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <div style="display:flex; gap:4px;">
+                            <button class="btn-quick btn-edit" onclick="editLead('${l.docId}')">✏️</button>
+                            <button class="btn-quick btn-del" onclick="deleteLead('${l.docId}')">🗑️</button>
+                        </div>
+                        ${doButtonHtml}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function renderDisbursedHubTable() {
+        const scopedLeads = getLeadScopedList();
+        let disbursedLeads = scopedLeads.filter(l => l.status === 'Disbursed');
+        const monthVal = document.getElementById('disbursedMonthFilter').value;
+
+        if (monthVal) {
+            disbursedLeads = disbursedLeads.filter(l => (l.disbursedDate || '').startsWith(monthVal));
+        }
+
+        const tbody = document.getElementById('disbursedHubTableBody');
+        tbody.innerHTML = '';
+
+        if (disbursedLeads.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:var(--text-muted); padding:25px;">Chune gaye filter me koi Disbursed file nahi mili.</td></tr>';
+            return;
+        }
+
+        disbursedLeads.forEach(l => {
+            const row = document.createElement('tr');
+            const appAmt = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+            const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+            const holdAmt = Number(String(l.holdAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+
+            row.innerHTML = `
+                <td><strong>${l.name || 'Unnamed Client'}</strong><br><small style="color:var(--text-muted);">${l.city || 'Mehsana'}</small></td>
+                <td>${l.vehModel || '-'}<br><small style="color:#60a5fa;">${l.bankNbfc || '-'}</small></td>
+                <td><strong style="color:var(--primary); font-size:0.8rem;">📅 ${l.disbursedDate || 'Not Set'}</strong></td>
+                <td><strong style="color:#4ade80;">${formatINR(appAmt)}</strong></td>
+                <td><strong style="color:var(--primary);">${formatINR(disAmt)}</strong></td>
+                <td><strong style="color:${holdAmt > 0 && l.holdStatus === 'Hold Kept' ? '#f87171' : 'var(--text-muted)'};">${formatINR(holdAmt)}</strong></td>
+                <td><span style="font-weight:600;">${l.holdReason || '-'}</span></td>
+                <td><span style="font-size:0.75rem; color:#f4b41a;">${l.holdRemarks || '-'}</span></td>
+                <td><span class="badge ${l.holdStatus === 'Hold Kept' ? 'badge-Suspended' : 'badge-Active'}">${l.holdStatus || 'None'}</span></td>
+                <td><strong>${formatINR(Number(String(l.rtoCharges || 0).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
+                <td><span class="badge ${l.rtoStatus === 'Completed' ? 'badge-Sanctioned' : 'badge-New'}">${l.rtoStatus || 'Pending'}</span></td>
+                <td>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <button class="btn-quick btn-edit" onclick="openRtoHoldModal('${l.docId}')">⚙️ Manage</button>
+                        <button class="btn-quick btn-do" onclick="generateDO('${l.docId}')">📄 DO</button>
+                        <button class="btn-quick btn-reopen" onclick="revertToLive('${l.docId}')">↩ Revert</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    window.revertToLive = async function(docId) {
+        const l = leads.find(item => item.docId === docId);
+        if (!l) return;
+
+        const newStatus = prompt(`Naya status type karein (Sanctioned / Login Done / Documents Pending):`, "Sanctioned");
+        if (!newStatus || newStatus.trim() === "") return;
+
+        await leadsCollection.doc(docId).update({
+            status: newStatus.trim(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        switchView('pipeline');
+    };
+
+    window.openRtoHoldModal = function(docId) {
+        const l = leads.find(item => item.docId === docId);
+        if (!l) return;
+
+        document.getElementById('modalDocId').value = docId;
+        document.getElementById('modalCustTitle').textContent = `Clearance: ${l.name || ''} (${l.vehModel || ''})`;
+        document.getElementById('m_approvedAmount').value = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('m_disbursedAmount').value = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('m_disbursedDate').value = l.disbursedDate || todayStr;
+        document.getElementById('m_rtoCharges').value = Number(String(l.rtoCharges || 0).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('m_rtoStatus').value = l.rtoStatus || 'Pending';
+        document.getElementById('m_holdAmount').value = Number(String(l.holdAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('m_holdReason').value = l.holdReason || 'None';
+        document.getElementById('m_holdRemarks').value = l.holdRemarks || '';
+        document.getElementById('m_holdStatus').value = l.holdStatus || 'Hold Kept';
+
+        document.getElementById('rtoHoldModal').style.display = 'flex';
+    };
+
+    window.closeRtoHoldModal = function() {
+        document.getElementById('rtoHoldModal').style.display = 'none';
+    };
+
+    document.getElementById('rtoHoldForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const docId = document.getElementById('modalDocId').value;
+        if (!docId) return;
+
+        await leadsCollection.doc(docId).update({
+            approvedAmount: Number(document.getElementById('m_approvedAmount').value) || 0,
+            disbursedAmount: Number(document.getElementById('m_disbursedAmount').value) || 0,
+            disbursedDate: document.getElementById('m_disbursedDate').value || todayStr,
+            rtoCharges: Number(document.getElementById('m_rtoCharges').value) || 0,
+            rtoStatus: document.getElementById('m_rtoStatus').value,
+            holdAmount: Number(document.getElementById('m_holdAmount').value) || 0,
+            holdReason: document.getElementById('m_holdReason').value,
+            holdRemarks: document.getElementById('m_holdRemarks').value,
+            holdStatus: document.getElementById('m_holdStatus').value,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        closeRtoHoldModal();
+    });
+
+    window.openDealerStatementModal = function() {
+        const scopedLeads = getLeadScopedList();
+        const selectedDealer = document.getElementById('dealerSelectFilter').value;
+        const currentU = getCurrentSessionUser();
+        let targetLeads = scopedLeads;
+        if (selectedDealer !== 'All') {
+            targetLeads = scopedLeads.filter(l => (l.dealerName || 'Direct Customer').trim() === selectedDealer);
+        }
+
+        if (targetLeads.length === 0) {
+            alert("Statement ke liye koi files nahi hain!");
+            return;
+        }
+
+        const activeTenantId = inspectingTenantId || (currentU ? currentU.tenantId : '');
+        const currentTenantObj = tenantsCache.find(t => t.tenantId && t.tenantId.toLowerCase() === (activeTenantId || '').toLowerCase());
+        const brandName = currentTenantObj ? currentTenantObj.agencyName : (currentU ? currentU.agencyName : "HERITAGE AUTO FINANCE");
+
+        document.getElementById('stmt_brand_title').textContent = brandName.toUpperCase();
+        document.getElementById('stmt_date').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        document.getElementById('stmt_dealer').textContent = selectedDealer === 'All' ? 'All Partners' : selectedDealer;
+        document.getElementById('stmt_total_files').textContent = targetLeads.length + ' Files';
+
+        let sumApproved = 0, sumPayable = 0;
+        const tbody = document.getElementById('stmt_table_body');
+        tbody.innerHTML = '';
+
+        targetLeads.forEach(l => {
+            const app = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+            const dis = l.status === 'Disbursed' ? (Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0) : 0;
+            const cut = Number(String(l.dealerCut || 0).replace(/[^0-9.]/g, '')) || 0;
+
+            sumApproved += app;
+            sumPayable += cut;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${l.name || 'Unnamed'}</strong></td>
+                <td>${l.vehModel || '-'}</td>
+                <td>${l.status || '-'}</td>
+                <td style="text-align:right;">${formatINR(app)}</td>
+                <td style="text-align:right;">${formatINR(dis)}</td>
+                <td style="text-align:right; font-weight:700; color:#b89628;">${formatINR(cut)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('stmt_total_approved').textContent = formatINR(sumApproved);
+        document.getElementById('stmt_total_payable').textContent = formatINR(sumPayable);
+
+        document.getElementById('dealerStatementModal').style.display = 'flex';
+    };
+
+    window.closeDealerStatementModal = function() {
+        document.getElementById('dealerStatementModal').style.display = 'none';
+    };
+
+    function renderDealerLedgerTable() {
+        const scopedLeads = getLeadScopedList();
+        const dealerSet = new Set(["Direct Customer"]);
+        scopedLeads.forEach(l => {
+            const dName = (l.dealerName || 'Direct Customer').trim();
+            if (dName) dealerSet.add(dName);
+        });
+
+        const selectBox = document.getElementById('dealerSelectFilter');
+        const currentSelected = selectBox.value;
+        selectBox.innerHTML = '<option value="All">All Dealers / Partners</option>';
+        dealerSet.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            if (d === currentSelected) opt.selected = true;
+            selectBox.appendChild(opt);
+        });
+
+        const selectedDealer = selectBox.value;
+        let displayedLeads = scopedLeads;
+        if (selectedDealer !== 'All') {
+            displayedLeads = scopedLeads.filter(l => (l.dealerName || 'Direct Customer').trim() === selectedDealer);
+        }
+
+        let totalPayable = 0;
+        const tbody = document.getElementById('dealerLedgerTableBody');
+        tbody.innerHTML = '';
+
+        displayedLeads.forEach(l => {
+            const dName = (l.dealerName || 'Direct Customer').trim();
+            const appAmt = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+            const disAmt = l.status === 'Disbursed' ? (Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0) : 0;
+            const cut = Number(String(l.dealerCut || 0).replace(/[^0-9.]/g, '')) || 0;
+            totalPayable += cut;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong style="color:#c084fc;">🤝 ${dName}</strong></td>
+                <td><strong>${l.name || 'Unnamed'}</strong></td>
+                <td>${l.vehModel || '-'}</td>
+                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status || 'New'}</span></td>
+                <td><strong style="color:#4ade80;">${formatINR(appAmt)}</strong></td>
+                <td><strong style="color:var(--primary);">${formatINR(disAmt)}</strong></td>
+                <td><strong style="color:${cut > 0 ? 'var(--danger)' : 'var(--text-muted)'}; font-size:0.95rem;">${formatINR(cut)}</strong></td>
+                <td>
+                    <button class="btn-quick btn-edit" onclick="openEditDealerCutModal('${l.docId}')">⚙️ Set Cut</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        document.getElementById('tab-dealer-payout-total').textContent = formatINR(totalPayable);
+        document.getElementById('badge-dealers-count').textContent = dealerSet.size;
+    }
+
+    window.openEditDealerCutModal = function(docId) {
+        const l = leads.find(item => item.docId === docId);
+        if (!l) return;
+
+        document.getElementById('dc_leadDocId').value = docId;
+        document.getElementById('dc_custName').textContent = l.name || 'Customer';
+        document.getElementById('dc_dealerName').value = l.dealerName || 'Direct Customer';
+        document.getElementById('dc_approvedAmt').value = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('dc_dealerCut').value = Number(String(l.dealerCut || 0).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('editDealerCutModal').style.display = 'flex';
+    };
+
+    window.handleSaveDealerCutFromLedger = async function(e) {
+        e.preventDefault();
+        const docId = document.getElementById('dc_leadDocId').value;
+        const newCut = Number(document.getElementById('dc_dealerCut').value) || 0;
+        const l = leads.find(item => item.docId === docId);
+
+        const approvedAmt = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+        const rate = Number(l.commRate || 1.5);
+        const gross = Math.round((approvedAmt * rate) / 100);
+        const net = Math.max(0, gross - newCut);
+
+        await leadsCollection.doc(docId).update({
+            dealerCut: newCut,
+            netComm: net,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        document.getElementById('editDealerCutModal').style.display = 'none';
+        alert("✓ Dealer Cut update ho gaya!");
+    };
+
+    function renderPayoutDeskTable() {
+        const scopedLeads = getLeadScopedList();
+        let disbursedLeads = scopedLeads.filter(l => l.status === 'Disbursed');
+        const monthVal = document.getElementById('payoutMonthFilter').value;
+
+        if (monthVal) {
+            disbursedLeads = disbursedLeads.filter(l => (l.disbursedDate || '').startsWith(monthVal));
+        }
+
+        const tbody = document.getElementById('payoutDeskTableBody');
+        tbody.innerHTML = '';
+
+        let totalGross = 0, totalCuts = 0, totalNet = 0, totalReceived = 0;
+
+        if (disbursedLeads.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:25px;">Koi payout record nahi mila.</td></tr>';
+            return;
+        }
+
+        disbursedLeads.forEach(l => {
+            const row = document.createElement('tr');
+            const approvedBase = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+            const rate = Number(l.commRate || 1.5);
+            const gross = Math.round((approvedBase * rate) / 100);
+            
+            let cut = 0;
+            const cutType = l.dealerCutType || 'amount';
+            const cutRaw = Number(String(l.dealerCutRaw !== undefined ? l.dealerCutRaw : (l.dealerCut || 0)).replace(/[^0-9.]/g, '')) || 0;
+            if (cutType === 'percent') {
+                cut = Math.round((approvedBase * cutRaw) / 100);
+            } else {
+                cut = cutRaw;
+            }
+
+            const net = Math.max(0, gross - cut);
+            const pStatus = l.payoutStatus || 'Pending';
+            const payoutBadge = 'payout-' + pStatus.replace(/\s+/g, '');
+
+            totalGross += gross;
+            totalCuts += cut;
+            totalNet += net;
+            if (pStatus === 'Received' || pStatus === 'Cleared') totalReceived += net;
+
+            row.innerHTML = `
+                <td><strong>${l.name || 'Unnamed'}</strong><br><small style="color:var(--text-muted);">${l.city || 'Mehsana'}</small></td>
+                <td><strong style="color:#60a5fa;">${l.bankNbfc || '-'}</strong></td>
+                <td><span style="color:#c084fc;">${l.dealerName || 'Direct'}</span></td>
+                <td><span style="color:var(--primary); font-size:0.8rem;">📅 ${l.disbursedDate || '-'}</span></td>
+                <td><strong style="color:#4ade80;">${formatINR(approvedBase)}</strong></td>
+                <td>${rate}%</td>
+                <td>${formatINR(gross)}</td>
+                <td style="color:var(--danger);">${formatINR(cut)}</td>
+                <td><strong style="color:var(--success); font-size:0.95rem;">${formatINR(net)}</strong></td>
+                <td><span class="badge ${payoutBadge}">${pStatus}</span></td>
+                <td>
+                    <button class="btn-quick btn-edit" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; cursor:pointer;" onclick="openPayoutModal('${l.docId}')">💰 Edit</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        document.getElementById('sec-gross-comm').textContent = formatINR(totalGross);
+        document.getElementById('sec-dealer-cuts').textContent = formatINR(totalCuts);
+        document.getElementById('sec-net-comm').textContent = formatINR(totalNet);
+        document.getElementById('sec-received-payout').textContent = formatINR(totalReceived);
+    }
+
+    window.openPayoutModal = function(docId) {
+        const l = leads.find(item => item.docId === docId);
+        if (!l) return;
+
+        document.getElementById('ep_docId').value = docId;
+        document.getElementById('ep_custName').textContent = l.name || 'Customer';
+        document.getElementById('ep_approvedAmt').value = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('ep_commRate').value = Number(l.commRate || 1.5);
+        
+        const cutVal = Number(String(l.dealerCut || 0).replace(/[^0-9.]/g, '')) || 0;
+        const cutType = l.dealerCutType || 'amount';
+        document.getElementById('ep_cutType').value = cutType;
+        document.getElementById('ep_dealerCutVal').value = l.dealerCutRaw !== undefined ? l.dealerCutRaw : cutVal;
+        document.getElementById('ep_status').value = l.payoutStatus || 'Pending';
+        
+        toggleCutTypeInput();
+        recalcPayoutModal();
+        document.getElementById('editPayoutModal').style.display = 'flex';
+    };
+
+    window.toggleCutTypeInput = function() {
+        const t = document.getElementById('ep_cutType').value;
+        const label = document.getElementById('ep_cutLabel');
+        if (t === 'percent') {
+            label.textContent = "Dealer Cut (%)";
+        } else {
+            label.textContent = "Dealer Cut Value (₹)";
+        }
+        recalcPayoutModal();
+    };
+
+    window.recalcPayoutModal = function() {
+        const appAmt = Number(document.getElementById('ep_approvedAmt').value) || 0;
+        const rate = Number(document.getElementById('ep_commRate').value) || 0;
+        const cutType = document.getElementById('ep_cutType').value;
+        const cutInputVal = Number(document.getElementById('ep_dealerCutVal').value) || 0;
+
+        const gross = Math.round((appAmt * rate) / 100);
+        let actualCutAmt = cutType === 'percent' ? Math.round((appAmt * cutInputVal) / 100) : cutInputVal;
+        const net = Math.max(0, gross - actualCutAmt);
+
+        document.getElementById('ep_calcGross').value = formatINR(gross);
+        document.getElementById('ep_calcCutAmt').value = formatINR(actualCutAmt);
+        document.getElementById('ep_calcNet').value = formatINR(net);
+    };
+
+    window.handleSavePayoutData = async function(e) {
+        e.preventDefault();
+        const docId = document.getElementById('ep_docId').value;
+        if (!docId) return;
+
+        const appAmt = Number(document.getElementById('ep_approvedAmt').value) || 0;
+        const rate = Number(document.getElementById('ep_commRate').value) || 1.5;
+        const cutType = document.getElementById('ep_cutType').value;
+        const cutInputVal = Number(document.getElementById('ep_dealerCutVal').value) || 0;
+        const status = document.getElementById('ep_status').value;
+
+        const gross = Math.round((appAmt * rate) / 100);
+        let actualCutAmt = cutType === 'percent' ? Math.round((appAmt * cutInputVal) / 100) : cutInputVal;
+        const net = Math.max(0, gross - actualCutAmt);
+
+        await leadsCollection.doc(docId).update({
+            approvedAmount: appAmt,
+            commRate: rate,
+            commAmount: gross,
+            dealerCutType: cutType,
+            dealerCutRaw: cutInputVal,
+            dealerCut: actualCutAmt,
+            netComm: net,
+            payoutStatus: status,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        document.getElementById('editPayoutModal').style.display = 'none';
+        alert("✓ Payout update ho gaya!");
+    };
+
+    function renderFollowups() {
+        const scopedLeads = getLeadScopedList();
+        const todayLeads = scopedLeads.filter(l => l.followDate === todayStr || (l.followDate && l.followDate < todayStr && l.status !== 'Disbursed' && l.status !== 'Rejected'));
+        document.getElementById('badge-followup-count').textContent = todayLeads.length;
+
+        const tbody = document.getElementById('followupsTableBody');
+        tbody.innerHTML = '';
+
+        if (todayLeads.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:25px;">Aaj ke liye koi follow-up pending nahi hai.</td></tr>';
+            return;
+        }
+
+        todayLeads.forEach(l => {
+            const cleanMobile = (l.mobile || '').replace(/\D/g, '');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${l.name || 'Unnamed'}</strong><br><small style="color:var(--text-muted);">${l.city || 'Mehsana'}</small></td>
+                <td>
+                    <a class="btn-quick btn-call" href="tel:${cleanMobile}">📞 Call</a>
+                    <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WhatsApp</a>
+                </td>
+                <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
+                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status}</span></td>
+                <td style="color:#fbbf24; font-weight:600;">${l.followDate || 'Today'}</td>
+                <td><small style="color:var(--primary);">${l.lastConv || '-'}</small></td>
+                <td><button class="btn-quick btn-edit" onclick="editLead('${l.docId}'); switchView('pipeline');">✏️ Update</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    window.generateDO = function(docId) {
+        const l = leads.find(item => item.docId === docId);
+        if (!l) return;
+
+        if (l.status !== 'Sanctioned' && l.status !== 'Disbursed') {
+            alert(`⚠️ Delivery Order sirf Sanctioned ya Disbursed files ke liye hai.`);
+            return;
+        }
+
+        const currentU = getCurrentSessionUser();
+        const activeTenantId = l.tenantId || l.createdBy || inspectingTenantId || (currentU ? currentU.tenantId : '');
+        const tenantObj = tenantsCache.find(t => t.tenantId && t.tenantId.toLowerCase() === (activeTenantId || '').toLowerCase());
+
+        const brandName = tenantObj ? tenantObj.agencyName : (currentU ? currentU.agencyName : "HERITAGE AUTO FINANCE");
+        const headOffice = tenantObj ? (tenantObj.headOffice || "Mehsana, Gujarat") : "Mehsana, Gujarat";
+        const contactPhone = tenantObj ? (tenantObj.contactPhone || "+91 7600211085") : "+91 7600211085";
+
+        const appAmt = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
+        const grossDisbursed = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || appAmt;
+        const rtoCharges = Number(String(l.rtoCharges || 0).replace(/[^0-9.]/g, '')) || 0;
+
+        let bankCharges = Math.max(0, appAmt - grossDisbursed);
+        let netDealerPayable = Math.max(0, grossDisbursed - rtoCharges);
+
+        document.getElementById('do_brand_title').textContent = brandName.toUpperCase();
+        document.getElementById('do_brand_sub').textContent = `HEAD OFFICE: ${headOffice.toUpperCase()} | CONTACT: ${contactPhone}`;
+        document.getElementById('do_date').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        document.getElementById('do_ref').textContent = 'DO/' + (l.docId ? l.docId.substring(0, 6).toUpperCase() : '001');
+        document.getElementById('do_cust').textContent = l.name || '-';
+        document.getElementById('do_mobile').textContent = l.mobile || '-';
+        document.getElementById('do_vehicle').textContent = (l.vehModel || '-') + ' (' + (l.vehType || 'Car') + ')';
+        document.getElementById('do_bank').textContent = l.bankNbfc || 'Financier';
+        document.getElementById('do_dealer').textContent = l.dealerName || 'Direct';
+        document.getElementById('do_city').textContent = l.city || 'Mehsana';
+
+        document.getElementById('do_approved').textContent = formatINR(appAmt);
+        document.getElementById('do_bank_charges').textContent = bankCharges > 0 ? ('- ' + formatINR(bankCharges)) : '₹0 (Nil)';
+        document.getElementById('do_gross_disbursed').textContent = formatINR(grossDisbursed);
+        document.getElementById('do_rto').textContent = rtoCharges > 0 ? ('- ' + formatINR(rtoCharges)) : '₹0 (Nil)';
+        document.getElementById('do_net_dealer_payable').textContent = formatINR(netDealerPayable);
+
+        document.getElementById('doModal').style.display = 'flex';
+    };
+
+    window.closeDoModal = function() {
+        document.getElementById('doModal').style.display = 'none';
+    };
+
+    function getCurrentTenantKey() {
+        const u = getCurrentSessionUser();
+        if (inspectingTenantId) return inspectingTenantId.trim().toLowerCase();
+        if (u && u.role !== 'superadmin' && u.tenantId) return u.tenantId.trim().toLowerCase();
+        return 'heritage_auto_finance_default';
+    }
+
+    function getStoredDealers() {
+        const tenantKey = getCurrentTenantKey();
+        const storageKey = 'haf_saved_dealers_' + tenantKey;
+        const defaultDealers = ["Direct Customer", "Dipakbhai", "Ramadhani", "Patel Motors"];
+        try {
+            const saved = JSON.parse(localStorage.getItem(storageKey));
+            if (Array.isArray(saved) && saved.length > 0) return saved;
+        } catch(e) {}
+        return defaultDealers;
+    }
+
+    function saveStoredDealers(dealersArr) {
+        const tenantKey = getCurrentTenantKey();
+        const storageKey = 'haf_saved_dealers_' + tenantKey;
+        localStorage.setItem(storageKey, JSON.stringify(dealersArr));
+        refreshDealerDropdowns();
+    }
+
+    function refreshDealerDropdowns() {
+        const dealers = getStoredDealers();
+        const formSelect = document.getElementById('dealerNameSelect');
+        if (!formSelect) return;
+        const currentVal = formSelect.value;
+        formSelect.innerHTML = '';
+        dealers.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            if (d === currentVal) opt.selected = true;
+            formSelect.appendChild(opt);
+        });
+    }
+
+    function promptAddNewDealer() {
+        const name = prompt("Naye Dealer / Sub-Broker ka naam darj karein:");
+        if (!name || name.trim() === '') return;
+        const clean = name.trim();
+        const dealers = getStoredDealers();
+        if (!dealers.includes(clean)) {
+            dealers.push(clean);
+            saveStoredDealers(dealers);
+            document.getElementById('dealerNameSelect').value = clean;
+            alert(`✓ Dealer "${clean}" is tenant ke liye add ho gaya!`);
+        } else {
+            document.getElementById('dealerNameSelect').value = clean;
+        }
+    }
+
+    function openManageDealersModal() {
+        const dealers = getStoredDealers();
+        const container = document.getElementById('dealersListContainer');
+        container.innerHTML = '';
+
+        dealers.forEach(d => {
+            const row = document.createElement('div');
+            row.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#0f121a; padding:8px 12px; margin-bottom:6px; border-radius:6px; border:1px solid #242938;";
+            
+            const isProtected = (d === 'Direct Customer');
+            const delBtn = isProtected ? '<span style="color:#555; font-size:0.7rem;">(Default)</span>' 
+                : `<button onclick="deleteDealerItem('${d.replace(/'/g, "\\'")}')" style="background:#ef4444; color:#fff; border:none; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:0.72rem;">🗑️ Delete</button>`;
+
+            row.innerHTML = `<span style="font-weight:600; color:#c084fc;">🤝 ${d}</span> ${delBtn}`;
+            container.appendChild(row);
+        });
+
+        document.getElementById('manageDealersModal').style.display = 'flex';
+    }
+
+    function closeManageDealersModal() {
+        document.getElementById('manageDealersModal').style.display = 'none';
+    }
+
+    function deleteDealerItem(dealerName) {
+        if (!confirm(`Kya aap "${dealerName}" ko delete karna chahte hain?`)) return;
+        let dealers = getStoredDealers();
+        dealers = dealers.filter(d => d !== dealerName);
+        saveStoredDealers(dealers);
+        openManageDealersModal();
+        renderDealerLedgerTable();
+    }
+
+    window.exportAllClientsToCSV = function() {
+        if (!leads || leads.length === 0) {
+            alert("Export ke liye koi leads nahi hain!");
+            return;
+        }
+
+        const tenants = getStoredTenants();
+        const agencyMap = {};
+        tenants.forEach(t => {
+            agencyMap[t.tenantId.toLowerCase()] = t.agencyName;
+        });
+
+        const headers = ["Agency Name", "Customer Name", "Mobile Number", "City", "Vehicle Model", "Vehicle Type", "Dealer/Partner", "Lead Date", "Requested Loan", "Approved Loan", "Disbursed Loan", "Dealer Cut", "Disbursed Date", "Bank/NBFC", "Lead Status", "Remarks"];
+        
+        const rows = leads.map(l => {
+            const tId = (l.tenantId || l.createdBy || 'heritage auto finance').toLowerCase();
+            const agencyName = agencyMap[tId] || l.tenantId || 'Heritage Auto Finance';
+
+            return [
+                `"${agencyName.replace(/"/g, '""')}"`,
+                `"${(l.name || '').replace(/"/g, '""')}"`,
+                `"${(l.mobile || '').replace(/"/g, '""')}"`,
+                `"${(l.city || '').replace(/"/g, '""')}"`,
+                `"${(l.vehModel || '').replace(/"/g, '""')}"`,
+                `"${(l.vehType || '').replace(/"/g, '""')}"`,
+                `"${(l.dealerName || 'Direct Customer').replace(/"/g, '""')}"`,
+                `"${(l.leadDate || todayStr)}"`,
+                l.loanAmount || 0,
+                l.approvedAmount || l.loanAmount || 0,
+                l.disbursedAmount || l.loanAmount || 0,
+                l.dealerCut || 0,
+                `"${(l.disbursedDate || '').replace(/"/g, '""')}"`,
+                `"${(l.bankNbfc || '').replace(/"/g, '""')}"`,
+                `"${(l.status || '').replace(/"/g, '""')}"`,
+                `"${(l.lastConv || '').replace(/"/g, '""')}"`
+            ];
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `All_Agencies_Master_Report_${todayStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    tenantsCollection.onSnapshot((snapshot) => {
+        tenantsCache = [];
+        snapshot.forEach(doc => {
+            tenantsCache.push({ docId: doc.id, ...doc.data() });
+        });
+        tenantsReady = true;
+        renderAdminMasterUserCards();
+    }, (error) => {
+        console.error("Tenant sync error:", error);
+    });
+
+    ensureDefaultTenantAndMigrateLocalData();
+
+    leadsCollection.orderBy('updatedAt', 'desc').onSnapshot((snapshot) => {
+        leads = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            leads.push({ docId: doc.id, ...data });
+        });
+        renderMetrics();
+        renderViews();
+        renderDisbursedHubTable();
+        renderDealerLedgerTable();
+        renderAdminMasterUserCards();
+    });
+
+    function formatINR(val) {
+        if (!val || isNaN(val)) return '₹0';
+        return '₹' + Number(val).toLocaleString('en-IN');
+    }
+
+    function handleStatusChange() {
+        const status = document.getElementById('status').value;
+        const docBox = document.getElementById('docChecklistSection');
+        const sanctionedBox = document.getElementById('sanctionedBox');
+        const disbursedDateGroup = document.getElementById('disbursedDateGroup');
+
+        docBox.style.display = (status === 'Documents Pending') ? 'block' : 'none';
+
+        if (status === 'Sanctioned' || status === 'Disbursed') {
+            sanctionedBox.style.display = 'block';
+            syncApproveAmountDefault();
+            disbursedDateGroup.style.display = (status === 'Disbursed') ? 'block' : 'none';
+            if (status === 'Disbursed' && !document.getElementById('disbursedDate').value) {
+                document.getElementById('disbursedDate').value = todayStr;
+            }
+        } else {
+            sanctionedBox.style.display = 'none';
+        }
+    }
+
+    function syncApproveAmountDefault() {
+        const loan = document.getElementById('loanAmount').value;
+        const appInput = document.getElementById('approvedAmount');
+        if (!appInput.value || appInput.value === '0') appInput.value = loan;
+    }
+
+    document.getElementById('leadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editDocId = document.getElementById('editDocId').value;
+        const currentStatus = document.getElementById('status').value;
+        const requestedLoan = Number(document.getElementById('loanAmount').value) || 0;
+        let approvedLoan = Number(document.getElementById('approvedAmount').value) || requestedLoan;
+        let disbursedLoan = Number(document.getElementById('disbursedAmount').value) || approvedLoan;
+        let formCut = Number(document.getElementById('formDealerCut').value) || 0;
+        let disbursedDateVal = document.getElementById('disbursedDate').value || (currentStatus === 'Disbursed' ? todayStr : '');
+
+        const sessionUser = getCurrentSessionUser();
+        let tenantIdTag = "heritage auto finance";
+        if (inspectingTenantId) tenantIdTag = inspectingTenantId;
+        else if (sessionUser && sessionUser.role !== 'superadmin') tenantIdTag = sessionUser.tenantId;
+
+        const leadData = {
+            name: document.getElementById('custName').value,
+            mobile: document.getElementById('mobile').value,
+            city: document.getElementById('city').value,
+            vehType: document.getElementById('vehType').value,
+            vehModel: document.getElementById('vehModel').value,
+            dealerName: document.getElementById('dealerNameSelect').value || 'Direct Customer',
+            loanAmount: requestedLoan,
+            approvedAmount: approvedLoan,
+            disbursedAmount: disbursedLoan,
+            disbursedDate: disbursedDateVal,
+            bankNbfc: document.getElementById('bankNbfc').value || '',
+            status: currentStatus,
+            followDate: document.getElementById('followDate').value,
+            lastConv: document.getElementById('lastConv').value.trim(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (formCut > 0) {
+            leadData.dealerCut = formCut;
+        }
+
+        if (editDocId) {
+            await leadsCollection.doc(editDocId).update(leadData);
+        } else {
+            leadData.tenantId = tenantIdTag;
+            leadData.createdBy = tenantIdTag;
+            leadData.leadDate = todayStr;
+            leadData.commRate = 1.5;
+            leadData.commAmount = Math.round((approvedLoan * 1.5) / 100);
+            leadData.dealerCut = formCut;
+            leadData.netComm = Math.max(0, leadData.commAmount - formCut);
+            leadData.payoutStatus = 'Pending';
+            leadData.holdAmount = 0;
+            leadData.holdReason = 'None';
+            leadData.holdRemarks = '';
+            leadData.holdStatus = 'None';
+            leadData.rtoCharges = 0;
+            leadData.rtoStatus = 'Pending';
+            await leadsCollection.add(leadData);
+        }
+
+        resetForm();
+    });
+
+    window.editLead = function(docId) {
+        const l = leads.find(item => item.docId === docId);
+        if (!l) return;
+
+        document.getElementById('editDocId').value = docId;
+        document.getElementById('custName').value = l.name || '';
+        document.getElementById('mobile').value = l.mobile || '';
+        document.getElementById('city').value = l.city || '';
+        document.getElementById('vehType').value = l.vehType || 'Used';
+        document.getElementById('vehModel').value = l.vehModel || '';
+        document.getElementById('loanAmount').value = Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('approvedAmount').value = Number(String(l.approvedAmount || l.loanAmount).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('disbursedAmount').value = Number(String(l.disbursedAmount || l.loanAmount).replace(/[^0-9.]/g, '')) || 0;
+        document.getElementById('formDealerCut').value = Number(String(l.dealerCut || 0).replace(/[^0-9.]/g, '')) || '';
+        document.getElementById('disbursedDate').value = l.disbursedDate || todayStr;
+        document.getElementById('bankNbfc').value = l.bankNbfc || '';
+        document.getElementById('status').value = l.status || 'New';
+        document.getElementById('followDate').value = l.followDate || '';
+        document.getElementById('lastConv').value = l.lastConv || '';
+
+        handleStatusChange();
+        document.getElementById('form-heading').textContent = 'Update Lead Details';
+        document.getElementById('submitBtn').textContent = 'Update in Cloud';
+        document.getElementById('cancelBtn').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.resetForm = function() {
+        document.getElementById('leadForm').reset();
+        document.getElementById('editDocId').value = '';
+        document.getElementById('form-heading').textContent = 'Add New Lead';
+        document.getElementById('submitBtn').textContent = 'Save to Cloud';
+        document.getElementById('cancelBtn').style.display = 'none';
+        handleStatusChange();
+    };
+
+    window.deleteLead = async function(docId) {
+        if (confirm('Delete lead from Cloud?')) {
+            await leadsCollection.doc(docId).delete();
+        }
+    };
+
+    applyPortalPermissions();
+    refreshDealerDropdowns();
+    handleStatusChange();
+</script>
+</body>
+</html>
