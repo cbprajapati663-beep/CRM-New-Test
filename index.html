@@ -3147,6 +3147,32 @@
         document.getElementById('do_net_dealer_payable').textContent = formatINR(netDealerPayable);
 
         document.getElementById('doModal').style.display = 'flex';
+
+        // Immutable point-in-time DO snapshot for the lead's document history.
+        // A new version entry is recorded each time the DO is opened/generated.
+        const doSnapshot = {
+            documentType: 'Delivery Order',
+            doNo: generatedDoNo,
+            applicationNo: l.applicationNo || ('HAF' + ddmmyyyy + doSequence),
+            customer: l.name || '',
+            mobile: l.mobile || '',
+            vehicle: l.vehModel || '',
+            vehicleType: l.vehType || 'Car',
+            vehicleRegNo: l.vehRegNo || '',
+            financier: l.bankNbfc || '',
+            dealer: l.dealerName || '',
+            city: l.city || '',
+            branch: headOffice,
+            agency: brandName,
+            approvedAmount: appAmt,
+            bankCharges: bankCharges,
+            grossDisbursed: grossDisbursed,
+            rtoCharges: rtoCharges,
+            netDealerPayable: netDealerPayable,
+            statusAtGeneration: l.status || '',
+            capturedAt: new Date().toISOString()
+        };
+        await logLeadActivity(docId, 'delivery_order_version', doSnapshot);
         await logLeadActivity(docId, 'delivery_order_opened', {
             doNo: generatedDoNo,
             applicationNo: l.applicationNo || ('HAF' + ddmmyyyy + doSequence),
