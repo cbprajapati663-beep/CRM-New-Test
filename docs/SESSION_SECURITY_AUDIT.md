@@ -27,3 +27,16 @@ Review of legacy login/session code in `assets/js/app.js` and standalone tenant 
 - This audit does not migrate existing plaintext Firestore passwords.
 - This audit does not change admin credentials or implement a new authentication provider.
 - This document is a review plan and status record, not proof that browser or rules tests have passed.
+
+## Additional code-review findings (read-only, current app.js)
+- The app initializes Firestore collections for both `leads` and `tenants`; tenant records are loaded with an unfiltered collection query.
+- The lead list is scoped in client-side JavaScript by `getLeadScopedList()`. Client-side filtering improves the displayed view but does not prevent a user from directly querying Firestore if the database rules allow it.
+- The lead form updates an existing lead using its document ID. The UI's visible list is not a substitute for server-side ownership validation.
+- The app contains a built-in default tenant record with a default password and a client-side admin password fallback. Treat these as high-priority credential risks: verify whether the default tenant already exists, remove any default credential only through a planned and tested credential migration, and replace client-only admin authentication with server-enforced identity before production use. Do not publish or reuse default credentials.
+- The code review did not inspect the active Firebase console rules or test Firestore access with separate accounts. Therefore, actual exploitability and current data exposure are not established here.
+
+## Immediate next actions
+1. Back up the current Firestore rules and export a safe test dataset before changes.
+2. Inspect the deployed rules in Firebase Console and verify that unauthenticated and cross-tenant reads/writes are denied.
+3. Plan a controlled migration away from hardcoded/default credentials and client-side-only admin authentication.
+4. Add server-enforced tenant ownership checks and test with two separate test tenants before changing production behavior.
