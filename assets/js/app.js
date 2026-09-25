@@ -195,6 +195,7 @@
     window.openChangeMyPasswordModal = function() {
         document.getElementById('cmp_oldPass').value = '';
         document.getElementById('cmp_newPass').value = '';
+        document.getElementById('cmpError').textContent = 'Current password incorrect!';
         document.getElementById('cmpError').style.display = 'none';
         document.getElementById('changeMyPasswordModal').style.display = 'flex';
     };
@@ -206,6 +207,19 @@
         const u = getCurrentSessionUser();
 
         if (!u) return;
+
+        // Security hardening: require a stronger password for every password change.
+        // Existing passwords remain usable so current users are not locked out.
+        const strongPassword = newP.length >= 8 &&
+            /[A-Za-z]/.test(newP) &&
+            /[0-9]/.test(newP) &&
+            newP !== oldP;
+        if (!strongPassword) {
+            const errorEl = document.getElementById('cmpError');
+            errorEl.textContent = 'New password must be at least 8 characters, include a letter and a number, and differ from the current password.';
+            errorEl.style.display = 'block';
+            return;
+        }
 
         if (u.role === 'superadmin') {
             const currentMaster = getAdminPassword();
