@@ -455,11 +455,11 @@
                 </div>
 
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <button class="btn-action" style="background:#f59e0b; color:#000; font-weight:700;" onclick="openEditTenantModal('${escapeHtml(t.tenantId)}')">⚙️ Manage License</button>
-                    <button class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openAdminRentBillModal('${escapeHtml(t.tenantId)}', '${escapeHtml(t.agencyName)}', ${t.rentAmount}, '${t.expiryDate}')">🧾 Bill</button>
-                    <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="openAdminTenantReportModal('${escapeHtml(t.tenantId)}', '${escapeHtml(t.agencyName)}')">📊 Report</button>
-                    <button class="btn-action" style="background:var(--saas); color:#000; font-weight:700;" onclick="inspectUserPortal('${escapeHtml(t.tenantId)}')">👁️ View</button>
-                    <button class="btn-quick btn-del" onclick="deleteTenantAccount('${escapeHtml(t.tenantId)}')">🗑️</button>
+                    <button class="btn-action" style="background:#f59e0b; color:#000; font-weight:700;" onclick="openEditTenantModal('${escapeJsString(t.tenantId)}')">⚙️ Manage License</button>
+                    <button class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openAdminRentBillModal('${escapeJsString(t.tenantId)}', '${escapeJsString(t.agencyName)}', ${Number(t.rentAmount) || 0}, '${escapeJsString(t.expiryDate)}')">🧾 Bill</button>
+                    <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="openAdminTenantReportModal('${escapeJsString(t.tenantId)}', '${escapeJsString(t.agencyName)}')">📊 Report</button>
+                    <button class="btn-action" style="background:var(--saas); color:#000; font-weight:700;" onclick="inspectUserPortal('${escapeJsString(t.tenantId)}')">👁️ View</button>
+                    <button class="btn-quick btn-del" onclick="deleteTenantAccount('${escapeJsString(t.tenantId)}')">🗑️</button>
                 </div>
             `;
             container.appendChild(card);
