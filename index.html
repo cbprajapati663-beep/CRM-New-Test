@@ -430,6 +430,13 @@
 
         /* Screen-only responsive DO preview.
            Print sizing remains untouched below. */
+        /* Next-level CRM UX: activity timeline + data-health indicators */
+        .activity-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 7px; border-radius:999px; font-size:.65rem; font-weight:700; border:1px solid #2b3342; background:#111622; color:#cbd5e1; }
+        .activity-event { background:#0f121a; border:1px solid #242938; border-radius:9px; padding:9px 10px; }
+        .activity-event .activity-head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:4px; }
+        .activity-event .activity-type { color:#d4af37; font-size:.72rem; font-weight:800; }
+        .activity-event .activity-time { color:#7f8a9d; font-size:.65rem; white-space:nowrap; }
+        .activity-event .activity-detail { color:#cbd5e1; font-size:.72rem; line-height:1.4; word-break:break-word; }
         @media screen and (max-width: 760px) {
             .do-modal-card {
                 width: calc(100vw - 20px) !important;
@@ -1551,15 +1558,25 @@
 
 <!-- MODAL: LEAD AUDIT / RECORD INFO -->
 <div id="leadAuditModal" class="modal-overlay">
-    <div class="modal-card" style="max-width:560px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div class="modal-card" style="max-width:760px;max-height:calc(100vh - 40px);overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;">
             <div>
                 <div class="panel-title">🧾 Lead Audit & Record Info</div>
-                <div style="font-size:.7rem;color:var(--text-muted);margin-top:3px;">Cloud timestamps and record history</div>
+                <div style="font-size:.7rem;color:var(--text-muted);margin-top:3px;">Cloud timestamps, record metadata & activity timeline</div>
             </div>
-            <button class="btn-action" onclick="closeLeadAudit()">✕ Close</button>
+            <div style="display:flex;gap:7px;">
+                <button class="btn-action" onclick="loadLeadActivity()">🔄 Refresh History</button>
+                <button class="btn-action" onclick="closeLeadAudit()">✕ Close</button>
+            </div>
         </div>
-        <div id="leadAuditBody" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+        <input type="hidden" id="leadAuditDocId">
+        <div id="leadAuditBody" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;"></div>
+        <div style="margin-top:16px;border-top:1px solid #2b3342;padding-top:13px;">
+            <div style="font-weight:800;font-size:.82rem;color:var(--primary);margin-bottom:8px;">🕒 Activity Timeline</div>
+            <div id="leadActivityTimeline" style="display:flex;flex-direction:column;gap:7px;">
+                <div style="font-size:.75rem;color:var(--text-muted);padding:12px;background:#0f121a;border:1px solid #242938;border-radius:8px;">History load karne ke liye Refresh History dabayein.</div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -3013,6 +3030,71 @@
         document.getElementById('do_net_dealer_payable').textContent = formatINR(netDealerPayable);
 
         document.getElementById('doModal').style.display = 'flex';
+        await logLeadActivity(docId, 'delivery_order_opened', {
+            doNo: generatedDoNo,
+            applicationNo: l.applicationNo || ('HAF' + ddmmyyyy + doSequence),
+            customer: l.name || '-'
+        });
+    };
+
+    async function logLeadActivity(docId, type, details) {
+        try {
+            if (!docId) return;
+            const u = getCurrentSessionUser();
+            const tenantId = (u && u.tenantId) || inspectingTenantId || 'system';
+            await leadsCollection.doc(docId).collection('activity').add({
+                type: type || 'record_update',
+                details: details || {},
+                tenantId: tenantId,
+                createdBy: (u && (u.tenantId || u.userId)) || 'system',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (err) {
+            console.warn('Activity log skipped:', err);
+        }
+    }
+
+    function formatActivityTime(v) {
+        try {
+            if (!v) return 'Just now';
+            if (typeof v.toDate === 'function') return v.toDate().toLocaleString('en-IN');
+            if (v.seconds) return new Date(v.seconds * 1000).toLocaleString('en-IN');
+        } catch(e) {}
+        return String(v);
+    }
+
+    window.loadLeadActivity = async function(docIdOverride) {
+        const docId = docIdOverride || document.getElementById('leadAuditDocId').value;
+        const box = document.getElementById('leadActivityTimeline');
+        if (!docId || !box) return;
+        box.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:12px;">Loading history...</div>';
+        try {
+            const snap = await leadsCollection.doc(docId).collection('activity').orderBy('createdAt','desc').limit(50).get();
+            if (snap.empty) {
+                box.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:12px;background:#0f121a;border:1px solid #242938;border-radius:8px;">Abhi activity history available nahi hai. New updates yahan automatically record honge.</div>';
+                return;
+            }
+            box.innerHTML = '';
+            snap.forEach(doc => {
+                const a = doc.data() || {};
+                const event = document.createElement('div');
+                event.className = 'activity-event';
+                const details = a.details && typeof a.details === 'object'
+                    ? Object.entries(a.details).map(([k,v]) => k + ': ' + v).join(' • ')
+                    : String(a.details || '');
+                event.innerHTML = '<div class="activity-head"><span class="activity-type">' +
+                    String(a.type || 'Record Update').replace(/</g,'&lt;') +
+                    '</span><span class="activity-time">' +
+                    String(formatActivityTime(a.createdAt)).replace(/</g,'&lt;') +
+                    '</span></div><div class="activity-detail">' +
+                    String(details || 'Record activity').replace(/</g,'&lt;') +
+                    '</div>';
+                box.appendChild(event);
+            });
+        } catch (err) {
+            console.error('Activity history error:', err);
+            box.innerHTML = '<div style="font-size:.75rem;color:#fca5a5;padding:12px;background:#1a1012;border:1px solid #7f1d1d;border-radius:8px;">History load nahi hui. Firestore activity permission/index check karein.</div>';
+        }
     };
 
     window.showLeadAudit = function(docId) {
@@ -3059,7 +3141,9 @@
             body.appendChild(box);
         });
 
+        document.getElementById('leadAuditDocId').value = docId;
         document.getElementById('leadAuditModal').style.display = 'flex';
+        loadLeadActivity(docId);
     };
 
     window.closeLeadAudit = function() {
@@ -3103,17 +3187,17 @@
             '@page{size:A4 portrait;margin:0;}' +
             '@media print{html,body{width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;}#printRoot{display:block!important;width:210mm!important;height:297mm!important;overflow:hidden!important;}#printRoot .printable-section{display:block!important;position:absolute!important;left:10mm!important;top:10mm!important;width:190mm!important;height:277mm!important;margin:0!important;overflow:hidden!important;page-break-after:avoid!important;break-after:avoid-page!important;}}' +
             '/* Premium document theme: keep PDF visually identical to the CRM preview. */' +
-            '#printRoot .do-paper{background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%)!important;color:#243447!important;border:1px solid #c9a227!important;border-top:7px solid #102a43!important;border-radius:10px!important;box-shadow:inset 0 0 0 1px rgba(212,175,55,.28)!important;padding:9mm!important;}' +
+            '#printRoot .do-paper{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%)!important;color:#243447!important;border:1px solid #c9a227!important;border-top:7px solid #102a43!important;border-radius:10px!important;box-shadow:inset 0 0 0 1px rgba(212,175,55,.28)!important;padding:9mm!important;}' +
             '#printRoot .do-paper h2{color:#102a43!important;font-size:17pt!important;letter-spacing:.35px!important;padding:9px 10px 7px!important;margin:0 0 3px!important;border-bottom:3px solid #d4af37!important;text-shadow:none!important;}' +
             '#printRoot .do-paper h4{color:#9a7615!important;font-size:8.5pt!important;margin:0 0 12px!important;letter-spacing:1.25px!important;text-transform:uppercase!important;}' +
             '#printRoot .do-paper .do-grid{background:#f7f9fc!important;border:1px solid #d8dee8!important;border-radius:7px!important;padding:5px!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:0 10px!important;}' +
             '#printRoot .do-paper .do-grid-item{border-bottom:1px solid #dfe4eb!important;padding:7px 8px!important;color:#263648!important;line-height:1.35!important;}' +
             '#printRoot .do-paper .do-grid-item strong{color:#102a43!important;}' +
             '#printRoot .do-paper .do-table{border:1px solid #b9c3d0!important;border-radius:7px!important;overflow:hidden!important;background:#fff!important;box-shadow:0 3px 12px rgba(16,42,67,.06)!important;}' +
-            '#printRoot .do-paper .do-table th{background:linear-gradient(90deg,#102a43,#1b4965)!important;color:#fff!important;border-color:#102a43!important;text-transform:uppercase!important;font-size:8pt!important;letter-spacing:.25px!important;}' +
+            '#printRoot .do-paper .do-table th{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:linear-gradient(90deg,#102a43,#1b4965)!important;color:#fff!important;border-color:#102a43!important;text-transform:uppercase!important;font-size:8pt!important;letter-spacing:.25px!important;}' +
             '#printRoot .do-paper .do-table td{border-color:#d7dde5!important;color:#243447!important;background:#fff!important;}' +
             '#printRoot .do-paper .do-table tr:nth-child(even) td{background:#f7f9fc!important;}' +
-            '#printRoot .do-paper .do-table tr:last-child td{background:#eaf8f2!important;color:#075e45!important;font-weight:800!important;border-top:2px solid #10b981!important;}' +
+            '#printRoot .do-paper .do-table tr:last-child td{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#eaf8f2!important;color:#075e45!important;font-weight:800!important;border-top:2px solid #10b981!important;}' +
             '#printRoot .do-paper p{color:#536273!important;line-height:1.45!important;}' +
             '#printRoot .do-paper .do-signatures{border-top:1px solid #d9dee6!important;padding-top:18px!important;}' +
             '</style></head><body><div id="printRoot"></div></body></html>');
@@ -3427,7 +3511,14 @@
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
         try {
         if (editDocId) {
+            const previousLead = leads.find(item => item.docId === editDocId) || {};
             await leadsCollection.doc(editDocId).update(leadData);
+            await logLeadActivity(editDocId, previousLead.status !== currentStatus ? 'status_change' : 'record_updated', {
+                status: currentStatus,
+                customer: leadData.name,
+                vehicle: leadData.vehRegNo || '-',
+                loan: formatINR(requestedLoan)
+            });
         } else {
             leadData.tenantId = tenantIdTag;
             leadData.createdBy = tenantIdTag;
@@ -3445,7 +3536,14 @@
             leadData.holdStatus = 'None';
             leadData.rtoCharges = 0;
             leadData.rtoStatus = 'Pending';
-            await leadsCollection.add(leadData);
+            const newLeadRef = leadsCollection.doc();
+            await newLeadRef.set(leadData);
+            await logLeadActivity(newLeadRef.id, 'lead_created', {
+                status: currentStatus,
+                customer: leadData.name,
+                vehicle: leadData.vehRegNo || '-',
+                loan: formatINR(requestedLoan)
+            });
         }
         resetForm();
         } catch (error) {
