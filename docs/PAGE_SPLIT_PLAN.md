@@ -52,4 +52,9 @@ Separate the CRM's major screens into independently maintained pages without cha
 - Do not claim the refactor is complete or production-secure until browser/runtime and rules tests have passed.
 
 ## Current status
-Planning only. No production page markup or routes have been moved by this document.
+- Phase 0 dependency audit is complete.
+- A standalone client login page and script exist at `pages/login.html` and `assets/js/login-page.js`.
+- The legacy sign-in remains in `index.html`; the new login page is not yet the sole login route.
+- Login behavior has not been verified in a real browser against the deployed Firestore database.
+- Admin/dashboard extraction and route guards are not complete.
+- See `docs/LOGIN_PAGE_TEST_PLAN.md` for the next validation gate.
