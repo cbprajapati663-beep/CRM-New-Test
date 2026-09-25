@@ -1354,6 +1354,20 @@
     </div>
 </div>
 
+<!-- MODAL: LEAD AUDIT / RECORD INFO -->
+<div id="leadAuditModal" class="modal-overlay">
+    <div class="modal-card" style="max-width:560px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div>
+                <div class="panel-title">🧾 Lead Audit & Record Info</div>
+                <div style="font-size:.7rem;color:var(--text-muted);margin-top:3px;">Cloud timestamps and record history</div>
+            </div>
+            <button class="btn-action" onclick="closeLeadAudit()">✕ Close</button>
+        </div>
+        <div id="leadAuditBody" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+    </div>
+</div>
+
 <!-- MODAL: PRINTABLE DELIVERY ORDER (DO) -->
 <div id="doModal" class="modal-overlay">
     <div class="modal-card do-modal-card" style="max-width: 680px; max-height: calc(100vh - 30px); overflow-y: auto;">
@@ -2305,6 +2319,7 @@
                     <div style="display:flex; flex-direction:column; gap:4px;">
                         <div style="display:flex; gap:4px;">
                             <button class="btn-quick btn-edit" onclick="editLead('${l.docId}')">✏️</button>
+                            <button class="btn-quick" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);" onclick="showLeadAudit('${l.docId}')" title="Audit details">🧾</button>
                             <button class="btn-quick btn-del" onclick="deleteLead('${l.docId}')">🗑️</button>
                         </div>
                         ${doButtonHtml}
@@ -2805,6 +2820,57 @@
         document.getElementById('doModal').style.display = 'flex';
     };
 
+    window.showLeadAudit = function(docId) {
+        const l = leads.find(item => item.docId === docId);
+        if (!l) return;
+
+        const fmt = (v) => {
+            if (!v) return '—';
+            try {
+                if (typeof v.toDate === 'function') return v.toDate().toLocaleString('en-IN');
+                if (v.seconds) return new Date(v.seconds * 1000).toLocaleString('en-IN');
+            } catch (e) {}
+            return String(v);
+        };
+
+        const rows = [
+            ['Customer', l.name || '—'],
+            ['Mobile', l.mobile || '—'],
+            ['Vehicle Reg. No', l.vehRegNo || '—'],
+            ['Lead Status', l.status || '—'],
+            ['Tenant / Agency', l.tenantId || l.createdBy || '—'],
+            ['Created At', fmt(l.createdAt)],
+            ['Created By', l.createdByUser || l.createdBy || '—'],
+            ['Updated At', fmt(l.updatedAt)],
+            ['Updated By', l.updatedBy || '—'],
+            ['DO No', l.doNo || 'Not generated'],
+            ['Application No', l.applicationNo || 'Not generated'],
+            ['DO Sequence', l.doSequence || '—']
+        ];
+
+        const body = document.getElementById('leadAuditBody');
+        body.innerHTML = '';
+        rows.forEach(([label,value]) => {
+            const box = document.createElement('div');
+            box.style.cssText = 'background:#0f121a;border:1px solid #242938;border-radius:7px;padding:9px;min-width:0;';
+            const lab = document.createElement('div');
+            lab.style.cssText = 'font-size:.66rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px;';
+            lab.textContent = label;
+            const val = document.createElement('div');
+            val.style.cssText = 'font-size:.78rem;color:var(--text);font-weight:600;word-break:break-word;';
+            val.textContent = value;
+            box.appendChild(lab);
+            box.appendChild(val);
+            body.appendChild(box);
+        });
+
+        document.getElementById('leadAuditModal').style.display = 'flex';
+    };
+
+    window.closeLeadAudit = function() {
+        document.getElementById('leadAuditModal').style.display = 'none';
+    };
+
     window.printSelectedDocument = function(sectionId) {
         const section = document.getElementById(sectionId);
         if (!section) {
@@ -3085,6 +3151,9 @@
         if (requestedLoan <= 0) { alert('Requested Loan amount valid hona chahiye.'); return; }
         const vehRegNo = (document.getElementById('vehRegNo').value || '').trim().toUpperCase();
 
+        const customerName = document.getElementById('custName').value.trim();
+        if (!customerName) { alert('Customer name required hai.'); return; }
+
         if (!editDocId) {
             const cleanNewMobile = mobileRaw.replace(/\D/g, '');
             const duplicate = getLeadScopedList().find(x =>
@@ -3100,6 +3169,23 @@
                     'Kya aap phir bhi nayi lead create karna chahte hain?'
                 );
                 if (!proceed) return;
+            }
+
+            if (vehRegNo) {
+                const duplicateReg = getLeadScopedList().find(x =>
+                    (x.vehRegNo || '').trim().toUpperCase() === vehRegNo &&
+                    x.status !== 'Rejected'
+                );
+                if (duplicateReg) {
+                    const proceedReg = confirm(
+                        '⚠️ Is vehicle registration number ki existing active file mil gayi hai.\\n\\n' +
+                        'Customer: ' + (duplicateReg.name || 'Unknown') + '\\n' +
+                        'Status: ' + (duplicateReg.status || 'New') + '\\n' +
+                        'Mobile: ' + (duplicateReg.mobile || '-') + '\\n\\n' +
+                        'Kya aap phir bhi nayi lead create karna chahte hain?'
+                    );
+                    if (!proceedReg) return;
+                }
             }
         }
 
