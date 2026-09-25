@@ -45,3 +45,12 @@ Review of legacy login/session code in `assets/js/app.js` and standalone tenant 
 - Inspected the repository root listing on the default branch. No root-level `firebase.json` or `firestore.rules` appeared in that listing.
 - Direct requests for those two root paths did not return file content. This confirms only that those root-level files were not available at the inspected paths; it does not prove that no rules exist elsewhere or that the deployed Firebase project has no rules.
 - **No Firestore rules were changed or deployed.** A restrictive ruleset must be designed against the actual authentication/tenant membership model and validated in a test project first; guessing rules now could lock out legitimate users or fail to protect data.
+
+## Follow-up static scan (2026-09-25)
+- `assets/js/app.js` contains a browser-side admin password fallback and stores the master admin password under `haf_master_admin_pass`; the payout gate also falls back to a PIN value and checks it in client-side JavaScript. These are client-side controls, not trusted authorization.
+- The app uses `innerHTML` in multiple render paths and `document.write` for print output. This scan did not trace every interpolated value to its origin, so it does not establish a confirmed XSS vulnerability; the interpolation sites need contextual review and safe rendering tests.
+- Dealer-related data is also read/written through browser storage keys. Review whether any sensitive or tenant-specific data is stored there and ensure tenant scoping is applied consistently.
+- No application behavior was changed in this step. No browser, emulator, or live Firebase tests were run.
+
+## Current next step
+Perform a focused safe-rendering review of the highest-risk `innerHTML`/print templates, tracing whether customer, dealer, tenant, or activity values are inserted as HTML. Replace only confirmed unsafe interpolation paths with context-appropriate safe DOM rendering and add regression tests before broader refactoring.
