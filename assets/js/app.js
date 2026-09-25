@@ -5,6 +5,10 @@
 
 
     // Escape document IDs before placing them inside quoted inline JavaScript arguments.
+    function safeClassToken(value) {
+        return String(value ?? '').replace(/[^A-Za-z0-9_-]/g, '');
+    }
+
     function escapeJsString(value) {
         return String(value ?? '').replace(/[\\'\r\n\u2028\u2029]/g, char => ({'\\':'\\\\', "'":"\\'", '\r':'\\r', '\n':'\\n', '\u2028':'\\u2028', '\u2029':'\\u2029'}[char]));
     }
@@ -1006,7 +1010,7 @@
                 <td><strong style="color:var(--primary);">${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
                 <td>${approvedDisplay}</td>
                 <td><strong style="color:#c084fc;">${escapeHtml(l.dealerName || 'Direct Customer')}</strong><br><small style="color:#60a5fa;">${escapeHtml(l.bankNbfc || 'Pending')}</small></td>
-                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${escapeHtml(l.status || 'New')}</span></td>
+                <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status || 'New')}</span></td>
                 <td>${docStatusHtml}</td>
                 <td style="max-width: 155px; font-size:0.78rem; color:#f4b41a;">💬 ${escapeHtml(l.lastConv || '-')}</td>
                 <td>
@@ -1227,7 +1231,7 @@
                 <td><strong style="color:#c084fc;">🤝 ${escapeHtml(dName)}</strong></td>
                 <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong></td>
                 <td>${escapeHtml(l.vehModel || '-')}</td>
-                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${escapeHtml(l.status || 'New')}</span></td>
+                <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status || 'New')}</span></td>
                 <td><strong style="color:#4ade80;">${formatINR(appAmt)}</strong></td>
                 <td><strong style="color:var(--primary);">${formatINR(disAmt)}</strong></td>
                 <td><strong style="color:${cut > 0 ? 'var(--danger)' : 'var(--text-muted)'}; font-size:0.95rem;">${formatINR(cut)}</strong></td>
@@ -1468,7 +1472,7 @@
                     <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WhatsApp</a>
                 </td>
                 <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
-                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${escapeHtml(l.status)}</span></td>
+                <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status)}</span></td>
                 <td style="color:#fbbf24; font-weight:600;">${l.followDate || 'Today'}</td>
                 <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
                 <td><button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}'); switchView('pipeline');">✏️ Update</button></td>
