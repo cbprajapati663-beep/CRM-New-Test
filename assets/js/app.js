@@ -1665,28 +1665,7 @@
             '<meta charset="UTF-8">' +
             '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
             '<title>' + printTitle.replace(/</g,'&lt;') + '</title>' +
-            '<style>' + styleText + '\n' +
-            '#printRoot{display:block!important;width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important;}' +
-            '#printRoot .printable-section{display:block!important;position:absolute!important;left:10mm!important;top:10mm!important;width:190mm!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;padding:10mm!important;box-sizing:border-box!important;overflow:hidden!important;background:#fff!important;color:#000!important;border:1px solid #222!important;box-shadow:none!important;border-radius:0!important;page-break-after:avoid!important;break-after:avoid-page!important;page-break-inside:avoid!important;break-inside:avoid-page!important;}' +
-            '#printRoot .do-paper{width:190mm!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;box-sizing:border-box!important;}' +
-            'html,body{width:210mm!important;height:297mm!important;min-height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important;}' +
-            '@page{size:A4 portrait;margin:0;}' +
-            '@media print{html,body{width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;}#printRoot{display:block!important;width:210mm!important;height:297mm!important;overflow:hidden!important;}#printRoot .printable-section{display:block!important;position:absolute!important;left:10mm!important;top:10mm!important;width:190mm!important;height:277mm!important;margin:0!important;overflow:hidden!important;page-break-after:avoid!important;break-after:avoid-page!important;}}' +
-            '/* Premium document theme: keep PDF visually identical to the CRM preview. */' +
-            '#printRoot .do-paper{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%)!important;color:#243447!important;border:1px solid #c9a227!important;border-top:7px solid #102a43!important;border-radius:10px!important;box-shadow:inset 0 0 0 1px rgba(212,175,55,.28)!important;padding:9mm!important;}' +
-            '#printRoot .do-paper h2{color:#102a43!important;font-size:17pt!important;letter-spacing:.35px!important;padding:9px 10px 7px!important;margin:0 0 3px!important;border-bottom:3px solid #d4af37!important;text-shadow:none!important;}' +
-            '#printRoot .do-paper h4{color:#9a7615!important;font-size:8.5pt!important;margin:0 0 12px!important;letter-spacing:1.25px!important;text-transform:uppercase!important;}' +
-            '#printRoot .do-paper .do-grid{background:#f7f9fc!important;border:1px solid #d8dee8!important;border-radius:7px!important;padding:5px!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:0 10px!important;}' +
-            '#printRoot .do-paper .do-grid-item{border-bottom:1px solid #dfe4eb!important;padding:7px 8px!important;color:#263648!important;line-height:1.35!important;}' +
-            '#printRoot .do-paper .do-grid-item strong{color:#102a43!important;}' +
-            '#printRoot .do-paper .do-table{border:1px solid #b9c3d0!important;border-radius:7px!important;overflow:hidden!important;background:#fff!important;box-shadow:0 3px 12px rgba(16,42,67,.06)!important;}' +
-            '#printRoot .do-paper .do-table th{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:linear-gradient(90deg,#102a43,#1b4965)!important;color:#fff!important;border-color:#102a43!important;text-transform:uppercase!important;font-size:8pt!important;letter-spacing:.25px!important;}' +
-            '#printRoot .do-paper .do-table td{border-color:#d7dde5!important;color:#243447!important;background:#fff!important;}' +
-            '#printRoot .do-paper .do-table tr:nth-child(even) td{background:#f7f9fc!important;}' +
-            '#printRoot .do-paper .do-table tr:last-child td{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#eaf8f2!important;color:#075e45!important;font-weight:800!important;border-top:2px solid #10b981!important;}' +
-            '#printRoot .do-paper p{color:#536273!important;line-height:1.45!important;}' +
-            '#printRoot .do-paper .do-signatures{border-top:1px solid #d9dee6!important;padding-top:18px!important;}' +
-            '</style></head><body><div id="printRoot"></div></body></html>');
+            '<link rel="stylesheet" href="assets/css/styles.css"></head><body><div id="printRoot"></div></body></html>');
         printWindow.document.close();
 
         const root = printWindow.document.getElementById('printRoot');
