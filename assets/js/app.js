@@ -1,4 +1,8 @@
 
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>\"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[char]));
+    }
+
     const firebaseConfig = {
         apiKey: "AIzaSyACLaRm5yH301JVqlvl8KYglANOc3uh6w",
         authDomain: "heritage-crm-f179a.firebaseapp.com",
@@ -617,13 +621,13 @@
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${l.name || 'Unnamed'}</strong><br><small style="color:#666;">${l.city || 'Mehsana'}</small></td>
-                <td>${l.vehModel || '-'}<br><small style="color:#666;">${l.vehType || 'Car'}</small></td>
+                <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong><br><small style="color:#666;">${escapeHtml(l.city || 'Mehsana')}</small></td>
+                <td>${escapeHtml(l.vehModel || '-')}<br><small style="color:#666;">${escapeHtml(l.vehType || 'Car')}</small></td>
                 <td>${l.leadDate || todayStr}</td>
                 <td><span style="font-weight:700; color:${l.status === 'Disbursed' ? '#10b981' : '#d4af37'};">${l.status}</span></td>
                 <td style="text-align:right;">${formatINR(app)}</td>
                 <td style="text-align:right; font-weight:700; color:#10b981;">${formatINR(dis)}</td>
-                <td>${l.dealerName || 'Direct'}</td>
+                <td>${escapeHtml(l.dealerName || 'Direct')}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -984,21 +988,21 @@
 
             row.innerHTML = `
                 <td>
-                    <strong>${l.name || 'Unnamed Client'}</strong><br>
-                    <span style="color:var(--text-muted); font-size:0.75rem;">${l.city || 'Mehsana'}</span>
+                    <strong>${escapeHtml(l.name || 'Unnamed Client')}</strong><br>
+                    <span style="color:var(--text-muted); font-size:0.75rem;">${escapeHtml(l.city || 'Mehsana')}</span>
                     <div class="quick-actions">
                         <a class="btn-quick btn-call" href="tel:${cleanMobile}">📞</a>
                         <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WA</a>
                     </div>
                 </td>
-                <td>${l.vehModel || '-'}<br><span style="color:var(--text-muted); font-size:0.72rem;">${l.vehType || 'Used'}${l.vehRegNo ? ' • ' + l.vehRegNo : ''}</span></td>
+                <td>${escapeHtml(l.vehModel || '-')}<br><span style="color:var(--text-muted); font-size:0.72rem;">${escapeHtml(l.vehType || 'Used')}${l.vehRegNo ? ' • ' + escapeHtml(l.vehRegNo) : ''}</span></td>
                 <td><small style="color:var(--primary);">📅 ${lDateDisplay || todayStr}</small></td>
                 <td><strong style="color:var(--primary);">${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
                 <td>${approvedDisplay}</td>
-                <td><strong style="color:#c084fc;">${l.dealerName || 'Direct Customer'}</strong><br><small style="color:#60a5fa;">${l.bankNbfc || 'Pending'}</small></td>
+                <td><strong style="color:#c084fc;">${escapeHtml(l.dealerName || 'Direct Customer')}</strong><br><small style="color:#60a5fa;">${escapeHtml(l.bankNbfc || 'Pending')}</small></td>
                 <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status || 'New'}</span></td>
                 <td>${docStatusHtml}</td>
-                <td style="max-width: 155px; font-size:0.78rem; color:#f4b41a;">💬 ${l.lastConv || '-'}</td>
+                <td style="max-width: 155px; font-size:0.78rem; color:#f4b41a;">💬 ${escapeHtml(l.lastConv || '-')}</td>
                 <td>
                     <div style="display:flex; flex-direction:column; gap:4px;">
                         <div style="display:flex; gap:4px;">
@@ -1038,17 +1042,17 @@
             const holdAmt = Number(String(l.holdAmount || 0).replace(/[^0-9.]/g, '')) || 0;
 
             row.innerHTML = `
-                <td><strong>${l.name || 'Unnamed Client'}</strong><br><small style="color:var(--text-muted);">${l.city || 'Mehsana'}</small></td>
-                <td>${l.vehModel || '-'}<br><small style="color:#60a5fa;">${l.bankNbfc || '-'}</small></td>
-                <td><strong style="color:var(--primary); font-size:0.8rem;">📅 ${l.disbursedDate || 'Not Set'}</strong></td>
+                <td><strong>${escapeHtml(l.name || 'Unnamed Client')}</strong><br><small style="color:var(--text-muted);">${escapeHtml(l.city || 'Mehsana')}</small></td>
+                <td>${escapeHtml(l.vehModel || '-')}<br><small style="color:#60a5fa;">${escapeHtml(l.bankNbfc || '-')}</small></td>
+                <td><strong style="color:var(--primary); font-size:0.8rem;">📅 ${escapeHtml(l.disbursedDate || 'Not Set')}</strong></td>
                 <td><strong style="color:#4ade80;">${formatINR(appAmt)}</strong></td>
                 <td><strong style="color:var(--primary);">${formatINR(disAmt)}</strong></td>
                 <td><strong style="color:${holdAmt > 0 && l.holdStatus === 'Hold Kept' ? '#f87171' : 'var(--text-muted)'};">${formatINR(holdAmt)}</strong></td>
-                <td><span style="font-weight:600;">${l.holdReason || '-'}</span></td>
-                <td><span style="font-size:0.75rem; color:#f4b41a;">${l.holdRemarks || '-'}</span></td>
-                <td><span class="badge ${l.holdStatus === 'Hold Kept' ? 'badge-Suspended' : 'badge-Active'}">${l.holdStatus || 'None'}</span></td>
+                <td><span style="font-weight:600;">${escapeHtml(l.holdReason || '-')}</span></td>
+                <td><span style="font-size:0.75rem; color:#f4b41a;">${escapeHtml(l.holdRemarks || '-')}</span></td>
+                <td><span class="badge ${l.holdStatus === 'Hold Kept' ? 'badge-Suspended' : 'badge-Active'}">${escapeHtml(l.holdStatus || 'None')}</span></td>
                 <td><strong>${formatINR(Number(String(l.rtoCharges || 0).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
-                <td><span class="badge ${l.rtoStatus === 'Completed' ? 'badge-Sanctioned' : 'badge-New'}">${l.rtoStatus || 'Pending'}</span></td>
+                <td><span class="badge ${l.rtoStatus === 'Completed' ? 'badge-Sanctioned' : 'badge-New'}">${escapeHtml(l.rtoStatus || 'Pending')}</span></td>
                 <td>
                     <div style="display:flex; flex-direction:column; gap:4px;">
                         <button class="btn-quick btn-edit" onclick="openRtoHoldModal('${l.docId}')">⚙️ Manage</button>
@@ -1156,9 +1160,9 @@
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${l.name || 'Unnamed'}</strong></td>
-                <td>${l.vehModel || '-'}</td>
-                <td>${l.status || '-'}</td>
+                <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong></td>
+                <td>${escapeHtml(l.vehModel || '-')}</td>
+                <td>${escapeHtml(l.status || '-')}</td>
                 <td style="text-align:right;">${formatINR(app)}</td>
                 <td style="text-align:right;">${formatINR(dis)}</td>
                 <td style="text-align:right; font-weight:700; color:#b89628;">${formatINR(cut)}</td>
@@ -1214,9 +1218,9 @@
 
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><strong style="color:#c084fc;">🤝 ${dName}</strong></td>
-                <td><strong>${l.name || 'Unnamed'}</strong></td>
-                <td>${l.vehModel || '-'}</td>
+                <td><strong style="color:#c084fc;">🤝 ${escapeHtml(dName)}</strong></td>
+                <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong></td>
+                <td>${escapeHtml(l.vehModel || '-')}</td>
                 <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status || 'New'}</span></td>
                 <td><strong style="color:#4ade80;">${formatINR(appAmt)}</strong></td>
                 <td><strong style="color:var(--primary);">${formatINR(disAmt)}</strong></td>
@@ -1309,10 +1313,10 @@
             if (pStatus === 'Received' || pStatus === 'Cleared') totalReceived += net;
 
             row.innerHTML = `
-                <td><strong>${l.name || 'Unnamed'}</strong><br><small style="color:var(--text-muted);">${l.city || 'Mehsana'}</small></td>
-                <td><strong style="color:#60a5fa;">${l.bankNbfc || '-'}</strong></td>
-                <td><span style="color:#c084fc;">${l.dealerName || 'Direct'}</span></td>
-                <td><span style="color:var(--primary); font-size:0.8rem;">📅 ${l.disbursedDate || '-'}</span></td>
+                <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong><br><small style="color:var(--text-muted);">${escapeHtml(l.city || 'Mehsana')}</small></td>
+                <td><strong style="color:#60a5fa;">${escapeHtml(l.bankNbfc || '-')}</strong></td>
+                <td><span style="color:#c084fc;">${escapeHtml(l.dealerName || 'Direct')}</span></td>
+                <td><span style="color:var(--primary); font-size:0.8rem;">📅 ${escapeHtml(l.disbursedDate || '-')}</span></td>
                 <td><strong style="color:#4ade80;">${formatINR(approvedBase)}</strong></td>
                 <td>${rate}%</td>
                 <td>${formatINR(gross)}</td>
@@ -1452,7 +1456,7 @@
             const cleanMobile = (l.mobile || '').replace(/\D/g, '');
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><strong>${l.name || 'Unnamed'}</strong><br><small style="color:var(--text-muted);">${l.city || 'Mehsana'}</small></td>
+                <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong><br><small style="color:var(--text-muted);">${escapeHtml(l.city || 'Mehsana')}</small></td>
                 <td>
                     <a class="btn-quick btn-call" href="tel:${cleanMobile}">📞 Call</a>
                     <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WhatsApp</a>
@@ -1460,7 +1464,7 @@
                 <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
                 <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status}</span></td>
                 <td style="color:#fbbf24; font-weight:600;">${l.followDate || 'Today'}</td>
-                <td><small style="color:var(--primary);">${l.lastConv || '-'}</small></td>
+                <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
                 <td><button class="btn-quick btn-edit" onclick="editLead('${l.docId}'); switchView('pipeline');">✏️ Update</button></td>
             `;
             tbody.appendChild(row);
