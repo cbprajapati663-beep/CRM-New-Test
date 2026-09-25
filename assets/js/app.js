@@ -679,50 +679,67 @@
     async function handleResetPasswordSubmit(e) {
         e.preventDefault();
         const role = document.getElementById('resetRoleTarget').value;
-        const phone = document.getElementById('resetInputPhone').value.trim();
+        const phone = document.getElementById('resetInputPhone').value.replace(/\D/g, '');
         const newPass = document.getElementById('resetInputNewPass').value.trim();
-
-        // Apply the same minimum password policy to password resets.
         const resetError = document.getElementById('resetErrorMsg');
+
         if (newPass.length < 8 || !/[A-Za-z]/.test(newPass) || !/[0-9]/.test(newPass)) {
             resetError.textContent = 'New password must be at least 8 characters and include both a letter and a number.';
             resetError.style.display = 'block';
             return;
         }
+
         resetError.textContent = 'Verification failed. Please check the registered phone number.';
 
-        if (phone === '7600211085' || phone === '917600211085') {
-            if (role === 'admin') {
+        if (role === 'admin') {
+            // Admin reset keeps the existing master verification number.
+            if (phone === '7600211085' || phone === '917600211085') {
                 localStorage.setItem('haf_master_admin_pass', newPass);
                 alert("✓ IT Admin Master Password successfully reset ho gaya!");
                 closeResetPasswordModal();
             } else {
-                const uid = document.getElementById('resetInputUserId').value.trim().toLowerCase();
-
-                try {
-                    const snapshot = await tenantsCollection
-                        .where('tenantId', '==', uid)
-                        .limit(1)
-                        .get();
-
-                    if (!snapshot.empty) {
-                        const doc = snapshot.docs[0];
-                        await doc.ref.update({
-                            password: newPass,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-
-                        alert(`✓ Password update ho gaya!`);
-                        closeResetPasswordModal();
-                    } else {
-                        alert("User ID nahi mili!");
-                    }
-                } catch (error) {
-                    console.error("Reset password error:", error);
-                }
+                resetError.style.display = 'block';
             }
-        } else {
-            document.getElementById('resetErrorMsg').style.display = 'block';
+            return;
+        }
+
+        const uid = document.getElementById('resetInputUserId').value.trim().toLowerCase();
+        if (!uid || !phone) {
+            resetError.style.display = 'block';
+            return;
+        }
+
+        try {
+            const snapshot = await tenantsCollection
+                .where('tenantId', '==', uid)
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                resetError.style.display = 'block';
+                return;
+            }
+
+            const doc = snapshot.docs[0];
+            const tenant = doc.data();
+            const registeredPhone = String(tenant.contactPhone || '').replace(/\D/g, '');
+
+            if (!registeredPhone || phone !== registeredPhone) {
+                resetError.style.display = 'block';
+                return;
+            }
+
+            await doc.ref.update({
+                password: newPass,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            alert("✓ Password update ho gaya!");
+            closeResetPasswordModal();
+        } catch (error) {
+            console.error("Reset password error:", error);
+            resetError.textContent = 'Password reset service error. Please try again.';
+            resetError.style.display = 'block';
         }
     }
 
