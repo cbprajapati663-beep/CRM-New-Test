@@ -32,10 +32,10 @@ jobs:
             console.error('Missing required CRM markers:', missing.join(', '));
             process.exit(1);
           }
-          const scripts = [...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)]
+          const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
             .map(m => m[1])
             .filter(x => x.trim());
-          fs.writeFileSync('/tmp/crm-inline.js', scripts.join('\\n'));
+          fs.writeFileSync('/tmp/crm-inline.js', scripts.join('\n'));
           console.log('HTML structure OK. Inline script blocks:', scripts.length);
           NODE
 
