@@ -1,0 +1,43 @@
+name: CRM Validation
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required CRM structure
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const required = [
+            'leadForm',
+            'vehRegNo',
+            'printableDOArea',
+            'printableRentBillArea',
+            'leadAuditModal',
+            'leadActivityTimeline',
+            'printSelectedDocument',
+            'generateDO'
+          ];
+          const missing = required.filter(x => !html.includes(x));
+          if (missing.length) {
+            console.error('Missing required CRM markers:', missing.join(', '));
+            process.exit(1);
+          }
+          const scripts = [...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)]
+            .map(m => m[1])
+            .filter(x => x.trim());
+          fs.writeFileSync('/tmp/crm-inline.js', scripts.join('\\n'));
+          console.log('HTML structure OK. Inline script blocks:', scripts.length);
+          NODE
+
+      - name: Syntax check inline JavaScript
+        run: node --check /tmp/crm-inline.js
