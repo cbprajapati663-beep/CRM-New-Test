@@ -341,15 +341,14 @@
                 overflow: hidden !important;
             }
 
-            /* Only the temporary print root participates in print layout.
-               Hidden elements use display:none so they cannot create page 2. */
+            /* Dedicated print document: exactly one A4 page. */
             body > *:not(#printRoot) {
                 display: none !important;
             }
 
             body > #printRoot {
                 display: block !important;
-                position: static !important;
+                position: relative !important;
                 width: 210mm !important;
                 height: 297mm !important;
                 min-height: 297mm !important;
@@ -362,14 +361,14 @@
 
             #printRoot .printable-section {
                 display: block !important;
-                position: relative !important;
-                left: auto !important;
-                top: auto !important;
+                position: absolute !important;
+                left: 10mm !important;
+                top: 10mm !important;
                 width: 190mm !important;
                 height: 277mm !important;
                 min-height: 277mm !important;
                 max-height: 277mm !important;
-                margin: 10mm auto 0 !important;
+                margin: 0 !important;
                 padding: 10mm !important;
                 box-sizing: border-box !important;
                 background: #fff !important;
@@ -381,7 +380,7 @@
                 page-break-after: avoid !important;
                 break-after: avoid-page !important;
                 page-break-inside: avoid !important;
-                break-inside: avoid !important;
+                break-inside: avoid-page !important;
                 print-color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
             }
@@ -391,7 +390,7 @@
                 height: 277mm !important;
                 min-height: 277mm !important;
                 max-height: 277mm !important;
-                margin: 10mm auto 0 !important;
+                margin: 0 !important;
                 box-sizing: border-box !important;
             }
 
@@ -401,7 +400,7 @@
             #printRoot .do-signatures,
             #printRoot p {
                 page-break-inside: avoid !important;
-                break-inside: avoid !important;
+                break-inside: avoid-page !important;
             }
 
             #printRoot .do-paper h2,
@@ -1077,7 +1076,7 @@
 
 <!-- MODAL: RENT BILL / INVOICE GENERATOR -->
 <div id="adminRentBillModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-card do-modal-card" style="max-width: 680px; max-height: calc(100vh - 30px); overflow-y: auto;">
         <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
             <button class="btn-action" style="background:#10b981; color:#000;" onclick="window.print()">🖨️ Print / Save Bill as PDF</button>
             <button class="btn-action" onclick="document.getElementById('adminRentBillModal').style.display='none';">✕ Close</button>
@@ -2813,33 +2812,56 @@
             return;
         }
 
-        /* Put only the selected document into a dedicated body-level
-           print root. This prevents hidden CRM layout from generating
-           a blank second page in Chrome Print Preview. */
-        let printRoot = document.getElementById('printRoot');
-        if (!printRoot) {
-            printRoot = document.createElement('div');
-            printRoot.id = 'printRoot';
-            document.body.appendChild(printRoot);
-        }
+        /* Use a completely isolated print iframe. The main CRM page,
+           modal height, hidden elements and dashboard layout can therefore
+           never create an extra print page. */
+        const iframe = document.createElement('iframe');
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.style.visibility = 'hidden';
+        iframe.style.pointerEvents = 'none';
+        document.body.appendChild(iframe);
 
-        printRoot.innerHTML = '';
+        const printDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const styleText = Array.from(document.querySelectorAll('style'))
+            .map(style => style.textContent)
+            .join('\n');
+
         const clone = section.cloneNode(true);
         clone.removeAttribute('id');
         clone.setAttribute('data-print-copy', 'true');
-        printRoot.appendChild(clone);
+
+        printDoc.open();
+        printDoc.write('<!doctype html><html><head><meta charset="UTF-8"><title>Delivery Order</title><style>' +
+            styleText +
+            '<\/style></head><body><div id="printRoot"></div></body></html>');
+        printDoc.close();
+
+        const root = printDoc.getElementById('printRoot');
+        root.appendChild(clone);
 
         const cleanup = () => {
-            printRoot.innerHTML = '';
+            try { iframe.remove(); } catch (e) {}
         };
-        window.addEventListener('afterprint', cleanup, { once: true });
 
-        /* Give Chrome one layout cycle before opening Print Preview. */
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                window.print();
-            });
-        });
+        iframe.onload = () => {
+            setTimeout(() => {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                } catch (e) {
+                    cleanup();
+                    alert('Print start nahi ho saka. Browser print permission check karein.');
+                }
+            }, 150);
+        };
+
+        iframe.contentWindow.addEventListener('afterprint', cleanup, { once: true });
     };
 
     window.closeDoModal = function() {
