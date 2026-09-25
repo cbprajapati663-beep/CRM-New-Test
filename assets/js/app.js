@@ -423,9 +423,9 @@
             card.className = 'user-master-card';
             card.innerHTML = `
                 <div>
-                    <div style="font-size:1.1rem; font-weight:700; color:var(--primary);">🏢 ${t.agencyName}</div>
+                    <div style="font-size:1.1rem; font-weight:700; color:var(--primary);">🏢 ${escapeHtml(t.agencyName)}</div>
                     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
-                        Username: <strong style="color:var(--text);">${t.tenantId}</strong> | Office: <strong style="color:#38bdf8;">${t.headOffice || 'Mehsana'}</strong> | Phone: <strong style="color:#4ade80;">${t.contactPhone || '-'}</strong> | Rent: <strong>₹${t.rentAmount}/mo</strong> | Status: <span class="badge ${t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'}">${t.status}</span>
+                        Username: <strong style="color:var(--text);">${escapeHtml(t.tenantId)}</strong> | Office: <strong style="color:#38bdf8;">${escapeHtml(t.headOffice || 'Mehsana')}</strong> | Phone: <strong style="color:#4ade80;">${escapeHtml(t.contactPhone || '-')}</strong> | Rent: <strong>₹${t.rentAmount}/mo</strong> | Status: <span class="badge ${t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'}">${escapeHtml(t.status)}</span>
                     </div>
                 </div>
 
@@ -449,11 +449,11 @@
                 </div>
 
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <button class="btn-action" style="background:#f59e0b; color:#000; font-weight:700;" onclick="openEditTenantModal('${t.tenantId}')">⚙️ Manage License</button>
-                    <button class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openAdminRentBillModal('${t.tenantId}', '${t.agencyName}', ${t.rentAmount}, '${t.expiryDate}')">🧾 Bill</button>
-                    <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="openAdminTenantReportModal('${t.tenantId}', '${t.agencyName}')">📊 Report</button>
-                    <button class="btn-action" style="background:var(--saas); color:#000; font-weight:700;" onclick="inspectUserPortal('${t.tenantId}')">👁️ View</button>
-                    <button class="btn-quick btn-del" onclick="deleteTenantAccount('${t.tenantId}')">🗑️</button>
+                    <button class="btn-action" style="background:#f59e0b; color:#000; font-weight:700;" onclick="openEditTenantModal('${escapeHtml(t.tenantId)}')">⚙️ Manage License</button>
+                    <button class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openAdminRentBillModal('${escapeHtml(t.tenantId)}', '${escapeHtml(t.agencyName)}', ${t.rentAmount}, '${t.expiryDate}')">🧾 Bill</button>
+                    <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="openAdminTenantReportModal('${escapeHtml(t.tenantId)}', '${escapeHtml(t.agencyName)}')">📊 Report</button>
+                    <button class="btn-action" style="background:var(--saas); color:#000; font-weight:700;" onclick="inspectUserPortal('${escapeHtml(t.tenantId)}')">👁️ View</button>
+                    <button class="btn-quick btn-del" onclick="deleteTenantAccount('${escapeHtml(t.tenantId)}')">🗑️</button>
                 </div>
             `;
             container.appendChild(card);
@@ -623,8 +623,8 @@
             tr.innerHTML = `
                 <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong><br><small style="color:#666;">${escapeHtml(l.city || 'Mehsana')}</small></td>
                 <td>${escapeHtml(l.vehModel || '-')}<br><small style="color:#666;">${escapeHtml(l.vehType || 'Car')}</small></td>
-                <td>${l.leadDate || todayStr}</td>
-                <td><span style="font-weight:700; color:${l.status === 'Disbursed' ? '#10b981' : '#d4af37'};">${l.status}</span></td>
+                <td>${escapeHtml(l.leadDate || todayStr)}</td>
+                <td><span style="font-weight:700; color:${l.status === 'Disbursed' ? '#10b981' : '#d4af37'};">${escapeHtml(l.status)}</span></td>
                 <td style="text-align:right;">${formatINR(app)}</td>
                 <td style="text-align:right; font-weight:700; color:#10b981;">${formatINR(dis)}</td>
                 <td>${escapeHtml(l.dealerName || 'Direct')}</td>
@@ -1000,7 +1000,7 @@
                 <td><strong style="color:var(--primary);">${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
                 <td>${approvedDisplay}</td>
                 <td><strong style="color:#c084fc;">${escapeHtml(l.dealerName || 'Direct Customer')}</strong><br><small style="color:#60a5fa;">${escapeHtml(l.bankNbfc || 'Pending')}</small></td>
-                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status || 'New'}</span></td>
+                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${escapeHtml(l.status || 'New')}</span></td>
                 <td>${docStatusHtml}</td>
                 <td style="max-width: 155px; font-size:0.78rem; color:#f4b41a;">💬 ${escapeHtml(l.lastConv || '-')}</td>
                 <td>
@@ -1221,7 +1221,7 @@
                 <td><strong style="color:#c084fc;">🤝 ${escapeHtml(dName)}</strong></td>
                 <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong></td>
                 <td>${escapeHtml(l.vehModel || '-')}</td>
-                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status || 'New'}</span></td>
+                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${escapeHtml(l.status || 'New')}</span></td>
                 <td><strong style="color:#4ade80;">${formatINR(appAmt)}</strong></td>
                 <td><strong style="color:var(--primary);">${formatINR(disAmt)}</strong></td>
                 <td><strong style="color:${cut > 0 ? 'var(--danger)' : 'var(--text-muted)'}; font-size:0.95rem;">${formatINR(cut)}</strong></td>
@@ -1462,7 +1462,7 @@
                     <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WhatsApp</a>
                 </td>
                 <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
-                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${l.status}</span></td>
+                <td><span class="badge badge-${(l.status || 'New').replace(/\s+/g, '')}">${escapeHtml(l.status)}</span></td>
                 <td style="color:#fbbf24; font-weight:600;">${l.followDate || 'Today'}</td>
                 <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
                 <td><button class="btn-quick btn-edit" onclick="editLead('${l.docId}'); switchView('pipeline');">✏️ Update</button></td>
