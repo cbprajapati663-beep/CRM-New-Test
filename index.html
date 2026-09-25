@@ -328,6 +328,7 @@
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -442,6 +443,10 @@
                     <div style="flex: 1;">
                         <label>Vehicle Model</label>
                         <input type="text" id="vehModel" placeholder="e.g. Swift / Bolero">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Vehicle Registration No.</label>
+                        <input type="text" id="vehRegNo" placeholder="e.g. GJ02AB1234" maxlength="15" autocomplete="off" style="text-transform:uppercase;">
                     </div>
                     <div style="flex: 1;">
                         <label>Vehicle Type</label>
@@ -1353,7 +1358,8 @@
     let inspectingTenantId = null;
     let activeReportingTenantId = null;
     let currentAuthMode = 'client';
-    const todayStr = new Date().toISOString().split('T')[0];
+    const nowLocal = new Date();
+    const todayStr = [nowLocal.getFullYear(), String(nowLocal.getMonth()+1).padStart(2,'0'), String(nowLocal.getDate()).padStart(2,'0')].join('-');
     document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
     window.setAuthTab = function(mode) {
@@ -2171,7 +2177,7 @@
                         <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WA</a>
                     </div>
                 </td>
-                <td>${l.vehModel || '-'}<br><span style="color:var(--text-muted); font-size:0.72rem;">${l.vehType || 'Used'}</span></td>
+                <td>${l.vehModel || '-'}<br><span style="color:var(--text-muted); font-size:0.72rem;">${l.vehType || 'Used'}${l.vehRegNo ? ' • ' + l.vehRegNo : ''}</span></td>
                 <td><small style="color:var(--primary);">📅 ${lDateDisplay || todayStr}</small></td>
                 <td><strong style="color:var(--primary);">${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
                 <td>${approvedDisplay}</td>
@@ -2620,7 +2626,7 @@
         });
     }
 
-    window.generateDO = function(docId) {
+    window.generateDO = async function(docId) {
         const l = leads.find(item => item.docId === docId);
         if (!l) return;
 
@@ -2646,11 +2652,20 @@
 
         document.getElementById('do_brand_title').textContent = brandName.toUpperCase();
         document.getElementById('do_brand_sub').textContent = `HEAD OFFICE: ${headOffice.toUpperCase()} | CONTACT: ${contactPhone}`;
-        document.getElementById('do_date').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-        document.getElementById('do_ref').textContent = 'DO/' + (l.docId ? l.docId.substring(0, 6).toUpperCase() : '001');
+        const doDate = new Date();
+        const ddmmyyyy = String(doDate.getDate()).padStart(2,'0') + String(doDate.getMonth()+1).padStart(2,'0') + doDate.getFullYear();
+        let doSequence = Number(l.doSequence) || 0;
+        if (!doSequence) {
+            const seqSnap = await leadsCollection.where('doDateKey', '==', ddmmyyyy).get();
+            doSequence = seqSnap.size + 1;
+            await leadsCollection.doc(docId).update({ doSequence, doDateKey: ddmmyyyy, doNo: 'HAF-DO-' + ddmmyyyy + '-' + doSequence, applicationNo: 'HAF' + ddmmyyyy + doSequence, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        const generatedDoNo = l.doNo || ('HAF-DO-' + ddmmyyyy + '-' + doSequence);
+        document.getElementById('do_date').textContent = doDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        document.getElementById('do_ref').textContent = generatedDoNo;
         document.getElementById('do_cust').textContent = l.name || '-';
         document.getElementById('do_mobile').textContent = l.mobile || '-';
-        document.getElementById('do_vehicle').textContent = (l.vehModel || '-') + ' (' + (l.vehType || 'Car') + ')';
+        document.getElementById('do_vehicle').textContent = (l.vehModel || '-') + ' (' + (l.vehType || 'Car') + ')' + (l.vehRegNo ? ' | Reg. No: ' + l.vehRegNo : ' | Reg. No: -');
         document.getElementById('do_bank').textContent = l.bankNbfc || 'Financier';
         document.getElementById('do_dealer').textContent = l.dealerName || 'Direct';
         document.getElementById('do_city').textContent = l.city || 'Mehsana';
@@ -2876,10 +2891,16 @@
         if (inspectingTenantId) tenantIdTag = inspectingTenantId;
         else if (sessionUser && sessionUser.role !== 'superadmin') tenantIdTag = sessionUser.tenantId;
 
+        const mobileRaw = document.getElementById('mobile').value.trim();
+        if (!/^\d{10}$/.test(mobileRaw.replace(/\D/g, ''))) { alert('Mobile number 10 digits ka hona chahiye.'); return; }
+        if (requestedLoan <= 0) { alert('Requested Loan amount valid hona chahiye.'); return; }
+        const vehRegNo = (document.getElementById('vehRegNo').value || '').trim().toUpperCase();
+
         const leadData = {
-            name: document.getElementById('custName').value,
-            mobile: document.getElementById('mobile').value,
-            city: document.getElementById('city').value,
+            name: document.getElementById('custName').value.trim(),
+            mobile: mobileRaw.replace(/\D/g, ''),
+            city: document.getElementById('city').value.trim(),
+            vehRegNo: vehRegNo,
             vehType: document.getElementById('vehType').value,
             vehModel: document.getElementById('vehModel').value,
             dealerName: document.getElementById('dealerNameSelect').value || 'Direct Customer',
@@ -2898,6 +2919,10 @@
             leadData.dealerCut = formCut;
         }
 
+        const saveBtn = document.getElementById('submitBtn');
+        const oldSaveText = saveBtn ? saveBtn.textContent : '';
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+        try {
         if (editDocId) {
             await leadsCollection.doc(editDocId).update(leadData);
         } else {
@@ -2917,8 +2942,13 @@
             leadData.rtoStatus = 'Pending';
             await leadsCollection.add(leadData);
         }
-
         resetForm();
+        } catch (error) {
+            console.error('Lead save error:', error);
+            alert('❌ Lead save nahi hui. Internet/Firebase permission check karein.');
+        } finally {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = oldSaveText || 'Save to Cloud'; }
+        }
     });
 
     window.editLead = function(docId) {
@@ -2931,6 +2961,7 @@
         document.getElementById('city').value = l.city || '';
         document.getElementById('vehType').value = l.vehType || 'Used';
         document.getElementById('vehModel').value = l.vehModel || '';
+        document.getElementById('vehRegNo').value = l.vehRegNo || '';
         document.getElementById('loanAmount').value = Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0;
         document.getElementById('approvedAmount').value = Number(String(l.approvedAmount || l.loanAmount).replace(/[^0-9.]/g, '')) || 0;
         document.getElementById('disbursedAmount').value = Number(String(l.disbursedAmount || l.loanAmount).replace(/[^0-9.]/g, '')) || 0;
