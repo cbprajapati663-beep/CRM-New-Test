@@ -306,25 +306,64 @@
             position: relative; z-index: 1000000;
         }
 
-        @media print {
-            body * { visibility: hidden; }
-            .printable-section, .printable-section * { visibility: visible; }
-            .printable-section {
-                position: absolute; left: 0; top: 0; width: 100%; background: #fff !important;
-                color: #000 !important; padding: 25px; border: none !important;
-            }
+        /* Professional A4 print engine */
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
         }
         .do-paper {
-            background: #ffffff; color: #111111; padding: 28px; border-radius: 8px;
-            font-family: 'Segoe UI', Arial, sans-serif; border: 2px solid #d4af37; box-shadow: 0 0 25px rgba(0,0,0,0.7);
+            background: #ffffff; color: #111111; padding: 10mm;
+            border-radius: 4px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 25px rgba(0,0,0,0.7);
+            width: 100%;
+            max-width: 190mm;
+            min-height: 277mm;
+            margin: 0 auto;
         }
-        .do-paper h2 { color: #000; font-size: 1.4rem; text-align: center; text-transform: uppercase; margin-bottom: 2px; }
-        .do-paper h4 { color: #b89628; text-align: center; font-size: 0.85rem; letter-spacing: 1px; margin-bottom: 20px; }
-        .do-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.86rem; margin-bottom: 20px; }
-        .do-grid-item { padding: 6px 10px; border-bottom: 1px dashed #ccc; }
-        .do-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.86rem; }
-        .do-table th, .do-table td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
-        .do-table th { background: #f9f9f9; color: #333; font-weight: 700; }
+        .do-paper h2 { color: #000; font-size: 18pt; text-align: center; text-transform: uppercase; margin-bottom: 3px; }
+        .do-paper h4 { color: #b89628; text-align: center; font-size: 8.5pt; letter-spacing: 1px; margin-bottom: 14px; }
+        .do-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 9pt; margin-bottom: 14px; }
+        .do-grid-item { padding: 5px 7px; border-bottom: 1px dashed #ccc; min-width: 0; }
+        .do-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 9pt; page-break-inside: avoid; }
+        .do-table th, .do-table td { border: 1px solid #bdbdbd; padding: 6px 8px; text-align: left; vertical-align: middle; }
+        .do-table th { background: #f3f3f3; color: #222; font-weight: 700; }
+        .do-paper p { font-size: 8.5pt !important; }
+        .do-signatures { page-break-inside: avoid; }
+        @media print {
+            html, body {
+                width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+            body * { visibility: hidden !important; }
+            .printable-section, .printable-section * { visibility: visible !important; }
+            .printable-section {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 190mm !important;
+                min-height: 277mm !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                background: #fff !important;
+                color: #000 !important;
+                border: 1px solid #222 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+            }
+            .modal-overlay, .modal-card, .btn-action, button { visibility: hidden !important; }
+            .do-paper h2, .do-paper h4, .do-paper span, .do-paper strong,
+            .do-paper td, .do-paper th, .do-paper p, .do-paper div {
+                color: #000 !important;
+            }
+            .do-paper h4 { color: #7a5a00 !important; }
+            .do-paper table { page-break-inside: avoid !important; }
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -1280,8 +1319,10 @@
                 <div class="do-grid-item"><strong>Date:</strong> <span id="do_date"></span></div>
                 <div class="do-grid-item"><strong>DO Reference No:</strong> <span id="do_ref"></span></div>
                 <div class="do-grid-item"><strong>Application No:</strong> <span id="do_application"></span></div>
+                <div class="do-grid-item"><strong>Branch Name:</strong> <span id="do_branch"></span></div>
                 <div class="do-grid-item"><strong>Customer Name:</strong> <span id="do_cust"></span></div>
                 <div class="do-grid-item"><strong>Mobile Number:</strong> <span id="do_mobile"></span></div>
+                <div class="do-grid-item"><strong>Vehicle Registration No:</strong> <span id="do_regno" style="font-weight:700;"></span></div>
                 <div class="do-grid-item"><strong>Vehicle Model:</strong> <span id="do_vehicle"></span></div>
                 <div class="do-grid-item"><strong>Financier (Bank/NBFC):</strong> <span id="do_bank"></span></div>
                 <div class="do-grid-item"><strong>Dealer / Sub-broker:</strong> <span id="do_dealer"></span></div>
@@ -1323,7 +1364,7 @@
                 * This document authorizes the dealership to deliver the above mentioned vehicle to the customer. All bank deduction and RTO registration charges have been factored as per advice. Hypothecation must be endorsed in favor of the financier bank.
             </p>
 
-            <div style="display:flex; justify-content:space-between; margin-top:30px; font-size:0.82rem;">
+            <div class="do-signatures" style="display:flex; justify-content:space-between; margin-top:30px; font-size:0.82rem;">
                 <div style="text-align:center;">
                     <div style="margin-bottom:40px;">_________________________</div>
                     <strong>Customer Signature</strong>
@@ -2692,6 +2733,8 @@
         document.getElementById('do_bank').textContent = l.bankNbfc || 'Financier';
         document.getElementById('do_dealer').textContent = l.dealerName || 'Direct';
         document.getElementById('do_city').textContent = l.city || 'Mehsana';
+        document.getElementById('do_branch').textContent = headOffice;
+        document.getElementById('do_regno').textContent = l.vehRegNo || 'NOT PROVIDED';
 
         document.getElementById('do_approved').textContent = formatINR(appAmt);
         document.getElementById('do_bank_charges').textContent = bankCharges > 0 ? ('- ' + formatINR(bankCharges)) : '₹0 (Nil)';
