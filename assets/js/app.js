@@ -1508,6 +1508,55 @@
         });
     }
 
+    window.exportFollowupsCSV = function () {
+        const scopedLeads = getLeadScopedList();
+        const activeLeads = scopedLeads.filter(l => l.followDate && l.status !== 'Disbursed' && l.status !== 'Rejected');
+        const futureLimit = new Date();
+        futureLimit.setDate(futureLimit.getDate() + 7);
+        const futureLimitStr = [futureLimit.getFullYear(), String(futureLimit.getMonth()+1).padStart(2,'0'), String(futureLimit.getDate()).padStart(2,'0')].join('-');
+        const rows = activeLeads.filter(l => {
+            if (followupFilter === 'overdue') return l.followDate < todayStr;
+            if (followupFilter === 'today') return l.followDate === todayStr;
+            if (followupFilter === 'upcoming') return l.followDate > todayStr && l.followDate <= futureLimitStr;
+            if (followupFilter === 'all') return true;
+            return l.followDate <= todayStr;
+        }).filter(l => {
+            if (!followupSearchTerm) return true;
+            const searchable = [l.name, l.mobile, l.city, l.vehModel, l.vehRegNo, l.dealerName, l.bankNbfc]
+                .map(value => String(value || '').toLowerCase()).join(' ');
+            return searchable.includes(followupSearchTerm);
+        }).sort((a, b) => String(a.followDate).localeCompare(String(b.followDate)));
+
+        if (!rows.length) {
+            alert('Current filter me export karne ke liye koi follow-up nahi hai.');
+            return;
+        }
+
+        const columns = [
+            ['Customer Name', l => l.name], ['Mobile', l => l.mobile], ['City', l => l.city],
+            ['Vehicle Model', l => l.vehModel], ['Vehicle Registration', l => l.vehRegNo],
+            ['Dealer', l => l.dealerName], ['Bank / NBFC', l => l.bankNbfc],
+            ['Loan Amount', l => l.loanAmount], ['Status', l => l.status],
+            ['Follow-up Date', l => l.followDate], ['Latest Remarks', l => l.lastConv]
+        ];
+        const csvCell = value => {
+            let text = String(value ?? '');
+            if (/^[=+@\-\t\r]/.test(text)) text = "'" + text;
+            return '"' + text.replace(/"/g, '""') + '"';
+        };
+        const csv = [columns.map(([label]) => csvCell(label)).join(',')]
+            .concat(rows.map(l => columns.map(([, getValue]) => csvCell(getValue(l))).join(','))).join('\r\n');
+        const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'followups-' + todayStr + '.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
     window.generateDO = async function(docId) {
         const l = leads.find(item => item.docId === docId);
         if (!l) return;
