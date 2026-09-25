@@ -330,6 +330,103 @@
         .do-table th { background: #f3f3f3; color: #222; font-weight: 700; }
         .do-paper p { font-size: 8.5pt !important; }
         .do-signatures { page-break-inside: avoid; }
+        /* Screen-only responsive DO preview.
+           Print sizing remains untouched below. */
+        @media screen and (max-width: 760px) {
+            .do-modal-card {
+                width: calc(100vw - 20px) !important;
+                max-width: calc(100vw - 20px) !important;
+                max-height: calc(100vh - 20px) !important;
+                padding: 10px !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+            }
+
+            .do-modal-card > div:first-child {
+                position: sticky;
+                top: -10px;
+                z-index: 5;
+                background: var(--card-bg);
+                padding: 2px 0 8px;
+            }
+
+            .do-modal-card .do-paper {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                margin: 0 !important;
+                padding: 6mm !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+            }
+
+            .do-modal-card .do-paper h2 {
+                font-size: 13pt !important;
+                line-height: 1.2 !important;
+            }
+
+            .do-modal-card .do-paper h4 {
+                font-size: 7pt !important;
+                letter-spacing: .5px !important;
+                margin-bottom: 9px !important;
+            }
+
+            .do-modal-card .do-grid {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 3px 8px !important;
+                font-size: 8pt !important;
+            }
+
+            .do-modal-card .do-grid-item {
+                min-width: 0 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+                padding: 4px 3px !important;
+            }
+
+            .do-modal-card .do-table {
+                width: 100% !important;
+                max-width: 100% !important;
+                table-layout: fixed !important;
+                font-size: 7.8pt !important;
+                margin-bottom: 10px !important;
+            }
+
+            .do-modal-card .do-table th,
+            .do-modal-card .do-table td {
+                padding: 4px 5px !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+            }
+
+            .do-modal-card .do-table th:first-child,
+            .do-modal-card .do-table td:first-child {
+                width: 68% !important;
+            }
+
+            .do-modal-card .do-table th:last-child,
+            .do-modal-card .do-table td:last-child {
+                width: 32% !important;
+            }
+
+            .do-modal-card .do-signatures {
+                margin-top: 16px !important;
+                gap: 10px !important;
+            }
+
+            .do-modal-card .do-signatures > div {
+                max-width: 48% !important;
+            }
+
+            .do-modal-card .do-paper p {
+                font-size: 7.5pt !important;
+                margin-bottom: 12px !important;
+            }
+        }
+
         @media print {
             html, body {
                 width: 210mm !important;
