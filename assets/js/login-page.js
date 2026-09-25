@@ -6,7 +6,7 @@
     projectId: "heritage-crm-f179a",
     storageBucket: "heritage-crm-f179a.firebasestorage.app",
     messagingSenderId: "434634669830",
-    appId: "1:1:afa939caa85df772066887"
+    appId: "1:434634669830:web:afa939caa85df772066887"
   };
   // Keep the app's existing Firebase configuration in sync before using this entry point.
   firebase.initializeApp(firebaseConfig);
