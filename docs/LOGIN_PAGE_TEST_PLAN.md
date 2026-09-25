@@ -26,3 +26,16 @@ Do not make the new page the default sign-in or remove legacy login until all ap
 
 ## Known limitation
 The page currently checks a password stored in the tenant document. A separate login page is not an authorization boundary. Firebase Authentication and Firestore Security Rules must be reviewed independently before production security claims.
+
+## Password reset validation (legacy CRM flow)
+- [ ] For a tenant, the registered contact phone on that tenant record is accepted after digit-only normalization (spaces, dashes, and country-code formatting are handled consistently).
+- [ ] A different tenant's contact phone is rejected for the selected tenant.
+- [ ] An incorrect phone number is rejected and the password is not changed.
+- [ ] A tenant with a missing or invalid contact phone cannot reset through phone verification.
+- [ ] The master-admin reset continues to use its separately configured verification path; tenant phone values must not authorize an admin reset.
+- [ ] New password and confirmation must match and satisfy the current password policy (at least 8 characters, including a letter and a digit).
+- [ ] After reset, the new password works and the old password fails for that tenant.
+- [ ] Passwords are not written into the browser session object/localStorage.
+- [ ] A Firestore/network error is handled without reporting a successful reset.
+
+These are manual test cases, not results. The tenant reset implementation checks the selected tenant's contactPhone; confirm this against test tenant records before production use.
