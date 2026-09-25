@@ -577,7 +577,8 @@
                             <input type="month" id="liveMonthFilter" onchange="renderViews()" style="width:140px; padding:5px 8px;">
                         </div>
                         <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=''; renderViews();" style="padding:5px 10px;">All Months</button>
-                        <input type="text" id="searchQuery" placeholder="🔍 Search..." onkeyup="renderViews()" style="width:150px;">
+                        <button class="btn-action" onclick="clearPipelineFilters()" style="padding:5px 10px;">✕ Clear Filters</button>
+                        <input type="text" id="searchQuery" placeholder="🔍 Name / Mobile / Reg No / Dealer..." oninput="renderViews()" style="width:190px;">
                         <select id="filterStatus" onchange="renderViews()" style="width:130px;">
                             <option value="All">All Live Files</option>
                             <option value="Sanctioned">🟢 Sanctioned</option>
@@ -1278,6 +1279,7 @@
             <div class="do-grid">
                 <div class="do-grid-item"><strong>Date:</strong> <span id="do_date"></span></div>
                 <div class="do-grid-item"><strong>DO Reference No:</strong> <span id="do_ref"></span></div>
+                <div class="do-grid-item"><strong>Application No:</strong> <span id="do_application"></span></div>
                 <div class="do-grid-item"><strong>Customer Name:</strong> <span id="do_cust"></span></div>
                 <div class="do-grid-item"><strong>Mobile Number:</strong> <span id="do_mobile"></span></div>
                 <div class="do-grid-item"><strong>Vehicle Model:</strong> <span id="do_vehicle"></span></div>
@@ -2099,8 +2101,18 @@
         document.getElementById('tab-total-hold').textContent = formatINR(totalHoldPending);
     }
 
+    window.clearPipelineFilters = function() {
+        const q = document.getElementById('searchQuery');
+        const st = document.getElementById('filterStatus');
+        const mo = document.getElementById('liveMonthFilter');
+        if (q) q.value = '';
+        if (st) st.value = 'All';
+        if (mo) mo.value = '';
+        renderViews();
+    };
+
     function renderViews() {
-        const q = (document.getElementById('searchQuery').value || '').toLowerCase();
+        const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
         const statusFilter = document.getElementById('filterStatus').value;
         const liveMonthVal = document.getElementById('liveMonthFilter') ? document.getElementById('liveMonthFilter').value : '';
 
@@ -2121,7 +2133,12 @@
             const matchesQuery = (l.name || '').toLowerCase().includes(q) || 
                                  (l.mobile || '').includes(q) || 
                                  (l.dealerName || '').toLowerCase().includes(q) || 
-                                 (l.bankNbfc || '').toLowerCase().includes(q);
+                                 (l.bankNbfc || '').toLowerCase().includes(q) ||
+                                 (l.city || '').toLowerCase().includes(q) ||
+                                 (l.vehRegNo || '').toLowerCase().includes(q) ||
+                                 (l.vehModel || '').toLowerCase().includes(q) ||
+                                 (l.doNo || '').toLowerCase().includes(q) ||
+                                 (l.applicationNo || '').toLowerCase().includes(q);
             const matchesStatus = statusFilter === 'All' || l.status === statusFilter;
             return matchesQuery && matchesStatus;
         });
@@ -2657,12 +2674,18 @@
         let doSequence = Number(l.doSequence) || 0;
         if (!doSequence) {
             const seqSnap = await leadsCollection.where('doDateKey', '==', ddmmyyyy).get();
-            doSequence = seqSnap.size + 1;
+            let maxSeq = 0;
+            seqSnap.forEach(doc => {
+                const n = Number(doc.data().doSequence) || 0;
+                if (n > maxSeq) maxSeq = n;
+            });
+            doSequence = maxSeq + 1;
             await leadsCollection.doc(docId).update({ doSequence, doDateKey: ddmmyyyy, doNo: 'HAF-DO-' + ddmmyyyy + '-' + doSequence, applicationNo: 'HAF' + ddmmyyyy + doSequence, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         }
         const generatedDoNo = l.doNo || ('HAF-DO-' + ddmmyyyy + '-' + doSequence);
         document.getElementById('do_date').textContent = doDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
         document.getElementById('do_ref').textContent = generatedDoNo;
+        document.getElementById('do_application').textContent = l.applicationNo || ('HAF' + ddmmyyyy + doSequence);
         document.getElementById('do_cust').textContent = l.name || '-';
         document.getElementById('do_mobile').textContent = l.mobile || '-';
         document.getElementById('do_vehicle').textContent = (l.vehModel || '-') + ' (' + (l.vehType || 'Car') + ')' + (l.vehRegNo ? ' | Reg. No: ' + l.vehRegNo : ' | Reg. No: -');
@@ -2783,7 +2806,7 @@
             agencyMap[t.tenantId.toLowerCase()] = t.agencyName;
         });
 
-        const headers = ["Agency Name", "Customer Name", "Mobile Number", "City", "Vehicle Model", "Vehicle Type", "Dealer/Partner", "Lead Date", "Requested Loan", "Approved Loan", "Disbursed Loan", "Dealer Cut", "Disbursed Date", "Bank/NBFC", "Lead Status", "Remarks"];
+        const headers = ["Agency Name", "Customer Name", "Mobile Number", "City", "Vehicle Registration", "Vehicle Model", "Vehicle Type", "Dealer/Partner", "Lead Date", "Requested Loan", "Approved Loan", "Disbursed Loan", "Dealer Cut", "Disbursed Date", "Bank/NBFC", "Lead Status", "DO No", "Application No", "Remarks"];
         
         const rows = leads.map(l => {
             const tId = (l.tenantId || l.createdBy || 'heritage auto finance').toLowerCase();
@@ -2794,6 +2817,7 @@
                 `"${(l.name || '').replace(/"/g, '""')}"`,
                 `"${(l.mobile || '').replace(/"/g, '""')}"`,
                 `"${(l.city || '').replace(/"/g, '""')}"`,
+                `"${(l.vehRegNo || '').replace(/"/g, '""')}"`,
                 `"${(l.vehModel || '').replace(/"/g, '""')}"`,
                 `"${(l.vehType || '').replace(/"/g, '""')}"`,
                 `"${(l.dealerName || 'Direct Customer').replace(/"/g, '""')}"`,
@@ -2805,6 +2829,8 @@
                 `"${(l.disbursedDate || '').replace(/"/g, '""')}"`,
                 `"${(l.bankNbfc || '').replace(/"/g, '""')}"`,
                 `"${(l.status || '').replace(/"/g, '""')}"`,
+                `"${(l.doNo || '').replace(/"/g, '""')}"`,
+                `"${(l.applicationNo || '').replace(/"/g, '""')}"`,
                 `"${(l.lastConv || '').replace(/"/g, '""')}"`
             ];
         });
@@ -2896,6 +2922,24 @@
         if (requestedLoan <= 0) { alert('Requested Loan amount valid hona chahiye.'); return; }
         const vehRegNo = (document.getElementById('vehRegNo').value || '').trim().toUpperCase();
 
+        if (!editDocId) {
+            const cleanNewMobile = mobileRaw.replace(/\D/g, '');
+            const duplicate = getLeadScopedList().find(x =>
+                (x.mobile || '').replace(/\D/g, '') === cleanNewMobile &&
+                x.status !== 'Rejected'
+            );
+            if (duplicate) {
+                const proceed = confirm(
+                    '⚠️ Is mobile number ki ek existing active file mil gayi hai.\\n\\n' +
+                    'Customer: ' + (duplicate.name || 'Unknown') + '\\n' +
+                    'Status: ' + (duplicate.status || 'New') + '\\n' +
+                    'Vehicle: ' + (duplicate.vehModel || '-') + '\\n\\n' +
+                    'Kya aap phir bhi nayi lead create karna chahte hain?'
+                );
+                if (!proceed) return;
+            }
+        }
+
         const leadData = {
             name: document.getElementById('custName').value.trim(),
             mobile: mobileRaw.replace(/\D/g, ''),
@@ -2912,7 +2956,8 @@
             status: currentStatus,
             followDate: document.getElementById('followDate').value,
             lastConv: document.getElementById('lastConv').value.trim(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedBy: (sessionUser && sessionUser.tenantId) ? sessionUser.tenantId : 'system'
         };
 
         if (formCut > 0) {
@@ -2929,6 +2974,8 @@
             leadData.tenantId = tenantIdTag;
             leadData.createdBy = tenantIdTag;
             leadData.leadDate = todayStr;
+            leadData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            leadData.createdByUser = (sessionUser && sessionUser.tenantId) ? sessionUser.tenantId : 'system';
             leadData.commRate = 1.5;
             leadData.commAmount = Math.round((approvedLoan * 1.5) / 100);
             leadData.dealerCut = formCut;
