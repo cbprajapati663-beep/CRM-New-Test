@@ -1604,15 +1604,21 @@
                 const event = document.createElement('div');
                 event.className = 'activity-event';
                 const details = a.details && typeof a.details === 'object'
-                    ? Object.entries(a.details).map(([k,v]) => k + ': ' + v).join(' • ')
+                    ? Object.entries(a.details).map(([k, v]) => String(k) + ': ' + String(v)).join(' • ')
                     : String(a.details || '');
-                event.innerHTML = '<div class="activity-head"><span class="activity-type">' +
-                    String(a.type || 'Record Update').replace(/</g,'&lt;') +
-                    '</span><span class="activity-time">' +
-                    String(formatActivityTime(a.createdAt)).replace(/</g,'&lt;') +
-                    '</span></div><div class="activity-detail">' +
-                    String(details || 'Record activity').replace(/</g,'&lt;') +
-                    '</div>';
+                const head = document.createElement('div');
+                head.className = 'activity-head';
+                const type = document.createElement('span');
+                type.className = 'activity-type';
+                type.textContent = String(a.type || 'Record Update');
+                const time = document.createElement('span');
+                time.className = 'activity-time';
+                time.textContent = String(formatActivityTime(a.createdAt));
+                head.append(type, time);
+                const detail = document.createElement('div');
+                detail.className = 'activity-detail';
+                detail.textContent = details || 'Record activity';
+                event.append(head, detail);
                 box.appendChild(event);
             });
         } catch (err) {
@@ -1798,12 +1804,25 @@
         dealers.forEach(d => {
             const row = document.createElement('div');
             row.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#0f121a; padding:8px 12px; margin-bottom:6px; border-radius:6px; border:1px solid #242938;";
-            
-            const isProtected = (d === 'Direct Customer');
-            const delBtn = isProtected ? '<span style="color:#555; font-size:0.7rem;">(Default)</span>' 
-                : `<button onclick="deleteDealerItem('${d.replace(/'/g, "\\'")}')" style="background:#ef4444; color:#fff; border:none; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:0.72rem;">🗑️ Delete</button>`;
 
-            row.innerHTML = `<span style="font-weight:600; color:#c084fc;">🤝 ${d}</span> ${delBtn}`;
+            const label = document.createElement('span');
+            label.style.cssText = 'font-weight:600; color:#c084fc;';
+            label.textContent = '🤝 ' + String(d);
+            row.appendChild(label);
+
+            if (d === 'Direct Customer') {
+                const protectedLabel = document.createElement('span');
+                protectedLabel.style.cssText = 'color:#555; font-size:0.7rem;';
+                protectedLabel.textContent = '(Default)';
+                row.appendChild(protectedLabel);
+            } else {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.textContent = '🗑️ Delete';
+                deleteButton.style.cssText = 'background:#ef4444; color:#fff; border:none; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:0.72rem;';
+                deleteButton.addEventListener('click', () => deleteDealerItem(d));
+                row.appendChild(deleteButton);
+            }
             container.appendChild(row);
         });
 
