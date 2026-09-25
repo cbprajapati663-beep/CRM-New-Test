@@ -19,7 +19,7 @@
     event.preventDefault();
     errorBox.style.display = 'none';
     const tenantId = document.getElementById('loginUserId').value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword').value;
+    const password = document.getElementById('loginPassword').value.trim();
     if (!tenantId || !password) return;
     button.disabled = true;
     button.textContent = 'Checking…';
@@ -30,12 +30,16 @@
       const user = { docId: doc.id, ...doc.data() };
       if (user.password !== password) throw new Error('Invalid tenant ID or password.');
       if (user.status === 'Suspended') throw new Error('This workspace is suspended. Please contact your service provider.');
+      // Do not persist the tenant's password in the browser session object.
+      delete user.password;
       localStorage.setItem('haf_active_session_user_v2', JSON.stringify(user));
       window.location.replace('../index.html');
     } catch (error) {
-      errorBox.textContent = error.message === 'Missing or insufficient permissions.'
-        ? 'Login service permission error. Please contact support.'
-        : (error.message || 'Login failed. Please try again.');
+      const safeMessage = error.message === 'Invalid tenant ID or password.' ||
+        error.message === 'This workspace is suspended. Please contact your service provider.'
+          ? error.message
+          : 'Login service error. Check your connection or contact support.';
+      errorBox.textContent = safeMessage;
       errorBox.style.display = 'block';
     } finally {
       button.disabled = false;
