@@ -40,3 +40,8 @@ Review of legacy login/session code in `assets/js/app.js` and standalone tenant 
 2. Inspect the deployed rules in Firebase Console and verify that unauthenticated and cross-tenant reads/writes are denied.
 3. Plan a controlled migration away from hardcoded/default credentials and client-side-only admin authentication.
 4. Add server-enforced tenant ownership checks and test with two separate test tenants before changing production behavior.
+
+## Repository configuration check (2026-09-25)
+- Inspected the repository root listing on the default branch. No root-level `firebase.json` or `firestore.rules` appeared in that listing.
+- Direct requests for those two root paths did not return file content. This confirms only that those root-level files were not available at the inspected paths; it does not prove that no rules exist elsewhere or that the deployed Firebase project has no rules.
+- **No Firestore rules were changed or deployed.** A restrictive ruleset must be designed against the actual authentication/tenant membership model and validated in a test project first; guessing rules now could lock out legitimate users or fail to protect data.
