@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#d4af37">
+  <title>Client Login | Heritage FinTech Core</title>
+  <link rel="stylesheet" href="../assets/css/styles.css">
+  <style>
+    body{min-height:100vh;display:grid;place-items:center;background:#0b1020;padding:20px}
+    .login-box{width:min(100%,420px);padding:28px;border:1px solid #d4af37;border-radius:14px;background:#111827;box-shadow:0 18px 60px #0006}
+    .login-box h1{font-size:1.35rem;color:#d4af37;margin:0 0 8px}
+    .login-box p{color:#9ca3af;font-size:.9rem;margin:0 0 22px}
+    .form-group{margin:14px 0}.form-group label{display:block;margin-bottom:6px}
+    .form-group input{width:100%;box-sizing:border-box;padding:12px;border-radius:8px}
+    .btn-submit{width:100%;margin-top:10px}
+    #loginError{display:none;color:#f87171;font-size:.85rem;margin:12px 0}
+    .back-link{display:block;text-align:center;margin-top:18px;color:#93c5fd}
+  </style>
+</head>
+<body>
+  <main class="login-box">
+    <h1>Heritage FinTech Core</h1>
+    <p>Client / Staff Portal — sign in to your workspace.</p>
+    <form id="clientLoginForm">
+      <div class="form-group">
+        <label for="loginUserId">Tenant ID / Username</label>
+        <input id="loginUserId" name="username" autocomplete="username" value="heritage auto finance" required>
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div id="loginError" role="alert"></div>
+      <button class="btn-submit" id="loginSubmit" type="submit">Launch Portal</button>
+    </form>
+    <a class="back-link" href="../index.html">Return to legacy sign-in</a>
+  </main>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../assets/js/login-page.js"></script>
+</body>
+</html>
