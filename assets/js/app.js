@@ -435,7 +435,7 @@
                 <div>
                     <div style="font-size:1.1rem; font-weight:700; color:var(--primary);">🏢 ${escapeHtml(t.agencyName)}</div>
                     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
-                        Username: <strong style="color:var(--text);">${escapeHtml(t.tenantId)}</strong> | Office: <strong style="color:#38bdf8;">${escapeHtml(t.headOffice || 'Mehsana')}</strong> | Phone: <strong style="color:#4ade80;">${escapeHtml(t.contactPhone || '-')}</strong> | Rent: <strong>₹${t.rentAmount}/mo</strong> | Status: <span class="badge ${t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'}">${escapeHtml(t.status)}</span>
+                        Username: <strong style="color:var(--text);">${escapeHtml(t.tenantId)}</strong> | Office: <strong style="color:#38bdf8;">${escapeHtml(t.headOffice || 'Mehsana')}</strong> | Phone: <strong style="color:#4ade80;">${escapeHtml(t.contactPhone || '-')}</strong> | Rent: <strong>₹${Number(t.rentAmount) || 0}/mo</strong> | Status: <span class="badge ${t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'}">${escapeHtml(t.status)}</span>
                     </div>
                 </div>
 
@@ -1006,7 +1006,7 @@
                     </div>
                 </td>
                 <td>${escapeHtml(l.vehModel || '-')}<br><span style="color:var(--text-muted); font-size:0.72rem;">${escapeHtml(l.vehType || 'Used')}${l.vehRegNo ? ' • ' + escapeHtml(l.vehRegNo) : ''}</span></td>
-                <td><small style="color:var(--primary);">📅 ${lDateDisplay || todayStr}</small></td>
+                <td><small style="color:var(--primary);">📅 ${escapeHtml(lDateDisplay || todayStr)}</small></td>
                 <td><strong style="color:var(--primary);">${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
                 <td>${approvedDisplay}</td>
                 <td><strong style="color:#c084fc;">${escapeHtml(l.dealerName || 'Direct Customer')}</strong><br><small style="color:#60a5fa;">${escapeHtml(l.bankNbfc || 'Pending')}</small></td>
@@ -1473,7 +1473,7 @@
                 </td>
                 <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
                 <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status)}</span></td>
-                <td style="color:#fbbf24; font-weight:600;">${l.followDate || 'Today'}</td>
+                <td style="color:#fbbf24; font-weight:600;">${escapeHtml(l.followDate || 'Today')}</td>
                 <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
                 <td><button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}'); switchView('pipeline');">✏️ Update</button></td>
             `;
