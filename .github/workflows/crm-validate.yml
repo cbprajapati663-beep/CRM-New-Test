@@ -41,3 +41,9 @@ jobs:
 
       - name: Syntax check inline JavaScript
         run: node --check /tmp/crm-inline.js
+
+      - name: Syntax check application JavaScript
+        run: node --check assets/js/app.js
+
+      - name: Syntax check tenant login JavaScript
+        run: node --check assets/js/login-page.js
