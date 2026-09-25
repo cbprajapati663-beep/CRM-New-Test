@@ -307,19 +307,17 @@
         }
 
         /* Professional A4 print engine */
-        @page {
-            size: A4 portrait;
-            margin: 10mm;
-        }
+        @page { size: 210mm 297mm; margin: 0; }
         .do-paper {
             background: #ffffff; color: #111111; padding: 10mm;
             border-radius: 4px;
             font-family: 'Segoe UI', Arial, sans-serif;
             border: 2px solid #d4af37;
             box-shadow: 0 0 25px rgba(0,0,0,0.7);
-            width: 100%;
+            width: 190mm;
             max-width: 190mm;
             min-height: 277mm;
+            height: 277mm;
             margin: 0 auto;
         }
         .do-paper h2 { color: #000; font-size: 18pt; text-align: center; text-transform: uppercase; margin-bottom: 3px; }
@@ -346,7 +344,9 @@
                 left: 0 !important;
                 top: 0 !important;
                 width: 190mm !important;
+                height: 277mm !important;
                 min-height: 277mm !important;
+                max-height: 277mm !important;
                 margin: 0 !important;
                 padding: 10mm !important;
                 background: #fff !important;
@@ -354,7 +354,8 @@
                 border: 1px solid #222 !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                overflow: visible !important;
+                overflow: hidden !important;
+                page-break-after: avoid !important;
             }
             .modal-overlay, .modal-card, .btn-action, button { visibility: hidden !important; }
             .do-paper h2, .do-paper h4, .do-paper span, .do-paper strong,
@@ -362,7 +363,8 @@
                 color: #000 !important;
             }
             .do-paper h4 { color: #7a5a00 !important; }
-            .do-paper table { page-break-inside: avoid !important; }
+             .do-paper table { page-break-inside: avoid !important; }
+            .do-paper .do-grid-item, .do-paper p, .do-paper .do-signatures { page-break-inside: avoid !important; }
         }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1098,7 +1100,7 @@
                 <button class="btn-action" onclick="document.getElementById('admRptMonth').value=''; generateAdminTenantReportView();" style="padding:4px 8px;">All Months</button>
             </div>
             <div style="display:flex; gap:6px;">
-                <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="window.print()">🖨️ Print / Save as PDF</button>
+                <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="printSelectedDocument('printableDOArea')">🖨️ Print A4 / Save PDF</button>
                 <button class="btn-action" onclick="document.getElementById('adminTenantReportModal').style.display='none';">✕ Close</button>
             </div>
         </div>
@@ -1311,6 +1313,10 @@
         <div id="printableDOArea" class="do-paper printable-section">
             <h2 id="do_brand_title">HERITAGE AUTO FINANCE</h2>
             <h4 id="do_brand_sub">HEAD OFFICE: MEHSANA, GUJARAT | CONTACT: +91 7600211085</h4>
+            <div style="display:flex; justify-content:space-between; gap:10px; font-size:8pt; color:#444; margin-bottom:8px;">
+                <span><strong>Document:</strong> Original Delivery Order</span>
+                <span><strong>Print Time:</strong> <span id="do_print_time"></span></span>
+            </div>
             <div style="text-align:center; font-weight:700; border: 1px solid #111; padding: 4px; margin-bottom: 18px; text-transform:uppercase; background:#f4f4f4;">
                 VEHICLE DELIVERY ORDER (D.O.) & PAYMENT ADVICE
             </div>
@@ -2725,6 +2731,8 @@
         }
         const generatedDoNo = l.doNo || ('HAF-DO-' + ddmmyyyy + '-' + doSequence);
         document.getElementById('do_date').textContent = doDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const doPrintTime = document.getElementById('do_print_time');
+        if (doPrintTime) doPrintTime.textContent = new Date().toLocaleString('en-IN', { dateStyle:'medium', timeStyle:'short' });
         document.getElementById('do_ref').textContent = generatedDoNo;
         document.getElementById('do_application').textContent = l.applicationNo || ('HAF' + ddmmyyyy + doSequence);
         document.getElementById('do_cust').textContent = l.name || '-';
@@ -2743,6 +2751,12 @@
         document.getElementById('do_net_dealer_payable').textContent = formatINR(netDealerPayable);
 
         document.getElementById('doModal').style.display = 'flex';
+    };
+
+    window.printSelectedDocument = function(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        window.print();
     };
 
     window.closeDoModal = function() {
