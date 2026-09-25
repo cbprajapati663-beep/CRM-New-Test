@@ -680,6 +680,15 @@
         const phone = document.getElementById('resetInputPhone').value.trim();
         const newPass = document.getElementById('resetInputNewPass').value.trim();
 
+        // Apply the same minimum password policy to password resets.
+        const resetError = document.getElementById('resetErrorMsg');
+        if (newPass.length < 8 || !/[A-Za-z]/.test(newPass) || !/[0-9]/.test(newPass)) {
+            resetError.textContent = 'New password must be at least 8 characters and include both a letter and a number.';
+            resetError.style.display = 'block';
+            return;
+        }
+        resetError.textContent = 'Verification failed. Please check the registered phone number.';
+
         if (phone === '7600211085' || phone === '917600211085') {
             if (role === 'admin') {
                 localStorage.setItem('haf_master_admin_pass', newPass);
