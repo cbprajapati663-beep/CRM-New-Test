@@ -680,6 +680,7 @@
     <button class="tab-link" id="tabDealers" onclick="switchView('dealers')">🤝 Dealer / Broker Ledger <span class="tab-badge" id="badge-dealers-count">0</span></button>
     <button class="tab-link" id="tabSecretPayouts" onclick="switchView('payoutdesk')">🔒 Secret DSA Payouts</button>
     <button class="tab-link" id="tabFollowups" onclick="switchView('followups')">🔔 Today's Follow-ups <span class="tab-badge" id="badge-followup-count">0</span></button>
+    <button class="tab-link" id="tabDataHealth" onclick="switchView('datahealth')">🩺 Data Health <span class="tab-badge" id="badge-datahealth-count">0</span></button>
 </div>
 
 <!-- Operational Stats Bar -->
@@ -905,6 +906,31 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW: CRM Data Health -->
+<div id="view-datahealth" style="display:none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">🩺 CRM Data Health & Duplicate Check</div>
+                <div style="color:var(--text-muted);font-size:.8rem;margin-top:4px;">Current tenant ke records mein missing details, duplicate mobile/vehicle number aur overdue follow-up check karein.</div>
+            </div>
+            <button class="btn-action" onclick="renderDataHealth()">↻ Refresh Scan</button>
+        </div>
+        <div class="dashboard-grid" style="margin:12px 0;">
+            <div class="metric-card"><div class="metric-title">Records Scanned</div><div class="metric-value" id="dh-scanned">0</div></div>
+            <div class="metric-card"><div class="metric-title">Missing Details</div><div class="metric-value" id="dh-missing">0</div></div>
+            <div class="metric-card"><div class="metric-title">Possible Duplicates</div><div class="metric-value" id="dh-duplicates">0</div></div>
+            <div class="metric-card"><div class="metric-title">Overdue Follow-ups</div><div class="metric-value" id="dh-overdue">0</div></div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th>Issue</th><th>Customer</th><th>Mobile</th><th>Vehicle No.</th><th>Lead Status</th><th>Details</th></tr></thead>
+                <tbody id="dataHealthTableBody"><tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);">Scan start karne ke liye Refresh Scan dabayein.</td></tr></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -1928,7 +1954,8 @@
             viewKey === 'pipeline' ? 'tabPipeline' :
             viewKey === 'disbursedhub' ? 'tabDisbursed' :
             viewKey === 'dealers' ? 'tabDealers' :
-            viewKey === 'payoutdesk' ? 'tabSecretPayouts' : 'tabFollowups'
+            viewKey === 'payoutdesk' ? 'tabSecretPayouts' :
+            viewKey === 'datahealth' ? 'tabDataHealth' : 'tabFollowups'
         );
         if (targetBtn) targetBtn.classList.add('active');
 
@@ -1937,12 +1964,14 @@
         document.getElementById('view-dealers').style.display = (viewKey === 'dealers') ? 'block' : 'none';
         document.getElementById('view-payoutdesk').style.display = (viewKey === 'payoutdesk') ? 'block' : 'none';
         document.getElementById('view-followups').style.display = (viewKey === 'followups') ? 'block' : 'none';
+        document.getElementById('view-datahealth').style.display = (viewKey === 'datahealth') ? 'block' : 'none';
 
         if (viewKey === 'pipeline') renderViews();
         if (viewKey === 'disbursedhub') renderDisbursedHubTable();
         if (viewKey === 'dealers') renderDealerLedgerTable();
         if (viewKey === 'payoutdesk') renderPayoutDeskTable();
         if (viewKey === 'followups') renderFollowups();
+        if (viewKey === 'datahealth') renderDataHealth();
     };
 
     function lockPayoutDesk() {
@@ -2434,6 +2463,94 @@
         if (st) st.value = 'All';
         if (mo) mo.value = '';
         renderViews();
+    };
+
+    // Read-only quality scan: never edits or deletes customer records.
+    window.renderDataHealth = function() {
+        const records = getLeadScopedList();
+        const body = document.getElementById('dataHealthTableBody');
+        if (!body) return;
+        body.textContent = '';
+        const issues = [];
+        const mobileGroups = new Map();
+        const vehicleGroups = new Map();
+        let missingCount = 0, duplicateCount = 0, overdueCount = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const normalize = value => String(value || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+        records.forEach(l => {
+            const mobile = String(l.mobile || '').replace(/\D/g, '');
+            const vehicle = normalize(l.vehRegNo);
+            if (mobile.length >= 10) {
+                const key = mobile.slice(-10);
+                if (!mobileGroups.has(key)) mobileGroups.set(key, []);
+                mobileGroups.get(key).push(l);
+            }
+            if (vehicle.length >= 5) {
+                if (!vehicleGroups.has(vehicle)) vehicleGroups.set(vehicle, []);
+                vehicleGroups.get(vehicle).push(l);
+            }
+            const missing = [];
+            if (!String(l.name || '').trim()) missing.push('Customer name missing');
+            if (mobile.length < 10) missing.push('Mobile number missing/invalid');
+            if (!String(l.dealerName || '').trim()) missing.push('Dealer/partner missing');
+            if (missing.length) {
+                missingCount++;
+                issues.push({type:'Missing details', lead:l, detail:missing.join(', ')});
+            }
+            const status = String(l.status || '');
+            const follow = String(l.followDate || '').slice(0, 10);
+            if (follow && status !== 'Disbursed' && status !== 'Rejected' && status !== 'Cancelled') {
+                const d = new Date(follow + 'T00:00:00');
+                if (!Number.isNaN(d.getTime()) && d < today) {
+                    overdueCount++;
+                    issues.push({type:'Overdue follow-up', lead:l, detail:'Follow-up date: ' + follow});
+                }
+            }
+        });
+
+        const addDuplicateIssues = (groups, label) => {
+            groups.forEach((group, key) => {
+                if (group.length > 1) {
+                    duplicateCount += group.length - 1;
+                    group.forEach(l => issues.push({type:'Possible duplicate', lead:l, detail:label + ': ' + key + ' (' + group.length + ' records)'}));
+                }
+            });
+        };
+        addDuplicateIssues(mobileGroups, 'Mobile');
+        addDuplicateIssues(vehicleGroups, 'Vehicle');
+
+        document.getElementById('dh-scanned').textContent = records.length;
+        document.getElementById('dh-missing').textContent = missingCount;
+        document.getElementById('dh-duplicates').textContent = duplicateCount;
+        document.getElementById('dh-overdue').textContent = overdueCount;
+        const badge = document.getElementById('badge-datahealth-count');
+        if (badge) badge.textContent = String(issues.length);
+
+        if (!issues.length) {
+            const tr = document.createElement('tr'), td = document.createElement('td');
+            td.colSpan = 6; td.textContent = '✅ Koi common data-quality issue nahi mila.';
+            td.style.cssText = 'text-align:center;padding:18px;color:var(--success);';
+            tr.appendChild(td); body.appendChild(tr); return;
+        }
+        issues.forEach(issue => {
+            const tr = document.createElement('tr');
+            const values = [
+                issue.type,
+                issue.lead.name || 'Unnamed customer',
+                issue.lead.mobile || '—',
+                issue.lead.vehRegNo || '—',
+                issue.lead.status || '—',
+                issue.detail
+            ];
+            values.forEach(value => {
+                const td = document.createElement('td');
+                td.textContent = String(value);
+                tr.appendChild(td);
+            });
+            body.appendChild(tr);
+        });
     };
 
     function renderViews() {
