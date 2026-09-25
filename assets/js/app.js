@@ -1450,9 +1450,14 @@
     }
 
     let followupFilter = 'urgent';
+    let followupSearchTerm = '';
     window.setFollowupFilter = function (filter) {
         const allowed = ['urgent', 'overdue', 'today', 'upcoming', 'all'];
         followupFilter = allowed.includes(filter) ? filter : 'urgent';
+        renderFollowups();
+    };
+    window.setFollowupSearch = function (value) {
+        followupSearchTerm = String(value || '').trim().toLowerCase();
         renderFollowups();
     };
 
@@ -1468,6 +1473,11 @@
             if (followupFilter === 'upcoming') return l.followDate > todayStr && l.followDate <= futureLimitStr;
             if (followupFilter === 'all') return true;
             return l.followDate <= todayStr;
+        }).filter(l => {
+            if (!followupSearchTerm) return true;
+            const searchable = [l.name, l.mobile, l.city, l.vehModel, l.vehRegNo, l.dealerName, l.bankNbfc]
+                .map(value => String(value || '').toLowerCase()).join(' ');
+            return searchable.includes(followupSearchTerm);
         }).sort((a, b) => String(a.followDate).localeCompare(String(b.followDate)));
         document.getElementById('badge-followup-count').textContent = todayLeads.length;
 
