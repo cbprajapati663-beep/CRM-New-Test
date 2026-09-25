@@ -3,6 +3,12 @@
         return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     }
 
+
+    // Escape document IDs before placing them inside quoted inline JavaScript arguments.
+    function escapeJsString(value) {
+        return String(value ?? '').replace(/[\\'\r\n\u2028\u2029]/g, char => ({'\\':'\\\\', "'":"\\'", '\r':'\\r', '\n':'\\n', '\u2028':'\\u2028', '\u2029':'\\u2029'}[char]));
+    }
+
     const firebaseConfig = {
         apiKey: "AIzaSyACLaRm5yH301JVqlvl8KYglANOc3uh6w",
         authDomain: "heritage-crm-f179a.firebaseapp.com",
