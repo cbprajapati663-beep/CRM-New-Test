@@ -116,7 +116,10 @@
             if (!userObj) {
                 localStorage.removeItem('haf_active_session_user_v2');
             } else {
-                localStorage.setItem('haf_active_session_user_v2', JSON.stringify(userObj));
+                // Never persist tenant credentials in browser session storage.
+                const safeUser = { ...userObj };
+                delete safeUser.password;
+                localStorage.setItem('haf_active_session_user_v2', JSON.stringify(safeUser));
             }
         } catch(e) {
             console.error("Storage write error:", e);
@@ -248,7 +251,6 @@
                             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
 
-                        u.password = newP;
                         setCurrentSessionUser(u);
                         alert("✓ Aapka password successfully update ho gaya!");
                         document.getElementById('changeMyPasswordModal').style.display = 'none';
