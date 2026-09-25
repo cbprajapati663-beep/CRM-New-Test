@@ -54,3 +54,21 @@ Review of legacy login/session code in `assets/js/app.js` and standalone tenant 
 
 ## Current next step
 Perform a focused safe-rendering review of the highest-risk `innerHTML`/print templates, tracing whether customer, dealer, tenant, or activity values are inserted as HTML. Replace only confirmed unsafe interpolation paths with context-appropriate safe DOM rendering and add regression tests before broader refactoring.
+
+## Focused safe-rendering review (2026-09-25)
+### Confirmed user/data values inserted into HTML templates
+Static inspection of `assets/js/app.js` identified the following concrete interpolation paths that need safe rendering:
+- Admin tenant cards: `t.agencyName`, `t.tenantId`, `t.headOffice`, `t.contactPhone`, and `t.status` are interpolated into `card.innerHTML` (around lines 420–425).
+- Admin report rows: lead name, city, vehicle model/type, status, and dealer name are interpolated into `tr.innerHTML` (around lines 618–627).
+- Live lead rows: lead name, city, vehicle model/type/registration, dealer, bank/NBFC, status, and conversation text are interpolated into `row.innerHTML` (around lines 985–1001); inline handlers also interpolate document IDs.
+- Disbursed rows and dealer ledger/statement/payout rows interpolate lead/dealer fields into HTML templates (around lines 1040–1051, 1158–1165, 1216–1225, and 1311–1323).
+- Dealer management builds HTML using dealer names and embeds a dealer name in an inline handler (around lines 1798–1806).
+- Activity timeline escapes `<` in some values but does not consistently encode `&` and `>`; the details field is assembled from Firestore activity data (around lines 1606–1615). This is incomplete HTML escaping.
+
+### Decision
+- These are confirmed unsafe HTML construction patterns and should be addressed with DOM `textContent`/safe element creation and event listeners, or context-correct escaping where a minimal patch is necessary.
+- No blanket regex replacement was applied: template interpolation and inline event handlers have different contexts, and a broad change could break CRM actions or visual output.
+- No JavaScript behavior was modified and no runtime/XSS regression tests were run in this pass.
+
+### Next implementation slice
+Refactor the activity timeline and dealer management rendering first, then proceed to lead/report/ledger templates with regression checks for edit, DO, payout, and dealer actions.
