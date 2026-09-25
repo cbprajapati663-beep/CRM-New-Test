@@ -1234,7 +1234,7 @@
 <div id="dealerStatementModal" class="modal-overlay">
     <div class="modal-card" style="max-width: 780px;">
         <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-            <button class="btn-action" style="background:#10b981; color:#000;" onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <button class="btn-action" style="background:#10b981; color:#000;" onclick="printSelectedDocument('printableDOArea')">🖨️ Print / Save as PDF</button>
             <button class="btn-action" onclick="closeDealerStatementModal()">✕ Close</button>
         </div>
         
@@ -1356,7 +1356,7 @@
 
 <!-- MODAL: PRINTABLE DELIVERY ORDER (DO) -->
 <div id="doModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-card do-modal-card" style="max-width: 680px; max-height: calc(100vh - 30px); overflow-y: auto;">
         <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
             <button class="btn-action" style="background:#10b981; color:#000;" onclick="window.print()">🖨️ Print / Save as PDF</button>
             <button class="btn-action" onclick="closeDoModal()">✕ Close</button>
