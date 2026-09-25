@@ -1449,9 +1449,26 @@
         });
     }
 
+    let followupFilter = 'urgent';
+    window.setFollowupFilter = function (filter) {
+        const allowed = ['urgent', 'overdue', 'today', 'upcoming', 'all'];
+        followupFilter = allowed.includes(filter) ? filter : 'urgent';
+        renderFollowups();
+    };
+
     function renderFollowups() {
         const scopedLeads = getLeadScopedList();
-        const todayLeads = scopedLeads.filter(l => l.followDate === todayStr || (l.followDate && l.followDate < todayStr && l.status !== 'Disbursed' && l.status !== 'Rejected'));
+        const activeLeads = scopedLeads.filter(l => l.followDate && l.status !== 'Disbursed' && l.status !== 'Rejected');
+        const futureLimit = new Date();
+        futureLimit.setDate(futureLimit.getDate() + 7);
+        const futureLimitStr = [futureLimit.getFullYear(), String(futureLimit.getMonth()+1).padStart(2,'0'), String(futureLimit.getDate()).padStart(2,'0')].join('-');
+        const todayLeads = activeLeads.filter(l => {
+            if (followupFilter === 'overdue') return l.followDate < todayStr;
+            if (followupFilter === 'today') return l.followDate === todayStr;
+            if (followupFilter === 'upcoming') return l.followDate > todayStr && l.followDate <= futureLimitStr;
+            if (followupFilter === 'all') return true;
+            return l.followDate <= todayStr;
+        }).sort((a, b) => String(a.followDate).localeCompare(String(b.followDate)));
         document.getElementById('badge-followup-count').textContent = todayLeads.length;
 
         const tbody = document.getElementById('followupsTableBody');
