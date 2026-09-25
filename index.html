@@ -681,6 +681,7 @@
     <button class="tab-link" id="tabSecretPayouts" onclick="switchView('payoutdesk')">🔒 Secret DSA Payouts</button>
     <button class="tab-link" id="tabFollowups" onclick="switchView('followups')">🔔 Today's Follow-ups <span class="tab-badge" id="badge-followup-count">0</span></button>
     <button class="tab-link" id="tabDataHealth" onclick="switchView('datahealth')">🩺 Data Health <span class="tab-badge" id="badge-datahealth-count">0</span></button>
+    <button class="tab-link" id="tabWorkflow" onclick="switchView('workflow')">⚙️ Smart Workflow <span class="tab-badge" id="badge-workflow-count">0</span></button>
 </div>
 
 <!-- Operational Stats Bar -->
@@ -933,6 +934,20 @@
             </table>
         </div>
     </div>
+</div>
+
+<!-- SMART WORKFLOW: automatically surfaced next actions -->
+<div id="view-workflow" style="display:none;">
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">⚙️ Smart Workflow & Action Center</div><div style="color:var(--text-muted);font-size:.8rem;margin-top:4px;">Lead status aur follow-up date ke basis par system-generated action suggestions. Ye tasks records ko khud se update nahi karte.</div></div><button class="btn-action" onclick="renderSmartWorkflow()">↻ Refresh</button></div>
+    <div class="dashboard-grid" style="margin:12px 0;">
+      <div class="metric-card"><div class="metric-title">Overdue Follow-ups</div><div class="metric-value" id="wf-overdue">0</div></div>
+      <div class="metric-card"><div class="metric-title">Due Today</div><div class="metric-value" id="wf-today">0</div></div>
+      <div class="metric-card"><div class="metric-title">Documents Pending</div><div class="metric-value" id="wf-docs">0</div></div>
+      <div class="metric-card"><div class="metric-title">No Follow-up Scheduled</div><div class="metric-value" id="wf-unscheduled">0</div></div>
+    </div>
+    <div class="table-responsive"><table><thead><tr><th>Priority</th><th>Suggested Action</th><th>Customer</th><th>Mobile</th><th>Status</th><th>Follow-up</th><th>Action</th></tr></thead><tbody id="smartWorkflowBody"><tr><td colspan="7" style="text-align:center;padding:18px;color:var(--text-muted);">Workflow scan loading...</td></tr></tbody></table></div>
+  </div>
 </div>
 
 <!-- VIEW 2: Disbursed Files & Clearance Hub -->
@@ -1955,7 +1970,8 @@
             viewKey === 'disbursedhub' ? 'tabDisbursed' :
             viewKey === 'dealers' ? 'tabDealers' :
             viewKey === 'payoutdesk' ? 'tabSecretPayouts' :
-            viewKey === 'datahealth' ? 'tabDataHealth' : 'tabFollowups'
+            viewKey === 'datahealth' ? 'tabDataHealth' :
+            viewKey === 'workflow' ? 'tabWorkflow' : 'tabFollowups'
         );
         if (targetBtn) targetBtn.classList.add('active');
 
@@ -1965,9 +1981,11 @@
         document.getElementById('view-payoutdesk').style.display = (viewKey === 'payoutdesk') ? 'block' : 'none';
         document.getElementById('view-followups').style.display = (viewKey === 'followups') ? 'block' : 'none';
         document.getElementById('view-datahealth').style.display = (viewKey === 'datahealth') ? 'block' : 'none';
+        document.getElementById('view-workflow').style.display = (viewKey === 'workflow') ? 'block' : 'none';
 
         if (viewKey === 'pipeline') renderViews();
         if (viewKey === 'disbursedhub') renderDisbursedHubTable();
+        if (viewKey === 'workflow') renderSmartWorkflow();
         if (viewKey === 'dealers') renderDealerLedgerTable();
         if (viewKey === 'payoutdesk') renderPayoutDeskTable();
         if (viewKey === 'followups') renderFollowups();
@@ -3054,6 +3072,32 @@
         alert("✓ Payout update ho gaya!");
     };
 
+    function renderSmartWorkflow() {
+        const scoped = getLeadScopedList();
+        const active = scoped.filter(l => !['Disbursed','Rejected','Not Interested'].includes(l.status));
+        const overdue = active.filter(l => l.followDate && l.followDate < todayStr);
+        const dueToday = active.filter(l => l.followDate === todayStr);
+        const docs = active.filter(l => l.status === 'Documents Pending');
+        const unscheduled = active.filter(l => !l.followDate);
+        const counts = [['wf-overdue',overdue.length],['wf-today',dueToday.length],['wf-docs',docs.length],['wf-unscheduled',unscheduled.length]];
+        counts.forEach(([id,value]) => { const el=document.getElementById(id); if(el) el.textContent=value; });
+        const badge=document.getElementById('badge-workflow-count'); if(badge) badge.textContent=overdue.length+dueToday.length+docs.length+unscheduled.length;
+        const tasks=[];
+        overdue.forEach(l=>tasks.push({l,priority:0,label:'Overdue',action:'Follow-up date nikal chuki hai — customer ko contact karein.'}));
+        dueToday.forEach(l=>tasks.push({l,priority:1,label:'Today',action:'Aaj customer follow-up karein.'}));
+        docs.forEach(l=>tasks.push({l,priority:2,label:'Documents',action:'Pending documents collect/verify karein.'}));
+        unscheduled.forEach(l=>tasks.push({l,priority:3,label:'Schedule',action:'Agla follow-up date set karein.'}));
+        tasks.sort((a,b)=>a.priority-b.priority);
+        const body=document.getElementById('smartWorkflowBody'); if(!body)return; body.textContent='';
+        if(!tasks.length){body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:22px;color:var(--success);">✓ Abhi koi suggested action pending nahi hai.</td></tr>';return;}
+        tasks.forEach(({l,label,action})=>{
+            const tr=document.createElement('tr');
+            const values=[label,action,l.name||'Unnamed customer',l.mobile||'—',l.status||'New',l.followDate||'Not set'];
+            values.forEach((value,index)=>{const td=document.createElement('td');td.textContent=String(value);if(index===0){td.style.fontWeight='800';td.style.color=label==='Overdue'?'#f87171':label==='Today'?'#fbbf24':'var(--primary)';}tr.appendChild(td);});
+            const td=document.createElement('td');const btn=document.createElement('button');btn.className='btn-quick btn-edit';btn.textContent='✏️ Update';btn.onclick=()=>{editLead(l.docId);switchView('pipeline');};td.appendChild(btn);tr.appendChild(td);body.appendChild(tr);
+        });
+    }
+
     function renderFollowups() {
         const scopedLeads = getLeadScopedList();
         const todayLeads = scopedLeads.filter(l => l.followDate === todayStr || (l.followDate && l.followDate < todayStr && l.status !== 'Disbursed' && l.status !== 'Rejected'));
@@ -3538,6 +3582,7 @@
         renderDisbursedHubTable();
         renderDealerLedgerTable();
         renderAdminMasterUserCards();
+        renderSmartWorkflow();
     });
 
     function formatINR(val) {
