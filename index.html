@@ -620,7 +620,45 @@
                 color: #7a5a00 !important;
             }
         }
-    </style>
+    
+        /* Mobile-first polish: navigation, forms, tables and dialogs */
+        @media screen and (max-width: 760px) {
+            body { padding: 10px; }
+            header { align-items: flex-start; }
+            h1 { font-size: 1.15rem; }
+            .header-actions { width: 100%; gap: 6px; }
+            .header-actions .btn-action { flex: 1 1 auto; text-align: center; }
+            .crm-nav-tabs { gap: 6px; margin: 0 -2px 14px; padding: 0 2px 8px; -webkit-overflow-scrolling: touch; }
+            .tab-link { padding: 9px 12px; font-size: .8rem; flex: 0 0 auto; }
+            .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .metric-card { padding: 10px 8px; min-width: 0; }
+            .metric-title { font-size: .62rem; }
+            .metric-value { font-size: 1rem; overflow-wrap: anywhere; }
+            .crm-container, .crm-container.admin-mode { grid-template-columns: minmax(0, 1fr) !important; gap: 10px; }
+            .panel { padding: 12px; margin-bottom: 12px; min-width: 0; }
+            .panel-header { align-items: flex-start; }
+            .panel-header > * { min-width: 0; }
+            .table-responsive { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .table-responsive table { min-width: 680px; }
+            .modal-overlay { padding: 8px; align-items: flex-start; overflow-y: auto; }
+            .modal-card { margin: auto 0; max-height: calc(100dvh - 16px); overflow-y: auto; padding: 16px; }
+            .do-modal-card { max-height: calc(100dvh - 16px) !important; }
+            .btn-action, .btn-submit, .btn-quick { min-height: 36px; }
+            .checkbox-grid { grid-template-columns: minmax(0, 1fr); }
+            #leadAuditBody { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+        @media screen and (max-width: 480px) {
+            body { padding: 8px; }
+            h1 { font-size: 1.02rem; }
+            .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .panel { padding: 10px; }
+            .panel-title { font-size: .92rem; }
+            .tab-link { padding: 8px 10px; }
+            .form-group input, .form-group select, .form-group textarea { font-size: 16px; }
+            .modal-card { padding: 12px; }
+            .user-master-card { padding: 12px; }
+        }
+</style>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
