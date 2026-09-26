@@ -2061,9 +2061,12 @@
             return;
         }
 
-        const printTitle = sectionId === 'printableRentBillArea'
-            ? 'Heritage FinTech Core - Rent Invoice'
-            : 'Heritage Auto Finance - Delivery Order';
+        const printTitles = {
+            printableRentBillArea: 'Heritage FinTech Core - Rent Invoice',
+            printableDOArea: 'Heritage Auto Finance - Delivery Order',
+            printableAdminTenantReport: 'Heritage FinTech Core - Agency Report'
+        };
+        const printTitle = printTitles[sectionId] || 'Heritage FinTech Core - Document';
         const stylesheetUrl = new URL('assets/css/styles.css', window.location.href).href;
         const clone = section.cloneNode(true);
         clone.removeAttribute('id');
@@ -2084,6 +2087,20 @@
             '#printRoot .do-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}' +
             '#printRoot table{width:100%!important;border-collapse:collapse!important;}' +
             '#printRoot tr,#printRoot .do-grid-item,#printRoot .do-signatures{break-inside:avoid!important;page-break-inside:avoid!important;}' +
+            '/* Match the document preview theme in the generated print view. */' +
+            '#printRoot .do-paper{background:linear-gradient(180deg,#fff 0%,#fbfcfe 100%)!important;color:#243447!important;border:1px solid #c9a227!important;border-top:7px solid #102a43!important;border-radius:10px!important;box-shadow:inset 0 0 0 1px rgba(212,175,55,.28)!important;padding:9mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+            '#printRoot .do-paper h2{color:#102a43!important;font-size:17pt!important;letter-spacing:.35px!important;padding:9px 10px 7px!important;margin:0 0 3px!important;border-bottom:3px solid #d4af37!important;}' +
+            '#printRoot .do-paper h4{color:#9a7615!important;font-size:8.5pt!important;margin:0 0 12px!important;letter-spacing:1.25px!important;text-transform:uppercase!important;}' +
+            '#printRoot .do-paper .do-grid{background:#f7f9fc!important;border:1px solid #d8dee8!important;border-radius:7px!important;padding:5px!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:0 10px!important;}' +
+            '#printRoot .do-paper .do-grid-item{border-bottom:1px solid #dfe4eb!important;padding:7px 8px!important;color:#263648!important;line-height:1.35!important;}' +
+            '#printRoot .do-paper .do-grid-item strong{color:#102a43!important;}' +
+            '#printRoot .do-paper .do-table{border:1px solid #b9c3d0!important;background:#fff!important;}' +
+            '#printRoot .do-paper .do-table th{background:#102a43!important;color:#fff!important;border-color:#102a43!important;text-transform:uppercase!important;font-size:8pt!important;letter-spacing:.25px!important;}' +
+            '#printRoot .do-paper .do-table td{border-color:#d7dde5!important;color:#243447!important;background:#fff!important;}' +
+            '#printRoot .do-paper .do-table tr:nth-child(even) td{background:#f7f9fc!important;}' +
+            '#printRoot .do-paper .do-table tr:last-child td{background:#eaf8f2!important;color:#075e45!important;font-weight:800!important;border-top:2px solid #10b981!important;}' +
+            '#printRoot .do-paper p{color:#536273!important;line-height:1.45!important;}' +
+            '#printRoot .do-paper .do-signatures{border-top:1px solid #d9dee6!important;padding-top:18px!important;}' +
             '@page{size:A4 portrait;margin:10mm;}' +
             '@media print{html,body{width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important;}#printRoot{width:100%!important;height:auto!important;overflow:visible!important;}#printRoot .printable-section,#printRoot .do-paper{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}}' +
             '</style></head><body><main id="printRoot"></main></body></html>'
