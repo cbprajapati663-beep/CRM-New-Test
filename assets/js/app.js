@@ -1584,6 +1584,24 @@
 
     function renderFollowups() {
         const scopedLeads = getLeadScopedList();
+        const pendingForMetrics = scopedLeads.filter(l => l.followDate && !['Disbursed', 'Rejected', 'Cancelled'].includes(String(l.status || '')));
+        const metrics = {
+            pending: pendingForMetrics.length,
+            overdue: pendingForMetrics.filter(l => l.followDate < todayStr).length,
+            today: pendingForMetrics.filter(l => l.followDate === todayStr).length,
+            upcoming: pendingForMetrics.filter(l => l.followDate > todayStr && l.followDate <= futureLimitStr).length,
+            escalated: pendingForMetrics.filter(l => {
+                if (l.followDate >= todayStr) return false;
+                const due = new Date(String(l.followDate).slice(0, 10) + 'T00:00:00');
+                const today = new Date(todayStr + 'T00:00:00');
+                return !Number.isNaN(due.getTime()) && Math.floor((today.getTime() - due.getTime()) / 86400000) >= 3;
+            }).length
+        };
+        Object.entries(metrics).forEach(([key, value]) => {
+            const node = document.getElementById('fu-metric-' + key);
+            if (node) node.textContent = String(value);
+        });
+
         const activeLeads = scopedLeads.filter(l => l.followDate && !['Disbursed', 'Rejected', 'Cancelled'].includes(String(l.status || '')));
         const futureLimit = new Date();
         futureLimit.setDate(futureLimit.getDate() + 7);
