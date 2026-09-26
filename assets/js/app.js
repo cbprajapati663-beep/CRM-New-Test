@@ -2764,6 +2764,10 @@
     };
     const documentChecklistStatuses = ['Pending', 'Received'];
 
+    window.showDocumentsComingSoon = function() {
+        alert('Documents feature abhi temporarily disabled hai. Ye feature future upgrade mein available hoga. Filhaal is par kaam chal raha hai.');
+    };
+
     window.openDocumentTracker = function() {
         const modal=document.getElementById('documentTrackerModal');
         if(!modal){alert('Document Tracker interface nahi mila. Page refresh karein.');return;}
