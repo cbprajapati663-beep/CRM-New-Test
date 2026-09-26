@@ -2494,8 +2494,52 @@
     const documentChecklistTemplates = [
         'Aadhaar Card', 'PAN Card', 'Bank Statement', 'Passport Size Photo',
         'Address Proof', 'RC Book / Smart Card', 'Driving Licence',
-        'Income Proof / Salary Slip', 'Insurance Copy', 'Quotation / Invoice'
+        'Income Proof / Salary Slip', 'Insurance Copy', 'Quotation / Invoice', 'Other'
     ];
+    const documentUploadAccept = '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv';
+    function safeDocumentFileName(value) { return String(value || 'file').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120); }
+    function documentEntryFor(lead, name) { return (Array.isArray(lead.documents) ? lead.documents : []).find(item => item.name === name) || {name,status:'Pending',remarks:'',attachments:[]}; }
+    function renderDocumentAttachments(row, attachments, name) {
+        if (!Array.isArray(attachments) || !attachments.length) return;
+        const wrap=document.createElement('div'); wrap.style.cssText='grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;font-size:.78rem;';
+        attachments.forEach((file,index)=>{
+            const item=document.createElement('span'); item.style.cssText='display:inline-flex;align-items:center;gap:6px;border:1px solid var(--card-border);border-radius:7px;padding:5px 8px;max-width:100%;';
+            const link=document.createElement('a'); link.href=file.url; link.target='_blank'; link.rel='noopener noreferrer'; link.textContent=file.name||'Document'; link.style.cssText='color:var(--primary);overflow-wrap:anywhere;';
+            const remove=document.createElement('button'); remove.type='button'; remove.textContent='✕'; remove.title='Remove file reference'; remove.className='btn-quick';
+            remove.onclick=async()=>{if(!confirm('File ko checklist se hatayein? Storage wali file delete nahi hogi.'))return;const id=document.getElementById('docTrackerLead').value;const current=getLeadScopedList().find(x=>x.docId===id);if(!current)return;const docs=(current.documents||[]).map(d=>d.name===name?{...d,attachments:(d.attachments||[]).filter((_,i)=>i!==index)}:d);try{await leadsCollection.doc(id).update({documents:docs});loadDocumentChecklist();}catch(e){alert('File reference remove nahi hua. Permission check karein.');}};
+            item.append(link,remove);wrap.appendChild(item);
+        }); row.appendChild(wrap);
+    }
+    window.uploadChecklistFiles=async function(input,name){
+        const files=Array.from(input.files||[]);if(!files.length)return;
+        const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
+        if(!lead){alert('Pehle customer select karein.');input.value='';return;}
+        if(files.some(file=>file.size>15*1024*1024)){alert('Har file 15 MB se chhoti honi chahiye.');input.value='';return;}
+        const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),uploaded=[];input.disabled=true;
+        try{
+            const storage=firebase.storage();
+            for(const file of files){
+                const path='customer-documents/'+encodeURIComponent(sessionUser&&sessionUser.tenantId||'tenant')+'/'+encodeURIComponent(leadId)+'/'+Date.now()+'_'+safeDocumentFileName(file.name);
+                const snapshot=await storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
+                const url=await snapshot.ref.getDownloadURL();
+                uploaded.push({name:file.name,url,path,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'});
+            }
+            const docs=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>d.name!==name);
+            docs.push({...oldEntry,name,attachments:[...(oldEntry.attachments||[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
+            await leadsCollection.doc(leadId).update({documents:docs});loadDocumentChecklist();alert('✅ '+uploaded.length+' file(s) upload ho gayi.');
+        }catch(error){console.error('Document upload failed:',error);alert('❌ Upload fail hua. Firebase Storage enabled hai aur Storage Rules access allow karti hain, ye check karein.');}
+        finally{input.disabled=false;input.value='';}
+    };
+    window.shareChecklistDocuments=async function(){
+        const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
+        if(!lead){alert('Pehle customer select karein.');return;}
+        const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName);
+        const chosen=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name)).flatMap(d=>(d.attachments||[]).map(f=>({...f,category:d.name})));
+        if(!chosen.length){alert('Share karne ke liye document ke aage Share checkbox select karein.');return;}
+        const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\\nDocuments:\\n'+chosen.map(f=>f.category+' — '+f.name+': '+f.url).join('\\n');
+        try{if(navigator.share)await navigator.share({title:'Customer Documents - '+(lead.name||''),text:message});else window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener');}
+        catch(error){if(error&&error.name!=='AbortError')alert('Share window open nahi hua.');}
+    };
     const documentChecklistStatuses = ['Pending', 'Received', 'Under Review', 'Verified', 'Rejected', 'Resubmission Required'];
 
     window.openDocumentTracker = function() {
@@ -2535,26 +2579,20 @@
             return;
         }
         const saved = Array.isArray(lead.documents) ? lead.documents : [];
-        documentChecklistTemplates.forEach((name, index) => {
-            const old = saved.find(item => item.name === name) || {};
-            const row = document.createElement('div');
-            row.style.cssText = 'display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(150px,.8fr) minmax(160px,1.2fr);gap:8px;align-items:center;padding:10px;border:1px solid var(--card-border);border-radius:9px;';
-            const title = document.createElement('strong');
-            title.textContent = name;
-            title.style.fontSize = '.82rem';
-            const status = document.createElement('select');
-            status.className = 'doc-check-status';
-            status.dataset.docName = name;
-            status.style.cssText = 'width:100%;min-width:0;';
-            documentChecklistStatuses.forEach(value => {
-                const option = document.createElement('option'); option.value = value; option.textContent = value; status.appendChild(option);
-            });
-            status.value = documentChecklistStatuses.includes(old.status) ? old.status : 'Pending';
-            const remarks = document.createElement('input');
-            remarks.type = 'text'; remarks.className = 'doc-check-remarks'; remarks.dataset.docName = name;
-            remarks.placeholder = 'Remarks / reason'; remarks.value = old.remarks || '';
-            remarks.maxLength = 300; remarks.style.cssText = 'width:100%;min-width:0;box-sizing:border-box;';
-            row.append(title,status,remarks); rows.appendChild(row);
+        documentChecklistTemplates.forEach(name => {
+            const old=saved.find(item=>item.name===name)||{};
+            const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:minmax(125px,1fr) minmax(130px,.8fr) minmax(130px,1fr);gap:8px;align-items:center;padding:10px;border:1px solid var(--card-border);border-radius:9px;';
+            const title=document.createElement('strong');title.textContent=name;title.style.fontSize='.82rem';
+            const status=document.createElement('select');status.className='doc-check-status';status.dataset.docName=name;status.style.cssText='width:100%;min-width:0;';
+            documentChecklistStatuses.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;status.appendChild(option);});
+            status.value=documentChecklistStatuses.includes(old.status)?old.status:'Pending';
+            const remarks=document.createElement('input');remarks.type='text';remarks.className='doc-check-remarks';remarks.dataset.docName=name;remarks.placeholder='Remarks / reason';remarks.value=old.remarks||'';remarks.maxLength=300;remarks.style.cssText='width:100%;min-width:0;box-sizing:border-box;';
+            const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=name==='Other';fileInput.style.display='none';fileInput.onchange=()=>uploadChecklistFiles(fileInput,name);
+            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent='⬆ Upload';upload.onclick=()=>fileInput.click();
+            const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:.78rem;';
+            const share=document.createElement('input');share.type='checkbox';share.className='doc-share-check';share.dataset.docName=name;label.append(share,document.createTextNode('Share'));
+            actions.append(upload,label,fileInput);row.append(title,status,remarks,actions);renderDocumentAttachments(row,old.attachments||[],name);rows.appendChild(row);
         });
         updateDocumentChecklistSummary();
         rows.querySelectorAll('.doc-check-status').forEach(el => el.addEventListener('change', updateDocumentChecklistSummary));
@@ -2583,6 +2621,7 @@
             const remarks = remarksEl ? remarksEl.value.trim().slice(0,300) : '';
             const entry = {
                 name, status, remarks,
+                attachments: prior.attachments || [],
                 updatedAt: new Date().toISOString(),
                 updatedBy: sessionUser && sessionUser.tenantId ? sessionUser.tenantId : 'system'
             };
