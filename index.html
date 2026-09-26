@@ -1194,6 +1194,7 @@
   <label for="docTrackerLead">Select Customer / Lead</label>
   <select id="docTrackerLead" onchange="loadDocumentChecklist()" style="width:100%;box-sizing:border-box;margin:6px 0 14px;"></select>
   <div id="docTrackerSummary" style="padding:12px;border:1px solid var(--card-border);border-radius:10px;margin-bottom:12px;">Customer select karein.</div>
+  <div id="docUploadUpgradeNotice" role="status" style="padding:12px;margin-bottom:12px;border:1px solid #d4af37;background:rgba(212,175,55,.12);border-radius:9px;color:#fbbf24;font-size:.85rem;line-height:1.5;"><strong>🔒 Document Upload — Upgrade Feature</strong><br>Document upload abhi temporarily disabled hai. Storage cost bachane ke liye ye feature future upgrade mein enable hoga. Checklist status aur remarks abhi bhi use/save kar sakte hain.</div>
   <div id="docTrackerRows" style="display:flex;flex-direction:column;gap:10px;"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
    <button type="button" class="btn-action" onclick="saveDocumentChecklist()" style="background:var(--primary);color:#111;font-weight:800;">💾 Save Checklist</button>
@@ -1206,6 +1207,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/app.js?v=document-upload-bucket-fix-20260926-5"></script>
+<script src="assets/js/app.js?v=document-upload-upgrade-disabled-20260926-6"></script>
 </body>
 </html>
