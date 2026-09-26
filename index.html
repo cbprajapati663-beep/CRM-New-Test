@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="assets/css/styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
@@ -1196,13 +1197,14 @@
   <div id="docTrackerRows" style="display:flex;flex-direction:column;gap:10px;"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
    <button type="button" class="btn-action" onclick="saveDocumentChecklist()" style="background:var(--primary);color:#111;font-weight:800;">💾 Save Checklist</button>
+   <button type="button" class="btn-action" onclick="shareChecklistDocuments()" style="background:#16a34a;color:#fff;font-weight:800;">📤 Share Documents</button>
    <button type="button" class="btn-action" onclick="exportDocumentChecklist()">📄 Export Checklist CSV</button>
    <button type="button" class="btn-action" onclick="closeDocumentTracker()">Close</button>
   </div>
-  <p style="font-size:.76rem;color:var(--text-muted);margin:12px 0 0;">Sensitive ID documents yahan upload nahi hote. Ye tracker sirf document status aur remarks save karta hai. Actual files ke liye secure storage/access controls alag se implement karne honge.</p>
+  <p style="font-size:.76rem;color:var(--text-muted);margin:12px 0 0;">PDF, JPG/JPEG, PNG, WEBP, Word, Excel, TXT aur CSV files (max 15 MB/file). “Other” category mein multiple files ek saath select kar sakte hain. Share button selected categories ke links mobile share menu ya WhatsApp mein bhejta hai. Access Firebase Storage rules aur link permissions par depend karta hai.</p>
  </div>
 </div>
 
-<script src="assets/js/app.js?v=document-tracker-20260926-2"></script>
+<script src="assets/js/app.js?v=document-upload-share-20260926-1"></script>
 </body>
 </html>
