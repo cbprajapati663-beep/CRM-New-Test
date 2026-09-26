@@ -2706,29 +2706,7 @@
     const documentChecklistStatuses = ['Pending', 'Received'];
 
     window.openDocumentTracker = function() {
-        const notice=document.getElementById('docFeatureUpgradeNotice');
-        if(notice) notice.style.display='block';
-        const shareButton=document.getElementById('btnShareChecklistDocuments');
-        if(shareButton){shareButton.disabled=true;shareButton.title='Document sharing future upgrade mein enable hoga.';shareButton.textContent='🔒 Sharing — Upgrade Soon';}
-        const modal = document.getElementById('documentTrackerModal');
-        if (!modal) { alert('Document Tracker interface nahi mila. Page refresh karein.'); return; }
-        const list = getLeadScopedList();
-        const select = document.getElementById('docTrackerLead');
-        select.innerHTML = '';
-        if (!list.length) {
-            const option = document.createElement('option');
-            option.value = ''; option.textContent = 'No customer records available';
-            select.appendChild(option);
-        } else {
-            list.slice().sort((a,b) => String(a.name||'').localeCompare(String(b.name||''))).forEach(lead => {
-                const option = document.createElement('option');
-                option.value = lead.docId;
-                option.textContent = (lead.name || 'Unnamed') + ' · ' + (lead.mobile || 'No mobile') + ' · ' + (lead.vehModel || 'Vehicle not set');
-                select.appendChild(option);
-            });
-        }
-        modal.style.display = 'flex';
-        loadDocumentChecklist();
+        alert('Document Hub aur Checklist filhaal disabled hain. Future upgrade mein wapas enable honge.');
     };
 
     window.closeDocumentTracker = function() {
