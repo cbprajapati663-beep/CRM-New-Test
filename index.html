@@ -51,6 +51,7 @@
     <div class="header-actions">
         <span id="activeUserBadge" style="background:#1e2433; border:1px solid var(--primary); padding:5px 10px; border-radius:6px; font-size:0.75rem; color:var(--primary); font-weight:700;">👤 Admin</span>
         <button id="btnChangeMyPass" class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openChangeMyPasswordModal()">🔑 Change Password</button>
+        <button class="btn-action" style="background:#d4af37;color:#111;font-weight:700;" onclick="openEmiCalculator()">🧮 EMI Calculator</button>
         <button id="btnExitUserView" class="btn-action" style="background:#ef4444; color:#fff; display:none;" onclick="exitUserView()">↩ Exit to Admin Master Desk</button>
         <button class="btn-action btn-install" id="btnInstallApp" onclick="installPWA()">📲 Install App</button>
         <button class="btn-action" id="btnExportExcel" onclick="exportToCSV()" style="display:none;">📥 Export Excel</button>
@@ -1113,6 +1114,33 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Loan EMI Calculator -->
+<div id="emiCalculatorModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:10050;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;" role="dialog" aria-modal="true" aria-labelledby="emiCalcTitle">
+    <div class="modal-content" style="width:100%;max-width:520px;max-height:90vh;overflow:auto;background:var(--panel-bg,#111827);border:1px solid var(--primary);border-radius:14px;padding:22px;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+            <h2 id="emiCalcTitle" style="margin:0;">🧮 Vehicle Loan EMI Calculator</h2>
+            <button type="button" class="btn-quick" onclick="closeEmiCalculator()" aria-label="Close EMI calculator">✕</button>
+        </div>
+        <label for="emiLoanAmount">Loan Amount (₹)</label>
+        <input id="emiLoanAmount" type="number" min="1" step="1000" placeholder="e.g. 500000" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="emiInterestRate">Annual Interest Rate (%)</label>
+        <input id="emiInterestRate" type="number" min="0" max="100" step="0.1" placeholder="e.g. 10.5" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="emiTenureMonths">Loan Tenure (Months)</label>
+        <input id="emiTenureMonths" type="number" min="1" max="600" step="1" placeholder="e.g. 60" style="width:100%;box-sizing:border-box;margin:6px 0 16px;">
+        <button type="button" class="btn-action" style="width:100%;background:var(--primary);color:#111;font-weight:800;" onclick="calculateLoanEMI()">Calculate EMI</button>
+        <div id="emiCalcError" role="alert" style="display:none;color:#f87171;margin-top:12px;"></div>
+        <div id="emiCalcResult" aria-live="polite" style="display:none;margin-top:18px;padding:16px;border:1px solid var(--primary);border-radius:10px;">
+            <div style="color:var(--text-muted);font-size:.85rem;">Estimated Monthly EMI</div>
+            <div id="emiMonthlyValue" style="font-size:1.8rem;font-weight:800;color:var(--primary);margin:4px 0 12px;">₹0</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><small>Total Interest</small><div id="emiTotalInterest" style="font-weight:700;">₹0</div></div>
+                <div><small>Total Repayment</small><div id="emiTotalPayment" style="font-weight:700;">₹0</div></div>
+            </div>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin:14px 0 0;">Estimate only. Actual EMI may vary due to lender terms, fees, insurance, and rounding.</p>
     </div>
 </div>
 
