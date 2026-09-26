@@ -787,6 +787,7 @@
         const scopedLeads = getLeadScopedList();
         const u = getCurrentSessionUser();
         const isAdmin = (u && u.role === 'superadmin' && !inspectingTenantId);
+        ['adminMetricOverdue','adminMetricDueToday','adminMetricNoFollowup','adminMetricDocsPending'].forEach(id => { const card = document.getElementById(id); if (card) card.style.display = isAdmin ? 'none' : ''; });
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayKey = [today.getFullYear(), String(today.getMonth()+1).padStart(2,'0'), String(today.getDate()).padStart(2,'0')].join('-');
