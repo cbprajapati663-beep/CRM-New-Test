@@ -1129,3 +1129,154 @@
   #printRoot #printableDOArea.delivery-order-paper .do-grid-item span { color:#263648 !important; }
   #printRoot #printableDOArea.delivery-order-paper .do-grid-item strong { color:#102a43 !important; }
 }
+
+
+/* ===== Heritage FinTech Core | Premium visual refresh (presentation only) ===== */
+@media screen {
+  :root {
+    --bg: #070b14;
+    --card-bg: #101827;
+    --card-border: #263449;
+    --primary: #e5c66b;
+    --primary-hover: #f0d98c;
+    --text: #eef3fb;
+    --text-muted: #9aa9bd;
+    --success: #34d399;
+    --danger: #fb7185;
+    --warning: #fbbf24;
+    --info: #67d4ff;
+    --saas: #b9a0ff;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at 12% -8%, rgba(212,175,55,.10), transparent 34%),
+      radial-gradient(ellipse at 100% 0%, rgba(56,132,200,.10), transparent 32%),
+      var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 15px 18px;
+    border: 1px solid rgba(229,198,107,.22);
+    border-radius: 18px;
+    background: linear-gradient(115deg, rgba(17,27,44,.98), rgba(11,19,32,.96));
+    box-shadow: 0 12px 34px rgba(0,0,0,.24);
+  }
+  h1 { color: #f1d989; letter-spacing: -.35px; font-weight: 800; }
+  .sync-status { background: rgba(16,185,129,.09); }
+  .crm-nav-tabs {
+    padding: 8px;
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 14px;
+    background: rgba(13,21,35,.86);
+    box-shadow: 0 8px 24px rgba(0,0,0,.16);
+  }
+  .tab-link { border-radius: 10px; transition: background .18s ease, color .18s ease, transform .18s ease; }
+  .tab-link:hover { background: rgba(229,198,107,.09); color: #f4df9a; }
+  .tab-link.active {
+    background: linear-gradient(135deg, rgba(229,198,107,.18), rgba(229,198,107,.06));
+    color: #f4df9a;
+    border-bottom: 2px solid var(--primary);
+    box-shadow: inset 0 0 0 1px rgba(229,198,107,.15);
+  }
+  .dashboard-grid { gap: 13px; }
+  .metric-card {
+    border: 1px solid rgba(148,163,184,.16);
+    border-radius: 15px;
+    padding: 16px 14px;
+    background: linear-gradient(145deg, rgba(20,32,51,.98), rgba(12,20,34,.98));
+    box-shadow: 0 10px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.025);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .metric-card:hover { transform: translateY(-2px); border-color: rgba(229,198,107,.36); box-shadow: 0 14px 30px rgba(0,0,0,.25); }
+  .metric-title { letter-spacing: .75px; color: #9aaec5; }
+  .metric-value { font-size: 1.3rem; font-weight: 800; }
+  .panel {
+    border: 1px solid rgba(148,163,184,.16);
+    border-radius: 16px;
+    padding: 19px;
+    background: linear-gradient(150deg, rgba(17,27,44,.98), rgba(11,19,32,.98));
+    box-shadow: 0 12px 30px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.025);
+  }
+  .panel-title { color: #f0d580; font-weight: 800; letter-spacing: .1px; }
+  .section-title { border-bottom-color: rgba(229,198,107,.22); }
+  input, select, textarea {
+    background: #0a1220;
+    border: 1px solid #2a3a51;
+    border-radius: 9px;
+    padding: 9px 11px;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  input:hover, select:hover, textarea:hover { border-color: #405571; }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #d8b85d;
+    box-shadow: 0 0 0 3px rgba(229,198,107,.13);
+    background: #0c1728;
+  }
+  .btn-action, .btn-submit, .btn-quick, .btn-quick-action {
+    border-radius: 9px;
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  }
+  .btn-action {
+    border-color: rgba(229,198,107,.55);
+    background: linear-gradient(135deg, #1b2a40, #111c2e);
+    color: #efd783;
+    box-shadow: 0 3px 9px rgba(0,0,0,.12);
+  }
+  .btn-action:hover, .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 7px 18px rgba(0,0,0,.22); }
+  .btn-submit {
+    background: linear-gradient(135deg, #f0d783, #cba647);
+    color: #111827;
+    border-radius: 10px;
+    font-weight: 800;
+  }
+  .btn-install { background: linear-gradient(135deg, #f0d783, #cba647); }
+  .user-master-card {
+    border: 1px solid #26364c;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0e192a, #0a1321);
+    box-shadow: 0 8px 22px rgba(0,0,0,.16);
+  }
+  .user-master-card:hover { border-color: rgba(185,160,255,.55); box-shadow: 0 10px 25px rgba(0,0,0,.23); }
+  .user-stat-pill { border-radius: 10px; border-color: #2b3a50; background: #111e30; }
+  .table-responsive {
+    border: 1px solid rgba(148,163,184,.15);
+    border-radius: 12px;
+    background: rgba(9,16,28,.55);
+  }
+  table { border-collapse: separate; border-spacing: 0; }
+  th {
+    background: #142238;
+    color: #c0ccdc;
+    border-bottom: 1px solid #34445b;
+    font-weight: 750;
+  }
+  td { border-bottom-color: rgba(148,163,184,.13); }
+  tbody tr { transition: background .14s ease; }
+  tbody tr:hover td { background: rgba(229,198,107,.035); }
+  .modal-overlay { background: rgba(2,6,14,.78); backdrop-filter: blur(7px); }
+  .modal-card, .modal-content {
+    border-radius: 17px !important;
+    border-color: rgba(229,198,107,.55) !important;
+    box-shadow: 0 24px 75px rgba(0,0,0,.55), 0 0 0 1px rgba(229,198,107,.06) !important;
+  }
+  .login-box {
+    border-radius: 20px;
+    border-color: rgba(229,198,107,.62);
+    background: linear-gradient(145deg, #142238, #0c1423);
+    box-shadow: 0 24px 75px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.035);
+  }
+  .auth-toggle-group { background: #091321; border-radius: 11px; }
+  .auth-toggle-btn.active { background: linear-gradient(135deg, #26364d, #17253a); color: #f0d783; }
+  .badge, .activity-chip { border-radius: 999px; }
+  .activity-event { border-color: #2a3a51; border-radius: 12px; background: #101b2b; }
+  .checkbox-grid { border-radius: 11px; background: #0b1524; border-color: #2a3a51; }
+  ::selection { background: rgba(229,198,107,.28); color: #fff; }
+}
+@media screen and (max-width: 760px) {
+  header { padding: 12px; border-radius: 14px; }
+  .metric-card { border-radius: 12px; }
+  .panel { border-radius: 14px; }
+  .crm-nav-tabs { border-radius: 12px; }
+  .header-actions .btn-action { border-radius: 9px; }
+}
