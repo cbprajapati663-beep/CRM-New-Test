@@ -1605,6 +1605,13 @@
         });
         document.getElementById('badge-followup-count').textContent = todayLeads.length;
 
+        const overdueDays = followDate => {
+            if (!followDate || followDate >= todayStr) return 0;
+            const due = new Date(String(followDate).slice(0, 10) + 'T00:00:00');
+            const today = new Date(todayStr + 'T00:00:00');
+            return Number.isNaN(due.getTime()) ? 0 : Math.floor((today.getTime() - due.getTime()) / 86400000);
+        };
+
         const tbody = document.getElementById('followupsTableBody');
         tbody.innerHTML = '';
 
@@ -1626,7 +1633,7 @@
                 <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
                 <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status)}</span></td>
                 <td style="font-weight:600;">
-                    <span class="badge" style="display:inline-block;margin-bottom:4px;background:${l.followDate < todayStr ? '#7f1d1d' : (l.followDate === todayStr ? '#78350f' : '#14532d')};color:#fff;">${l.followDate < todayStr ? '🔴 OVERDUE' : (l.followDate === todayStr ? '🟠 TODAY' : '🟢 UPCOMING')}</span><br>
+                    <span class="badge" style="display:inline-block;margin-bottom:4px;background:${overdueDays(l.followDate) >= 3 ? '#581c1c' : (l.followDate < todayStr ? '#7f1d1d' : (l.followDate === todayStr ? '#78350f' : '#14532d'))};color:#fff;">${overdueDays(l.followDate) >= 3 ? '🔥 ESCALATED (' + overdueDays(l.followDate) + 'd)' : (l.followDate < todayStr ? '🔴 OVERDUE' : (l.followDate === todayStr ? '🟠 TODAY' : '🟢 UPCOMING'))}</span><br>
                     <span>${escapeHtml(l.followDate || 'Today')}</span>
                 </td>
                 <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
