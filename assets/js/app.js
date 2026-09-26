@@ -2569,6 +2569,10 @@
         }); row.appendChild(wrap);
     }
     window.uploadChecklistFiles=async function(input,name,statusEl){
+        alert('🔒 Document Upload abhi temporarily disabled hai. Ye feature future upgrade mein available hoga.');
+        if(input)input.value='';
+        if(statusEl){statusEl.textContent='🔒 Upload feature upgrade ke baad available hoga.';statusEl.style.color='#fbbf24';}
+        return;
         const files=Array.from(input.files||[]);
         const setStatus=(message,color)=>{if(statusEl){statusEl.textContent=message;statusEl.style.color=color||'var(--text-muted)';}};
         if(!files.length){setStatus('File select nahi hui.');return;}
@@ -2748,10 +2752,10 @@
             const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
             const attachmentCount=Array.isArray(old.attachments)?old.attachments.length:0;
             const uploadWrap=document.createElement('span');uploadWrap.style.cssText='display:inline-flex;align-items:center;';
-            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'📎 Uploaded ('+attachmentCount+') · ＋ Add More':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) already attached below. Click to add more files.':'No file uploaded yet. Click to choose file(s).';
-            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
+            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent='🔒 Upgrade Feature';upload.disabled=true;upload.title='Document upload future upgrade feature mein enable hoga.';
+            const fileInput=document.createElement('input');fileInput.type='file';fileInput.disabled=true;fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
             const uploadStatus=document.createElement('div');uploadStatus.className='doc-upload-status';uploadStatus.style.cssText='grid-column:1/-1;font-size:.78rem;overflow-wrap:anywhere;color:var(--text-muted);';
-            const cloudCount=(old.attachments||[]).filter(file=>file.storageType==='firebase-storage'||file.path).length;const localCount=attachmentCount-cloudCount;uploadStatus.textContent=attachmentCount?(cloudCount===attachmentCount?'✅ '+cloudCount+' file(s) cloud par uploaded — file names neeche hain.':cloudCount?'☁️ '+cloudCount+' cloud · ⚠️ '+localCount+' local/old file(s)':'⚠️ '+attachmentCount+' file(s) local/old record mein hain; cloud upload confirm nahi hai.'):'❌ Abhi koi file upload nahi hai.';
+            const cloudCount=(old.attachments||[]).filter(file=>file.storageType==='firebase-storage'||file.path).length;const localCount=attachmentCount-cloudCount;uploadStatus.textContent=attachmentCount?(cloudCount===attachmentCount?'✅ '+cloudCount+' file(s) cloud par uploaded — file names neeche hain.':cloudCount?'☁️ '+cloudCount+' cloud · ⚠️ '+localCount+' local/old file(s)':'⚠️ '+attachmentCount+' file(s) local/old record mein hain; cloud upload confirm nahi hai.'):'🔒 Upload feature upgrade ke baad available hoga.';
             upload.onclick=()=>{fileInput.value='';fileInput.click();};
             fileInput.onchange=()=>uploadChecklistFiles(fileInput,name,uploadStatus);
             uploadWrap.append(upload,fileInput);
