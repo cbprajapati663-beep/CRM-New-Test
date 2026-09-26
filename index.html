@@ -1038,6 +1038,34 @@
         </div>
         <input type="hidden" id="leadAuditDocId">
         <div id="leadAuditBody" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;"></div>
+        <div style="margin-top:16px;padding:13px;border:1px solid #2b3342;border-radius:10px;background:rgba(15,18,26,.55);">
+            <div style="font-weight:800;font-size:.85rem;color:var(--primary);margin-bottom:10px;">📝 Add Customer Note / Interaction</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <select id="leadActivityNoteType" aria-label="Interaction type" style="flex:1;min-width:150px;">
+                    <option value="General">General Note</option>
+                    <option value="Call">Phone Call</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Document">Document Update</option>
+                    <option value="Bank">Bank / NBFC Update</option>
+                </select>
+                <span id="leadActivityNoteCount" style="font-size:.72rem;color:var(--text-muted);align-self:center;">0/1000</span>
+            </div>
+            <textarea id="leadActivityNoteText" maxlength="1000" rows="3" placeholder="Customer se baat, document update, bank response ya important note likhein…" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                <button type="button" id="btnSaveLeadActivityNote" class="btn-action" onclick="addLeadActivityNote()" style="background:#10b981;color:#062b1b;font-weight:800;">➕ Save Note</button>
+            </div>
+        </div>
+        <script>
+        (function(){
+            const note=document.getElementById('leadActivityNoteText');
+            const count=document.getElementById('leadActivityNoteCount');
+            if(note&&count&&!note.dataset.counterBound){
+                note.dataset.counterBound='1';
+                note.addEventListener('input',()=>count.textContent=note.value.length+'/1000');
+            }
+        })();
+        </script>
         <div style="margin-top:16px;border-top:1px solid #2b3342;padding-top:13px;">
             <div style="font-weight:800;font-size:.82rem;color:var(--primary);margin-bottom:8px;">🕒 Activity Timeline</div>
             <div id="leadActivityTimeline" style="display:flex;flex-direction:column;gap:7px;">
