@@ -2103,11 +2103,15 @@
             '#printRoot .do-paper .do-signatures{border-top:1px solid #d9dee6!important;padding-top:18px!important;}' +
             '@page{size:A4 portrait;margin:10mm;}' +
             '@media print{html,body{width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important;}#printRoot{width:100%!important;height:auto!important;overflow:visible!important;}#printRoot .printable-section,#printRoot .do-paper{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}}' +
+            '#printRoot.print-do-a4{width:190mm!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0 auto!important;overflow:visible!important;}' +
+            '#printRoot.print-do-a4 .printable-section,#printRoot.print-do-a4 .do-paper{width:190mm!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;padding:9mm!important;box-sizing:border-box!important;overflow:visible!important;display:flex!important;flex-direction:column!important;}' +
+            '#printRoot.print-do-a4 .do-paper .do-signatures{margin-top:auto!important;padding-top:12mm!important;}' +
             '</style></head><body><main id="printRoot"></main></body></html>'
         );
         printWindow.document.close();
 
         const root = printWindow.document.getElementById('printRoot');
+        if (sectionId === 'printableDOArea') root.classList.add('print-do-a4');
         root.appendChild(clone);
 
         let printed = false;
