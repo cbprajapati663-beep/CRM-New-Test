@@ -2549,7 +2549,7 @@
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){alert('Pehle customer select karein.');return;}
         const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName).filter(Boolean);
-        if(!checked.length){alert('Share karne ke liye document ke aage Share checkbox select karein.');return;}
+        if(!checked.length){alert('Share Documents ke liye kam se kam ek uploaded document ke saamne Share checkbox tick karein.');return;}
         const selectedEntries=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name));
         const chosen=selectedEntries.flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
         if(!chosen.length){alert('Koi uploaded document share ke liye select nahi hai. Pehle Upload button se file upload karein.');return;}
@@ -2567,7 +2567,7 @@
                 files.push(new File([blob],safeName(item.name),{type:item.contentType||blob.type||'application/octet-stream'}));
             }
             let shareFiles=files;
-            if(checked.length>1){
+            if(files.length>1){
                 if(!window.JSZip)throw new Error('ZIP library load nahi hui.');
                 const zip=new JSZip();
                 files.forEach((file,index)=>zip.file((index+1)+'_'+safeName(file.name),file));
@@ -2585,7 +2585,7 @@
             if(error&&error.name!=='AbortError')alert('File share nahi ho paya. '+(error&&error.message?error.message:'Network, Storage access aur ZIP library check karein.'));
         }
     };
-    const documentChecklistStatuses = ['Pending', 'Received', 'Under Review', 'Verified', 'Rejected', 'Resubmission Required'];
+    const documentChecklistStatuses = ['Pending', 'Received'];
 
     window.openDocumentTracker = function() {
         const modal = document.getElementById('documentTrackerModal');
@@ -2630,14 +2630,14 @@
             const title=document.createElement('strong');title.textContent=name;title.style.fontSize='.82rem';
             const status=document.createElement('select');status.className='doc-check-status';status.dataset.docName=name;status.style.cssText='width:100%;min-width:0;';
             documentChecklistStatuses.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;status.appendChild(option);});
-            status.value=documentChecklistStatuses.includes(old.status)?old.status:'Pending';
+            status.value=old.status==='Pending'?'Pending':(old.status==='Received'||old.status==='Under Review'||old.status==='Verified'||old.status==='Rejected'||old.status==='Resubmission Required'?'Received':'Pending');
             const remarks=document.createElement('input');remarks.type='text';remarks.className='doc-check-remarks';remarks.dataset.docName=name;remarks.placeholder='Remarks / reason';remarks.value=old.remarks||'';remarks.maxLength=300;remarks.style.cssText='width:100%;min-width:0;box-sizing:border-box;';
             const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
             const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.style.display='none';fileInput.onchange=()=>uploadChecklistFiles(fileInput,name);
-            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent='⬆ Upload';upload.onclick=()=>fileInput.click();
-            const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:.78rem;';
-            const share=document.createElement('input');share.type='checkbox';share.className='doc-share-check';share.dataset.docName=name;
             const attachmentCount=Array.isArray(old.attachments)?old.attachments.length:0;
+            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'No file uploaded yet. Click to upload.';upload.onclick=()=>fileInput.click();
+            const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:.78rem;';
+            const share=document.createElement('input');share.type='checkbox';share.className='doc-share-check';share.dataset.docName=name;share.dataset.attachmentCount=String(attachmentCount);
             share.disabled=attachmentCount===0;
             share.title=attachmentCount===0?'Pehle is document ki file upload karein':'Uploaded file(s) share karne ke liye select karein';
             label.append(share,document.createTextNode(attachmentCount?'Share ('+attachmentCount+')':'Share'));
@@ -2649,12 +2649,11 @@
 
     function updateDocumentChecklistSummary() {
         const statuses = Array.from(document.querySelectorAll('#docTrackerRows .doc-check-status')).map(el => el.value);
-        const received = statuses.filter(s => ['Received','Under Review','Verified'].includes(s)).length;
-        const verified = statuses.filter(s => s === 'Verified').length;
-        const pending = statuses.filter(s => ['Pending','Rejected','Resubmission Required'].includes(s)).length;
-        const percent = statuses.length ? Math.round(verified / statuses.length * 100) : 0;
+        const received = statuses.filter(s => s === 'Received').length;
+        const pending = statuses.filter(s => s === 'Pending').length;
+        const uploadedFiles = Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check')).reduce((sum, el) => sum + Number(el.dataset.attachmentCount || 0), 0);
         const summary = document.getElementById('docTrackerSummary');
-        summary.textContent = statuses.length ? 'Collected / in review: ' + received + '/' + statuses.length + ' · Verified: ' + verified + '/' + statuses.length + ' (' + percent + '%) · Pending / issue: ' + pending : 'Customer select karein.';
+        summary.textContent = statuses.length ? 'Received: ' + received + '/' + statuses.length + ' · Pending: ' + pending + ' · Uploaded files: ' + uploadedFiles : 'Customer select karein.';
     }
 
     window.saveDocumentChecklist = async function() {
