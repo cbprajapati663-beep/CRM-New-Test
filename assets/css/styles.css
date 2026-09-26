@@ -700,17 +700,17 @@
   }
   .do-modal-card #printableDOArea.delivery-order-paper #do_net_dealer_payable {font-size:17pt !important;}
   .do-modal-card #printableRentBillArea.rent-bill-paper {
-    border-color:#c4b5fd !important;border-top:7px solid #7c3aed !important;
-    background:radial-gradient(circle at 100% 0%,rgba(124,58,237,.10),transparent 30%),linear-gradient(180deg,#fff 0%,#fcfaff 100%) !important;
+    border-color:#c9a227 !important;border-top:7px solid #102a43 !important;
+    background:radial-gradient(circle at 100% 0%,rgba(212,175,55,.10),transparent 30%),linear-gradient(180deg,#fff 0%,#fbfcfe 100%) !important;
   }
-  .do-modal-card #printableRentBillArea.rent-bill-paper::before {background:linear-gradient(90deg,#6d28d9,#c4b5fd,#7c3aed);}
-  .do-modal-card #printableRentBillArea.rent-bill-paper h2 {color:#4c1d95 !important;font-size:20pt !important;letter-spacing:.65px !important;border-bottom:3px solid #a78bfa !important;padding-bottom:10px !important;}
-  .do-modal-card #printableRentBillArea.rent-bill-paper h4 {display:inline-block;padding:6px 13px;border-radius:999px;background:#f3e8ff;color:#6d28d9 !important;letter-spacing:1px !important;}
-  .do-modal-card #printableRentBillArea.rent-bill-paper .do-grid {background:#faf5ff !important;border-color:#ddd6fe !important;}
-  .do-modal-card #printableRentBillArea.rent-bill-paper .do-grid-item strong {color:#5b21b6 !important;}
-  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table th {background:linear-gradient(90deg,#5b21b6,#7c3aed) !important;border-color:#5b21b6 !important;}
-  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table tr:last-child td {background:#f3e8ff !important;color:#4c1d95 !important;border-top:2px solid #8b5cf6 !important;font-size:1.05em;}
-  .do-modal-card #printableRentBillArea.rent-bill-paper #billTotalPayable {font-size:18pt !important;font-weight:900 !important;color:#5b21b6 !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper::before {background:linear-gradient(90deg,#d4af37,#f8e7a1,#d4af37);}
+  .do-modal-card #printableRentBillArea.rent-bill-paper h2 {color:#102a43 !important;font-size:20pt !important;letter-spacing:.65px !important;border-bottom:3px solid #d4af37 !important;padding-bottom:10px !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper h4 {display:inline-block;padding:6px 13px;border-radius:999px;background:#edf4fa;color:#244e6b !important;letter-spacing:1px !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-grid {background:#f7f9fc !important;border-color:#d8dee8 !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-grid-item strong {color:#102a43 !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table th {background:linear-gradient(90deg,#102a43,#1b4965) !important;border-color:#102a43 !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table tr:last-child td {background:#eaf8f2 !important;color:#075e45 !important;border-top:2px solid #10b981 !important;font-size:1.05em;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper #billTotalPayable {font-size:18pt !important;font-weight:900 !important;color:#075e45 !important;}
 }
 
 
