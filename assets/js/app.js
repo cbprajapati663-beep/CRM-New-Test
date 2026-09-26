@@ -2049,61 +2049,61 @@
 
     window.printSelectedDocument = function(sectionId) {
         const section = document.getElementById(sectionId);
-        if (!section) {
-            alert('Print area nahi mila.');
-            return;
-        }
-
-        /* Robust browser print engine:
-           open a real top-level print document containing ONLY the DO.
-           This avoids iframe timing/layout bugs and prevents the CRM page
-           from contributing a second blank page. */
+        if (!section) { alert('Print area nahi mila.'); return; }
         const printWindow = window.open('', '_blank', 'width=900,height=1200');
-        if (!printWindow) {
-            alert('Print window browser ne block ki hai. Is site ke liye pop-up allow karein.');
-            return;
-        }
-
-        const styleText = Array.from(document.querySelectorAll('style'))
-            .map(style => style.textContent)
-            .join('\n');
-
-        const printTitle = sectionId === 'printableRentBillArea'
-            ? 'Heritage FinTech Core - Rent Invoice'
-            : 'Heritage Auto Finance - Delivery Order';
-
+        if (!printWindow) { alert('Print window browser ne block ki hai. Is site ke liye pop-up allow karein.'); return; }
+        const titles = {
+            printableRentBillArea: 'Heritage FinTech Core - Rent Invoice',
+            printableDOArea: 'Heritage Auto Finance - Delivery Order',
+            printableAdminTenantReport: 'Heritage FinTech Core - Agency Report'
+        };
+        const printTitle = titles[sectionId] || 'Heritage FinTech Core - Document';
+        printWindow.document.open();
+        printWindow.document.write('<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title></title></head><body><div id="printRoot"></div></body></html>');
+        printWindow.document.close();
+        printWindow.document.title = printTitle;
+        const head = printWindow.document.head;
+        const base = printWindow.document.createElement('base');
+        base.href = document.baseURI;
+        head.appendChild(base);
+        const cssLoads = [];
+        document.querySelectorAll('link[rel~="stylesheet"]').forEach(sourceLink => {
+            const link = printWindow.document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = sourceLink.href;
+            if (sourceLink.media) link.media = sourceLink.media;
+            const loaded = new Promise(resolve => {
+                link.addEventListener('load', resolve, { once: true });
+                link.addEventListener('error', resolve, { once: true });
+            });
+            cssLoads.push(loaded);
+            head.appendChild(link);
+        });
+        document.querySelectorAll('style').forEach(sourceStyle => {
+            const style = printWindow.document.createElement('style');
+            style.textContent = sourceStyle.textContent || '';
+            if (sourceStyle.media) style.media = sourceStyle.media;
+            head.appendChild(style);
+        });
         const clone = section.cloneNode(true);
         clone.removeAttribute('id');
-
-        printWindow.document.open();
-        printWindow.document.write('<!doctype html><html lang="en"><head>' +
-            '<meta charset="UTF-8">' +
-            '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-            '<title>' + printTitle.replace(/</g,'&lt;') + '</title>' +
-            '<link rel="stylesheet" href="assets/css/styles.css"></head><body><div id="printRoot"></div></body></html>');
-        printWindow.document.close();
-
         const root = printWindow.document.getElementById('printRoot');
         root.appendChild(clone);
-
+        const printStyle = printWindow.document.createElement('style');
+        printStyle.textContent = '@page{size:A4 portrait;margin:0} html,body{margin:0!important;padding:0!important;background:#fff!important} #printRoot{display:block!important}';
+        head.appendChild(printStyle);
         let printed = false;
-        const doPrint = () => {
+        const doPrint = async () => {
             if (printed) return;
             printed = true;
+            try { await Promise.all(cssLoads); } catch (e) {}
+            try { if (printWindow.document.fonts && printWindow.document.fonts.ready) await printWindow.document.fonts.ready; } catch (e) {}
             printWindow.focus();
             printWindow.print();
         };
-
-        /* Wait for the new document to have a real layout before printing. */
-        setTimeout(doPrint, 350);
-
-        printWindow.addEventListener('afterprint', () => {
-            setTimeout(() => {
-                try { printWindow.close(); } catch (e) {}
-            }, 150);
-        }, { once: true });
+        printWindow.addEventListener('afterprint', () => { setTimeout(() => { try { printWindow.close(); } catch (e) {} }, 250); }, { once: true });
+        setTimeout(doPrint, 500);
     };
-
     window.closeDoModal = function() {
         document.getElementById('doModal').style.display = 'none';
     };
