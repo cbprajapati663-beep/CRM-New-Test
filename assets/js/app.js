@@ -1710,6 +1710,55 @@
         URL.revokeObjectURL(url);
     };
 
+    window.openEmiCalculator = function () {
+        const modal = document.getElementById('emiCalculatorModal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        const error = document.getElementById('emiCalcError');
+        if (error) error.style.display = 'none';
+        const amount = document.getElementById('emiLoanAmount');
+        if (amount) amount.focus();
+    };
+
+    window.closeEmiCalculator = function () {
+        const modal = document.getElementById('emiCalculatorModal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.calculateLoanEMI = function () {
+        const amount = Number(document.getElementById('emiLoanAmount').value);
+        const annualRate = Number(document.getElementById('emiInterestRate').value);
+        const months = Number(document.getElementById('emiTenureMonths').value);
+        const error = document.getElementById('emiCalcError');
+        const result = document.getElementById('emiCalcResult');
+        const showError = message => {
+            error.textContent = message;
+            error.style.display = 'block';
+            result.style.display = 'none';
+        };
+        if (!Number.isFinite(amount) || amount <= 0) return showError('Loan amount 0 se zyada enter karein.');
+        if (!Number.isFinite(annualRate) || annualRate < 0 || annualRate > 100) return showError('Interest rate 0 se 100% ke beech enter karein.');
+        if (!Number.isInteger(months) || months < 1 || months > 600) return showError('Tenure 1 se 600 months ke beech whole number mein enter karein.');
+
+        const monthlyRate = annualRate / 1200;
+        const emi = monthlyRate === 0
+            ? amount / months
+            : amount * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
+        const totalPayment = emi * months;
+        const formatMoney = value => new Intl.NumberFormat('en-IN', {
+            style: 'currency', currency: 'INR', maximumFractionDigits: 0
+        }).format(value);
+        document.getElementById('emiMonthlyValue').textContent = formatMoney(emi);
+        document.getElementById('emiTotalInterest').textContent = formatMoney(Math.max(0, totalPayment - amount));
+        document.getElementById('emiTotalPayment').textContent = formatMoney(totalPayment);
+        error.style.display = 'none';
+        result.style.display = 'block';
+    };
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') window.closeEmiCalculator();
+    });
+
     window.generateDO = async function(docId) {
         const l = leads.find(item => item.docId === docId);
         if (!l) return;
