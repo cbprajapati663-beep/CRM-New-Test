@@ -1461,6 +1461,22 @@
         renderFollowups();
     };
 
+    function getFollowupWhatsAppUrl(lead) {
+        const digits = String(lead && lead.mobile || '').replace(/\\D/g, '');
+        const phone = digits.length === 10 ? '91' + digits : (digits.length === 12 && digits.startsWith('91') ? digits : '');
+        if (!phone) return '';
+        const customerName = String(lead.name || 'Customer').trim();
+        const followDate = String(lead.followDate || 'as discussed');
+        const vehicle = String(lead.vehModel || '').trim();
+        const message = [
+            'Namaste ' + customerName + ' ji,',
+            'Heritage Auto Finance ki taraf se aapke vehicle loan ke follow-up ke liye message hai.',
+            'Follow-up date: ' + followDate + (vehicle ? '\\nVehicle: ' + vehicle : ''),
+            'Kripya apni suvidha ke anusaar humein reply karein. Dhanyavaad.'
+        ].join('\\n');
+        return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+    }
+
     function renderFollowups() {
         const scopedLeads = getLeadScopedList();
         const activeLeads = scopedLeads.filter(l => l.followDate && l.status !== 'Disbursed' && l.status !== 'Rejected');
@@ -1496,7 +1512,8 @@
                 <td><strong>${escapeHtml(l.name || 'Unnamed')}</strong><br><small style="color:var(--text-muted);">${escapeHtml(l.city || 'Mehsana')}</small></td>
                 <td>
                     <a class="btn-quick btn-call" href="tel:${cleanMobile}">📞 Call</a>
-                    <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WhatsApp</a>
+                    <a class="btn-quick btn-wa" href="${getFollowupWhatsAppUrl(l) || '#'}" target="_blank" rel="noopener noreferrer" ${getFollowupWhatsAppUrl(l) ? '' : 'aria-disabled="true" title="Valid 10-digit mobile number required"'}>💬 WhatsApp</a>
+                    <a class="btn-quick btn-wa" href="${getFollowupWhatsAppUrl(l) || '#'}" target="_blank" rel="noopener noreferrer" ${getFollowupWhatsAppUrl(l) ? '' : 'aria-disabled="true" title="Valid 10-digit mobile number required"'}>🔔 Send Reminder</a>
                 </td>
                 <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
                 <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status)}</span></td>
