@@ -495,6 +495,7 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;">
             <input id="followupSearchInput" type="search" placeholder="Search customer, mobile, city, vehicle or dealer..." aria-label="Search follow-ups" oninput="setFollowupSearch(this.value)" style="width:100%;max-width:520px;box-sizing:border-box;">
+            <button type="button" class="btn-quick" onclick="enableFollowupNotifications()">🔔 Notify Due Follow-ups</button>
             <button type="button" class="btn-quick" onclick="exportFollowupsCSV()">📥 Export Filtered CSV</button>
         </div>
         <div class="table-responsive">
