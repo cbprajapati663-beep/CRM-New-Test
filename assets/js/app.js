@@ -561,7 +561,8 @@
 
     window.openAdminRentBillModal = function(tid, agencyName, rentAmt, expiryDate) {
         document.getElementById('billDate').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-        const billMonthKey = new Date().toISOString().slice(0, 7).replace('-', '');
+        const billNow = new Date();
+        const billMonthKey = String(billNow.getFullYear()) + String(billNow.getMonth() + 1).padStart(2, '0');
         document.getElementById('billInvNo').textContent = 'HFC-INV-' + billMonthKey + '-' + stableInvoiceCode(tid);
         document.getElementById('billAgencyName').textContent = agencyName;
         document.getElementById('billTenantId').textContent = tid;
@@ -2344,7 +2345,7 @@
     function amountInIndianWords(value) {
         const n = Math.round(Number(value) || 0);
         if (n === 0) return 'Rupees Zero Only';
-        if (n < 0 || n > 99999999999) return 'Amount not available in words';
+        if (n < 0 || n > 9999999999) return 'Amount not available in words';
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
         const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
         const underThousand = (num) => {
