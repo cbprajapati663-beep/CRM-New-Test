@@ -1761,15 +1761,28 @@
 
     window.openAffordabilityCalculator = function () {
         const modal = document.getElementById('affordabilityModal');
-        if (!modal) return;
-        modal.style.display = 'flex';
+        if (!modal) {
+            console.error('Loan affordability modal not found.');
+            alert('Loan Affordability window load nahi hui. Page refresh karke dobara try karein.');
+            return;
+        }
+        // Force the modal above other CRM overlays and make it visible.
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('visibility', 'visible', 'important');
+        modal.style.setProperty('opacity', '1', 'important');
+        modal.style.setProperty('z-index', '20000', 'important');
         const income = document.getElementById('affMonthlyIncome');
-        if (income) income.focus();
+        if (income) window.setTimeout(() => income.focus(), 0);
     };
 
     window.closeAffordabilityCalculator = function () {
         const modal = document.getElementById('affordabilityModal');
-        if (modal) modal.style.display = 'none';
+        if (modal) {
+            modal.style.removeProperty('visibility');
+            modal.style.removeProperty('opacity');
+            modal.style.removeProperty('z-index');
+            modal.style.setProperty('display', 'none', 'important');
+        }
     };
 
     window.calculateAffordability = function () {
