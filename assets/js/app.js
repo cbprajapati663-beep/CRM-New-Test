@@ -114,8 +114,8 @@
         if (user && user.role !== 'superadmin' && days !== null && days >= 0 && days <= 7) {
             notice.style.display = 'block';
             notice.textContent = days === 0
-                ? '🔴 LICENSE ALERT: Aaj aapki license expiry hai (' + user.expiryDate + '). Service continue rakhne ke liye admin se renewal karwayein.'
-                : '⏰ LICENSE RENEWAL REMINDER: Aapki license ' + days + ' din mein expire hone wali hai (' + user.expiryDate + '). Renewal ke liye admin se sampark karein. Expiry se 7 din pehle se reminder dikhaya ja raha hai.';
+                ? 'LICENSE EXPIRY NOTICE: Your license expires today. Expiry date: ' + user.expiryDate + '. Please contact your administrator to renew your license.'
+                : 'LICENSE EXPIRY NOTICE: Your license will expire in ' + days + ' day' + (days === 1 ? '' : 's') + '. Expiry date: ' + user.expiryDate + '. Please contact your administrator to renew your license.';
         } else {
             notice.style.display = 'none';
             notice.textContent = '';
@@ -176,7 +176,7 @@
         if (overlay) overlay.style.display = 'flex';
         const notice = document.getElementById('clientLicenseExpiryNotice');
         if (notice) notice.style.display = 'none';
-        alert('🔴 Aapki license expiry ho gayi hai. Account suspend kar diya gaya hai. Data safe hai; renewal ke liye admin se sampark karein.');
+        alert('Your license has expired and your account has been suspended. Your data is safe. Please contact your administrator to renew your license.');
     }
 
     async function loadTenantsFromFirestore() {
