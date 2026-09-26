@@ -2620,13 +2620,36 @@
             console.error('Cloud document upload failed:',error);
             await Promise.all(storageRefs.map(ref=>ref.delete().catch(()=>{})));
             const code=String(error&&error.code||''),raw=String(error&&error.message||error||'Unknown error');
-            let detail=raw;
-            if(/unauthorized|permission-denied|storage\/unauthorized/i.test(code+' '+raw))detail='Firebase Storage permission denied. Storage Rules / Firebase Authentication access ko admin se configure karna hoga.';
-            else if(/bucket|object-not-found|storage\/unknown|no default bucket/i.test(code+' '+raw))detail='Firebase Storage bucket missing ya incorrect hai. Firebase Console mein Storage bucket enable/verify karein.';
-            else if(/network|offline|unavailable|failed to fetch/i.test(code+' '+raw))detail='Network ya Firebase connection issue. Internet check karke retry karein.';
-            else if(/quota|storage\/quota-exceeded/i.test(code+' '+raw))detail='Firebase Storage quota limit exceed ho gayi hai.';
-            const message='❌ Upload save nahi hua: '+detail;
-            setStatus(message,'#f87171');
+            const detail=/unauthorized|permission-denied|storage\/unauthorized/i.test(code+' '+raw)
+                ?'Firebase Storage access denied (Storage Rules/Auth).'
+                :/bucket|object-not-found|storage\/unknown|no default bucket/i.test(code+' '+raw)
+                    ?'Firebase Storage bucket missing/incorrect.'
+                    :/network|offline|unavailable|failed to fetch/i.test(code+' '+raw)
+                        ?'Network/Firebase connection issue.'
+                        :/quota|storage\/quota-exceeded/i.test(code+' '+raw)
+                            ?'Firebase Storage quota limit exceed.'
+                            :'Cloud upload failed: '+raw;
+            try{
+                const localUploaded=[];
+                for(const file of files){
+                    const localKey='doc_'+safeSegment(tenantId)+'_'+safeSegment(leadId)+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
+                    await saveLocalDocument(localKey,file);
+                    localUploaded.push({name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'local-device'});
+                }
+                const prior=documentEntryFor(lead,name);
+                const localDocs=(Array.isArray(lead.documents)?lead.documents:[]).filter(doc=>doc.name!==name);
+                localDocs.push({...prior,name,status:prior.status==='Received'?'Received':'Pending',attachments:[...(Array.isArray(prior.attachments)?prior.attachments:[]),...localUploaded],updatedAt:new Date().toISOString(),updatedBy:tenantId});
+                lead.documents=localDocs;
+                const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=localDocs;
+                if(!writeLocalDocumentMeta(leadId,localDocs))throw new Error('Local metadata save nahi ho saka. Browser storage space check karein.');
+                loadDocumentChecklist();
+                const refreshedRow=document.querySelector('#docTrackerRows [data-doc-name="'+String(name).replace(/"/g,'')+'"]');
+                const refreshedStatus=refreshedRow&&refreshedRow.querySelector('.doc-upload-status');
+                if(refreshedStatus){refreshedStatus.textContent='⚠️ '+localUploaded.length+' file(s) is device par save hui (cloud par nahi). Total '+(localDocs.find(doc=>doc.name===name)?.attachments||[]).length+' file(s). '+detail;refreshedStatus.style.color='#fbbf24';}
+            }catch(localError){
+                console.error('Local document fallback failed:',localError);
+                setStatus('❌ Upload save nahi hua. Cloud: '+detail+' Local: '+(localError.message||localError),'#f87171');
+            }
         }finally{setBusy(false);input.value='';}
     };
     window.shareChecklistDocuments=async function(){
