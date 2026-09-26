@@ -483,6 +483,19 @@
 <div id="view-followups" style="display: none;">
     <div class="panel">
         <div class="panel-header">
+            <div class="panel-title">📈 Follow-up Performance Dashboard</div>
+            <div style="color:var(--text-muted);font-size:0.8rem;">Live counts for current tenant</div>
+        </div>
+        <div class="dashboard-grid" style="margin:12px 0;">
+            <div class="metric-card"><div class="metric-title">Pending Follow-ups</div><div class="metric-value" id="fu-metric-pending">0</div></div>
+            <div class="metric-card"><div class="metric-title">Overdue</div><div class="metric-value" id="fu-metric-overdue" style="color:#f87171;">0</div></div>
+            <div class="metric-card"><div class="metric-title">Due Today</div><div class="metric-value" id="fu-metric-today" style="color:#fbbf24;">0</div></div>
+            <div class="metric-card"><div class="metric-title">Next 7 Days</div><div class="metric-value" id="fu-metric-upcoming" style="color:#4ade80;">0</div></div>
+            <div class="metric-card"><div class="metric-title">Escalated (3+ days)</div><div class="metric-value" id="fu-metric-escalated" style="color:#fb7185;">0</div></div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">
             <div class="panel-title">🔔 Urgent & Scheduled Follow-ups</div>
             <div style="color:var(--text-muted); font-size:0.8rem;">Clients needing attention today</div>
         </div>
