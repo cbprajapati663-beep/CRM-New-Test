@@ -685,7 +685,9 @@
             };
 
             await docRef.set(tenantData, { merge: true });
+            await loadTenantsFromFirestore();
             closeAddTenantModal();
+            renderAdminMasterUserCards();
             alert(`✓ Client "${agency}" successfully save ho gaya!`);
         } catch (error) {
             console.error("Save tenant error:", error);
@@ -3087,4 +3089,12 @@
     handleStatusChange();
     // Recheck active client licenses while the portal remains open.
     checkCurrentTenantExpiry();
-    setInterval(checkCurrentTenantExpiry, 60000);
+    setInterval(async () => {
+        const activeUser = getCurrentSessionUser();
+        if (activeUser && activeUser.role === 'superadmin') {
+            await syncExpiredTenantStatuses(getStoredTenants());
+            renderAdminMasterUserCards();
+        } else {
+            checkCurrentTenantExpiry();
+        }
+    }, 60000);
