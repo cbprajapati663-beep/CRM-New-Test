@@ -2489,6 +2489,126 @@
         }
     };
 
+
+    // Customer document checklist tracker (metadata/status only; no sensitive file uploads).
+    const documentChecklistTemplates = [
+        'Aadhaar Card', 'PAN Card', 'Bank Statement', 'Passport Size Photo',
+        'Address Proof', 'RC Book / Smart Card', 'Driving Licence',
+        'Income Proof / Salary Slip', 'Insurance Copy', 'Quotation / Invoice'
+    ];
+    const documentChecklistStatuses = ['Pending', 'Received', 'Under Review', 'Verified', 'Rejected', 'Resubmission Required'];
+
+    window.openDocumentTracker = function() {
+        const modal = document.getElementById('documentTrackerModal');
+        if (!modal) { alert('Document Tracker interface nahi mila. Page refresh karein.'); return; }
+        const list = getLeadScopedList();
+        const select = document.getElementById('docTrackerLead');
+        select.innerHTML = '';
+        if (!list.length) {
+            const option = document.createElement('option');
+            option.value = ''; option.textContent = 'No customer records available';
+            select.appendChild(option);
+        } else {
+            list.slice().sort((a,b) => String(a.name||'').localeCompare(String(b.name||''))).forEach(lead => {
+                const option = document.createElement('option');
+                option.value = lead.docId;
+                option.textContent = (lead.name || 'Unnamed') + ' · ' + (lead.mobile || 'No mobile') + ' · ' + (lead.vehModel || 'Vehicle not set');
+                select.appendChild(option);
+            });
+        }
+        modal.style.display = 'flex';
+        loadDocumentChecklist();
+    };
+
+    window.closeDocumentTracker = function() {
+        const modal = document.getElementById('documentTrackerModal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.loadDocumentChecklist = function() {
+        const leadId = document.getElementById('docTrackerLead').value;
+        const lead = getLeadScopedList().find(item => item.docId === leadId);
+        const rows = document.getElementById('docTrackerRows');
+        rows.innerHTML = '';
+        if (!lead) {
+            document.getElementById('docTrackerSummary').textContent = 'Is tenant mein customer record available nahi hai.';
+            return;
+        }
+        const saved = Array.isArray(lead.documents) ? lead.documents : [];
+        documentChecklistTemplates.forEach((name, index) => {
+            const old = saved.find(item => item.name === name) || {};
+            const row = document.createElement('div');
+            row.style.cssText = 'display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(150px,.8fr) minmax(160px,1.2fr);gap:8px;align-items:center;padding:10px;border:1px solid var(--card-border);border-radius:9px;';
+            const title = document.createElement('strong');
+            title.textContent = name;
+            title.style.fontSize = '.82rem';
+            const status = document.createElement('select');
+            status.className = 'doc-check-status';
+            status.dataset.docName = name;
+            status.style.cssText = 'width:100%;min-width:0;';
+            documentChecklistStatuses.forEach(value => {
+                const option = document.createElement('option'); option.value = value; option.textContent = value; status.appendChild(option);
+            });
+            status.value = documentChecklistStatuses.includes(old.status) ? old.status : 'Pending';
+            const remarks = document.createElement('input');
+            remarks.type = 'text'; remarks.className = 'doc-check-remarks'; remarks.dataset.docName = name;
+            remarks.placeholder = 'Remarks / reason'; remarks.value = old.remarks || '';
+            remarks.maxLength = 300; remarks.style.cssText = 'width:100%;min-width:0;box-sizing:border-box;';
+            row.append(title,status,remarks); rows.appendChild(row);
+        });
+        updateDocumentChecklistSummary();
+        rows.querySelectorAll('.doc-check-status').forEach(el => el.addEventListener('change', updateDocumentChecklistSummary));
+    };
+
+    function updateDocumentChecklistSummary() {
+        const statuses = Array.from(document.querySelectorAll('#docTrackerRows .doc-check-status')).map(el => el.value);
+        const received = statuses.filter(s => ['Received','Under Review','Verified'].includes(s)).length;
+        const verified = statuses.filter(s => s === 'Verified').length;
+        const pending = statuses.filter(s => ['Pending','Rejected','Resubmission Required'].includes(s)).length;
+        const percent = statuses.length ? Math.round(verified / statuses.length * 100) : 0;
+        const summary = document.getElementById('docTrackerSummary');
+        summary.textContent = statuses.length ? 'Collected / in review: ' + received + '/' + statuses.length + ' · Verified: ' + verified + '/' + statuses.length + ' (' + percent + '%) · Pending / issue: ' + pending : 'Customer select karein.';
+    }
+
+    window.saveDocumentChecklist = async function() {
+        const leadId = document.getElementById('docTrackerLead').value;
+        const lead = getLeadScopedList().find(item => item.docId === leadId);
+        if (!lead) { alert('Pehle customer select karein.'); return; }
+        const sessionUser = getCurrentSessionUser();
+        const documents = Array.from(document.querySelectorAll('#docTrackerRows .doc-check-status')).map(statusEl => {
+            const name = statusEl.dataset.docName;
+            const remarksEl = document.querySelector('#docTrackerRows .doc-check-remarks[data-doc-name="' + name.replace(/"/g, '') + '"]');
+            return { name, status: statusEl.value, remarks: remarksEl ? remarksEl.value.trim().slice(0,300) : '' };
+        });
+        try {
+            await leadsCollection.doc(leadId).update({
+                documents,
+                documentChecklistUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                documentChecklistUpdatedBy: sessionUser && sessionUser.tenantId ? sessionUser.tenantId : 'system'
+            });
+            alert('✅ Document checklist cloud mein save ho gayi.');
+        } catch (error) {
+            console.error('Document checklist save error:', error);
+            alert('❌ Checklist save nahi hui. Firebase permission / internet check karein.');
+        }
+    };
+
+    window.exportDocumentChecklist = function() {
+        const leadId = document.getElementById('docTrackerLead').value;
+        const lead = getLeadScopedList().find(item => item.docId === leadId);
+        if (!lead) { alert('Pehle customer select karein.'); return; }
+        const statuses = new Map(Array.from(document.querySelectorAll('#docTrackerRows .doc-check-status')).map(el => [el.dataset.docName, el.value]));
+        const remarks = new Map(Array.from(document.querySelectorAll('#docTrackerRows .doc-check-remarks')).map(el => [el.dataset.docName, el.value]));
+        const rows = [['Customer','Mobile','Document','Status','Remarks']];
+        documentChecklistTemplates.forEach(name => rows.push([lead.name || '', lead.mobile || '', name, statuses.get(name) || 'Pending', remarks.get(name) || '']));
+        const csv = rows.map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
+        const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = 'document-checklist-' + String(lead.name || 'customer').replace(/[^a-z0-9_-]/gi,'_') + '.csv';
+        document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+    };
+
     applyPortalPermissions();
     refreshDealerDropdowns();
     handleStatusChange();
