@@ -743,9 +743,10 @@
             <button class="btn-action" onclick="document.getElementById('adminRentBillModal').style.display='none';">✕ Close</button>
         </div>
         
-        <div id="printableRentBillArea" class="do-paper printable-section rent-bill-paper">
+        <div id="printableRentBillArea" class="do-paper printable-section rent-bill-paper official-document">
             <h2 style="color:#a855f7;">HERITAGE FINTECH CORE</h2>
-            <h4>OFFICIAL RENT INVOICE & SUBSCRIPTION BILL</h4>
+            <h4 class="official-document-subtitle">OFFICIAL RENT INVOICE & SUBSCRIPTION BILL</h4>
+            <div class="official-document-ribbon">RENT INVOICE <span>•</span> SUBSCRIPTION STATEMENT</div>
             
             <div class="do-grid">
                 <div class="do-grid-item"><strong>Invoice Date:</strong> <span id="billDate"></span></div>
@@ -785,7 +786,7 @@
                 * Note: Please make your monthly rent payment via UPI / Bank Transfer before the expiry date to avoid automatic account suspension. Thank you for your business!
             </p>
 
-            <div style="display:flex; justify-content:space-between; margin-top:35px; font-size:0.82rem;">
+            <div class="official-document-signatures" style="display:flex; justify-content:space-between; margin-top:35px; font-size:0.82rem;">
                 <div style="text-align:center;">
                     <div style="margin-bottom:35px;">_________________________</div>
                     <strong>Client Acknowledgment</strong>
@@ -1049,15 +1050,15 @@
             <button class="btn-action" onclick="closeDoModal()">✕ Close</button>
         </div>
         
-        <div id="printableDOArea" class="do-paper printable-section delivery-order-paper">
+        <div id="printableDOArea" class="do-paper printable-section delivery-order-paper official-document">
             <h2 id="do_brand_title">HERITAGE AUTO FINANCE</h2>
             <h4 id="do_brand_sub">HEAD OFFICE: MEHSANA, GUJARAT | CONTACT: +91 7600211085</h4>
             <div style="display:flex; justify-content:space-between; gap:10px; font-size:8pt; color:#444; margin-bottom:8px;">
                 <span><strong>Document:</strong> Original Delivery Order</span>
                 <span><strong>Print Time:</strong> <span id="do_print_time"></span></span>
             </div>
-            <div style="text-align:center; font-weight:700; border: 1px solid #111; padding: 4px; margin-bottom: 18px; text-transform:uppercase; background:#f4f4f4;">
-                VEHICLE DELIVERY ORDER (D.O.) & PAYMENT ADVICE
+            <div class="official-document-ribbon">
+                VEHICLE DELIVERY ORDER (D.O.) <span>•</span> PAYMENT ADVICE
             </div>
 
             <div class="do-grid">
@@ -1111,7 +1112,7 @@
                 * This document authorizes the dealership to deliver the above mentioned vehicle to the customer. All bank deduction and RTO registration charges have been factored as per advice. Hypothecation must be endorsed in favor of the financier bank.
             </p>
 
-            <div class="do-signatures" style="display:flex; justify-content:space-between; margin-top:30px; font-size:0.82rem;">
+            <div class="do-signatures official-document-signatures" style="display:flex; justify-content:space-between; margin-top:30px; font-size:0.82rem;">
                 <div style="text-align:center;">
                     <div style="margin-bottom:40px;">_________________________</div>
                     <strong>Customer Signature</strong>
