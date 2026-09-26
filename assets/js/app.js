@@ -2538,11 +2538,10 @@
         const selectedEntries=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name));
         const chosen=selectedEntries.flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
         if(!chosen.length){
-            alert('Aapne '+checked.join(', ')+' select kiya hai, lekin in documents ki file upload nahi hai. Pehle Upload button se file upload karein, phir Share karein.');
+            alert('Koi uploaded document share ke liye select nahi hai. Pehle Upload button se file upload karein.');
             return;
         }
         const missing=checked.filter(name=>!selectedEntries.some(d=>d.name===name&&Array.isArray(d.attachments)&&d.attachments.length));
-        if(missing.length)alert('Note: '+missing.join(', ')+' mein uploaded file nahi hai, isliye ye share nahi honge.');
         const title='Customer Documents - '+(lead.name||'Customer');
         const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\\nSelected document files attached.';
         const safeName=value=>String(value||'document').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
@@ -2628,7 +2627,11 @@
             const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.style.display='none';fileInput.onchange=()=>uploadChecklistFiles(fileInput,name);
             const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent='⬆ Upload';upload.onclick=()=>fileInput.click();
             const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:.78rem;';
-            const share=document.createElement('input');share.type='checkbox';share.className='doc-share-check';share.dataset.docName=name;label.append(share,document.createTextNode('Share'));
+            const share=document.createElement('input');share.type='checkbox';share.className='doc-share-check';share.dataset.docName=name;
+            const attachmentCount=Array.isArray(old.attachments)?old.attachments.length:0;
+            share.disabled=attachmentCount===0;
+            share.title=attachmentCount===0?'Pehle is document ki file upload karein':'Uploaded file(s) share karne ke liye select karein';
+            label.append(share,document.createTextNode(attachmentCount?'Share ('+attachmentCount+')':'Share'));
             actions.append(upload,label,fileInput);row.append(title,status,remarks,actions);renderDocumentAttachments(row,old.attachments||[],name);rows.appendChild(row);
         });
         updateDocumentChecklistSummary();
