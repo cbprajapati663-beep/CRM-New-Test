@@ -2622,6 +2622,7 @@
         const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\nSelected document files attached.';
         const safeName=value=>String(value||'document').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
         const downloadBlob=(blob,name)=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);};
+        let shareFilesForFallback=[];
         try{
             const files=[];
             for(const item of chosen){
@@ -2634,13 +2635,15 @@
             }
             let shareFiles=files;
             if(files.length>1){if(!window.JSZip)throw new Error('ZIP library load nahi hui.');const zip=new JSZip();files.forEach((file,index)=>zip.file((index+1)+'_'+safeName(file.name),file));const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});shareFiles=[new File([blob],safeName((lead.name||'Customer')+'_Documents.zip'),{type:'application/zip'})];}
+            shareFilesForFallback=shareFiles;
             if(navigator.share&&navigator.canShare&&navigator.canShare({files:shareFiles}))await navigator.share({title,text:message,files:shareFiles});
             else{shareFiles.forEach(file=>downloadBlob(file,file.name));alert(files.length>1?'Selected files ki ZIP download ho gayi.':'Selected file original format mein download ho gayi. Ab attach karke bhej dein.');}
         }catch(error){
             console.error('Document share failed:',error);
             if(error&&error.name==='AbortError')return;
-            if(error&&/permission|not allowed|notallowed/i.test(String(error.message||error.name||''))){
-                alert('Phone/browser ne direct share permission nahi di. Share ke bajay file download karne ke liye dobara Share Documents dabayein ya browser permission check karein.');
+            if(error&&/permission|not allowed|notallowed/i.test(String(error.message||error.name||''))&&shareFilesForFallback.length){
+                shareFilesForFallback.forEach(file=>downloadBlob(file,file.name));
+                alert('Direct share permission nahi mili. File(s) download kar di gayi hain; ab WhatsApp/chat mein attach kar dein.');
             }else alert('File share nahi ho paya. '+(error&&error.message?error.message:'Local file access ya ZIP library check karein.'));
         }
     };
