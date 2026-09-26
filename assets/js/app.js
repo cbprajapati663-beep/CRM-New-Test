@@ -657,6 +657,10 @@
             alert("Sabhi fields bharein (Client ID, Agency Name, Head Office, Contact Phone, Password).");
             return;
         }
+        if (stat === 'Active' && exp && getLicenseDaysRemaining({expiryDate:exp}) < 0) {
+            alert("Expired license ko Active karne ke liye pehle Rent Expiry Date ko aaj ya future date par extend karein. Isse existing data safe rahega.");
+            return;
+        }
 
         try {
             const docRef = tenantsCollection.doc(tid);
