@@ -66,6 +66,119 @@
         return Array.isArray(tenantsCache) ? tenantsCache : [];
     }
 
+    // License expiry helpers: preserve tenant records; only gate access/status.
+    function getLicenseDaysRemaining(tenant) {
+        const raw = String(tenant && tenant.expiryDate || '').slice(0, 10);
+        const match = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+        if (!match) return null;
+        const expiry = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        expiry.setHours(0, 0, 0, 0);
+        return Math.round((expiry.getTime() - today.getTime()) / 86400000);
+    }
+
+    async function syncExpiredTenantStatuses(tenantList) {
+        const expired = (Array.isArray(tenantList) ? tenantList : []).filter(t =>
+            t && t.expiryDate && getLicenseDaysRemaining(t) !== null &&
+            getLicenseDaysRemaining(t) < 0 && t.status !== 'Suspended'
+        );
+        for (const tenant of expired) {
+            try {
+                const ref = tenantsCollection.doc(tenant.docId || tenant.tenantId);
+                await ref.update({
+                    status: 'Suspended',
+                    suspensionReason: 'License expired',
+                    suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                tenant.status = 'Suspended';
+                tenant.suspensionReason = 'License expired';
+            } catch (error) {
+                console.error('Automatic license suspension failed:', tenant.tenantId, error);
+            }
+        }
+    }
+
+    function renderClientLicenseNotice(user) {
+        const header = document.querySelector('header');
+        if (!header) return;
+        let notice = document.getElementById('clientLicenseExpiryNotice');
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = 'clientLicenseExpiryNotice';
+            notice.style.cssText = 'display:none;margin:10px 14px;padding:12px 16px;border:1px solid #ef4444;border-radius:10px;background:#7f1d1d;color:#fff;font-weight:800;line-height:1.5;';
+            header.insertAdjacentElement('afterend', notice);
+        }
+        const days = getLicenseDaysRemaining(user);
+        if (user && user.role !== 'superadmin' && days !== null && days >= 0 && days <= 5) {
+            notice.style.display = 'block';
+            notice.textContent = days === 0
+                ? '🔴 LICENSE ALERT: Aaj aapki license expiry hai. Service continue rakhne ke liye admin se renewal karwayein.'
+                : '🔴 LICENSE ALERT: Aapki license ' + days + ' din mein expire hone wali hai (' + user.expiryDate + '). Renewal ke liye admin se sampark karein.';
+        } else {
+            notice.style.display = 'none';
+            notice.textContent = '';
+        }
+    }
+
+    function renderAdminLicenseExpiryAlerts() {
+        const deck = document.getElementById('adminUserMasterDeck');
+        if (!deck) return;
+        let box = document.getElementById('adminLicenseExpiryAlerts');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'adminLicenseExpiryAlerts';
+            box.style.cssText = 'margin:0 0 14px;padding:14px;border:1px solid #f59e0b;border-radius:10px;background:#451a03;color:#fff;';
+            const panel = deck.querySelector('.panel');
+            const cards = document.getElementById('userCardsContainer');
+            if (panel && cards) panel.insertBefore(box, cards);
+            else deck.prepend(box);
+        }
+        const expiring = getStoredTenants().map(t => ({...t, days:getLicenseDaysRemaining(t)}))
+            .filter(t => t.days !== null && t.days >= 0 && t.days <= 5 && t.status !== 'Suspended')
+            .sort((a,b) => a.days-b.days);
+        const expired = getStoredTenants().filter(t => t.expiryDate && getLicenseDaysRemaining(t) !== null && getLicenseDaysRemaining(t) < 0);
+        if (!expiring.length && !expired.length) {
+            box.style.display = 'none';
+            box.innerHTML = '';
+            return;
+        }
+        box.style.display = 'block';
+        box.innerHTML = '<strong style="font-size:1rem;color:#fbbf24;">⏰ License Expiry Alerts</strong>' +
+            (expired.length ? '<div style="margin-top:8px;color:#fecaca;font-weight:800;">🔴 Expired / suspended: ' +
+                expired.map(t => escapeHtml(t.agencyName || t.tenantId) + ' (' + escapeHtml(t.expiryDate) + ')').join(' · ') + '</div>' : '') +
+            (expiring.length ? '<div style="margin-top:8px;color:#fde68a;">🟠 Expiring within 5 days: ' +
+                expiring.map(t => escapeHtml(t.agencyName || t.tenantId) + ' — ' + (t.days === 0 ? 'Today' : t.days + ' day(s)') + ' (' + escapeHtml(t.expiryDate) + ')').join(' · ') + '</div>' : '');
+    }
+
+    async function checkCurrentTenantExpiry() {
+        const user = getCurrentSessionUser();
+        if (!user || user.role === 'superadmin' || inspectingTenantId) return;
+        const days = getLicenseDaysRemaining(user);
+        if (days === null || days >= 0) {
+            renderClientLicenseNotice(user);
+            return;
+        }
+        try {
+            const ref = tenantsCollection.doc(user.tenantId);
+            await ref.set({
+                status: 'Suspended',
+                suspensionReason: 'License expired',
+                suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, {merge:true});
+        } catch (error) {
+            console.error('Expired current tenant status update failed:', error);
+        }
+        setCurrentSessionUser(null);
+        const overlay = document.getElementById('authOverlay');
+        if (overlay) overlay.style.display = 'flex';
+        const notice = document.getElementById('clientLicenseExpiryNotice');
+        if (notice) notice.style.display = 'none';
+        alert('🔴 Aapki license expiry ho gayi hai. Account suspend kar diya gaya hai. Data safe hai; renewal ke liye admin se sampark karein.');
+    }
+
     async function loadTenantsFromFirestore() {
         try {
             const snapshot = await tenantsCollection.orderBy('tenantId').get();
@@ -73,6 +186,7 @@
             snapshot.forEach(doc => {
                 tenantsCache.push({ docId: doc.id, ...doc.data() });
             });
+            await syncExpiredTenantStatuses(tenantsCache);
             tenantsReady = true;
             return tenantsCache;
         } catch (error) {
@@ -178,6 +292,20 @@
                     const matched = { docId: doc.id, ...doc.data() };
 
                     if (matched.password === pass) {
+                        const licenseDays = getLicenseDaysRemaining(matched);
+                        if (licenseDays !== null && licenseDays < 0 && matched.status !== 'Suspended') {
+                            try {
+                                await doc.ref.update({
+                                    status: 'Suspended',
+                                    suspensionReason: 'License expired',
+                                    suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                                matched.status = 'Suspended';
+                            } catch (expiryError) {
+                                console.error('Login expiry suspension failed:', expiryError);
+                            }
+                        }
                         if (matched.status === 'Suspended') {
                             alert("⚠️ Aapka software rent subscription suspend / inactive hai. Kripya IT Provider se sampark karein.");
                             return;
@@ -346,6 +474,7 @@
             return;
         }
         document.getElementById('authOverlay').style.display = 'none';
+        renderClientLicenseNotice(u);
 
         if (inspectingTenantId) {
             document.getElementById('activeUserBadge').textContent = `👁️ Viewing: ${inspectingTenantId}`;
@@ -402,6 +531,7 @@
 
     function renderAdminMasterUserCards() {
         const tenants = getStoredTenants();
+        renderAdminLicenseExpiryAlerts();
         if (!Array.isArray(tenants)) return;
         const container = document.getElementById('userCardsContainer');
         container.innerHTML = '';
@@ -2951,3 +3081,6 @@
     applyPortalPermissions();
     refreshDealerDropdowns();
     handleStatusChange();
+    // Recheck active client licenses while the portal remains open.
+    checkCurrentTenantExpiry();
+    setInterval(checkCurrentTenantExpiry, 60000);
