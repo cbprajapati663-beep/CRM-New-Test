@@ -51,6 +51,7 @@
     <div class="header-actions">
         <span id="activeUserBadge" style="background:#1e2433; border:1px solid var(--primary); padding:5px 10px; border-radius:6px; font-size:0.75rem; color:var(--primary); font-weight:700;">👤 Admin</span>
         <button id="btnChangeMyPass" class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openChangeMyPasswordModal()">🔑 Change Password</button>
+        <button class="btn-action" style="background:#a78bfa;color:#111;font-weight:700;" onclick="openDocumentTracker()">📁 Documents</button>
         <button class="btn-action" style="background:#d4af37;color:#111;font-weight:700;" onclick="openEmiCalculator()">🧮 EMI Calculator</button>
         <button class="btn-action" style="background:#38bdf8;color:#082f49;font-weight:700;" onclick="openAffordabilityCalculator()">📊 Loan Affordability</button>
         <button id="btnExitUserView" class="btn-action" style="background:#ef4444; color:#fff; display:none;" onclick="exitUserView()">↩ Exit to Admin Master Desk</button>
@@ -1179,6 +1180,27 @@
         </div>
         <p style="font-size:.78rem;color:var(--text-muted);margin:14px 0 0;">Indicative estimate only, not lender approval. Actual eligibility depends on lender policy, credit profile, income verification, fees, and other obligations.</p>
     </div>
+</div>
+
+
+<!-- Customer Document Checklist & Verification Tracker -->
+<div id="documentTrackerModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:20020;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;" role="dialog" aria-modal="true" aria-labelledby="documentTrackerTitle">
+ <div class="modal-content" style="width:100%;max-width:760px;max-height:92vh;overflow:auto;background:var(--panel-bg,#111827);border:1px solid var(--primary);border-radius:14px;padding:20px;box-sizing:border-box;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+   <div><h2 id="documentTrackerTitle" style="margin:0;">📁 Customer Document Tracker</h2><p style="margin:6px 0 0;color:var(--text-muted);font-size:.82rem;">Lead-wise checklist, document status aur verification remarks.</p></div>
+   <button type="button" class="btn-quick" onclick="closeDocumentTracker()" aria-label="Close document tracker">✕</button>
+  </div>
+  <label for="docTrackerLead">Select Customer / Lead</label>
+  <select id="docTrackerLead" onchange="loadDocumentChecklist()" style="width:100%;box-sizing:border-box;margin:6px 0 14px;"></select>
+  <div id="docTrackerSummary" style="padding:12px;border:1px solid var(--card-border);border-radius:10px;margin-bottom:12px;">Customer select karein.</div>
+  <div id="docTrackerRows" style="display:flex;flex-direction:column;gap:10px;"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+   <button type="button" class="btn-action" onclick="saveDocumentChecklist()" style="background:var(--primary);color:#111;font-weight:800;">💾 Save Checklist</button>
+   <button type="button" class="btn-action" onclick="exportDocumentChecklist()">📄 Export Checklist CSV</button>
+   <button type="button" class="btn-action" onclick="closeDocumentTracker()">Close</button>
+  </div>
+  <p style="font-size:.76rem;color:var(--text-muted);margin:12px 0 0;">Sensitive ID documents yahan upload nahi hote. Ye tracker sirf document status aur remarks save karta hai. Actual files ke liye secure storage/access controls alag se implement karne honge.</p>
+ </div>
 </div>
 
 <script src="assets/js/app.js?v=affordability-fix-20260926-2"></script>
