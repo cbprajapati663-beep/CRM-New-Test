@@ -2625,81 +2625,93 @@
         if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB ya usse chhoti honi chahiye.','#f87171');input.value='';return;}
         const sessionUser=getCurrentSessionUser(),tenantId=sessionUser&&sessionUser.tenantId;
         if(!tenantId){setStatus('❌ Secure tenant session nahi mila. Logout karke dobara login karein.','#f87171');input.value='';return;}
-        const uploaded=[],storageRefs=[],uploadButton=input.parentElement&&input.parentElement.querySelector('button');
+        const uploaded=[],storageRefs=[];
+        const uploadButton=input.parentElement&&input.parentElement.querySelector('button');
         const formatBytes=value=>value<1024*1024?Math.max(1,Math.round(value/1024))+' KB':(value/1024/1024).toFixed(1)+' MB';
         const safeSegment=value=>String(value||'unknown').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,100);
         const setBusy=busy=>{input.disabled=busy;if(uploadButton){uploadButton.disabled=busy;uploadButton.textContent=busy?'⏳ Uploading…':(documentEntryFor(lead,name).attachments||[]).length?'＋ Add More ('+(documentEntryFor(lead,name).attachments||[]).length+')':'⬆ Upload';}};
-        setBusy(true);
-        try{
-            if(!window.firebase||!firebase.storage)throw new Error('Firebase Storage SDK load nahi hui. Page refresh karke retry karein.');
-            const defaultBucket=String(firebaseConfig.storageBucket||'').trim();
-            // Use the configured Firebase bucket as the source of truth. Blindly trying
-            // projectId.appspot.com can hide the real permission/bucket error when the
-            // project uses the newer .firebasestorage.app bucket format.
-            const bucketCandidates=defaultBucket?[defaultBucket]:[String(firebaseConfig.projectId||'')+'.appspot.com'].filter(Boolean);
-            if(!bucketCandidates.length)throw new Error('Firebase Storage bucket config missing. Firebase Console se actual bucket name set karein.');
+        const mergeAttachments=(...groups)=>{
+            const result=[],seen=new Set();
+            groups.flat().forEach(file=>{
+                const key=file.localKey||file.path||file.url||[file.name,file.size,file.uploadedAt].join('|');
+                if(!seen.has(key)){seen.add(key);result.push(file);}
+            });
+            return result;
+        };
+        const saveLocalFallback=async reason=>{
+            setStatus('💾 Cloud upload available nahi hua. Device par secure local save ho raha hai…','#fbbf24');
+            const localFiles=[];
             for(let index=0;index<files.length;index++){
                 const file=files[index];
-                setStatus('☁️ Cloud upload: '+(index+1)+'/'+files.length+' · '+file.name+' · '+formatBytes(file.size),'#fbbf24');
-                const path='customer-documents/'+safeSegment(tenantId)+'/'+safeSegment(leadId)+'/'+Date.now()+'_'+index+'_'+safeDocumentFileName(file.name);
-                let uploadedFile=null,lastBucketError=null;
-                for(const bucket of bucketCandidates){
-                    let ref;
-                    try{
-                        const storage=bucket===defaultBucket?firebase.storage():firebase.app().storage('gs://'+bucket);
-                        ref=storage.ref().child(path);
-                        const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(tenantId),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
-                        await new Promise((resolve,reject)=>task.on('state_changed',snapshot=>{
-                            const percent=snapshot.totalBytes?Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100):0;
-                            setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · '+percent+'%','#fbbf24');
-                        },reject,resolve));
-                        const url=await ref.getDownloadURL();
-                        storageRefs.push(ref);
-                        uploadedFile={name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'firebase-storage'};
-                        break;
-                    }catch(bucketError){
-                        lastBucketError=bucketError;
-                        if(ref){try{await ref.delete();}catch(cleanupError){console.warn('Failed upload cleanup:',cleanupError);}}
-                    }
-                }
-                if(!uploadedFile){
-                    const reason=lastBucketError&&lastBucketError.message?lastBucketError.message:'Unknown Storage error';
-                    throw new Error('Firebase Storage upload failed. Tried bucket(s): '+bucketCandidates.join(', ')+'. Last error: '+reason);
-                }
-                uploaded.push(uploadedFile);
+                const localKey=[tenantId,leadId,name,Date.now(),index,safeDocumentFileName(file.name)].join('_');
+                await saveLocalDocument(localKey,file);
+                localFiles.push({name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'local-device'});
             }
-            const leadRef=leadsCollection.doc(leadId);
-            let savedDocs=[];
-            await db.runTransaction(async transaction=>{
-                const snapshot=await transaction.get(leadRef);
-                if(!snapshot.exists)throw new Error('Customer record cloud mein nahi mila. Lead refresh karke retry karein.');
-                const data=snapshot.data()||{},baseDocs=Array.isArray(data.documents)?data.documents:[],prior=baseDocs.find(doc=>doc.name===name)||{name,status:'Pending',remarks:'',attachments:[]};
-                savedDocs=baseDocs.filter(doc=>doc.name!==name);
-                savedDocs.push({...prior,name,status:prior.status==='Received'?'Received':'Pending',attachments:[...(Array.isArray(prior.attachments)?prior.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:tenantId});
-                transaction.update(leadRef,{documents:savedDocs});
-            });
+            const priorDocs=Array.isArray(lead.documents)?lead.documents:[];
+            const prior=priorDocs.find(doc=>doc.name===name)||{name,status:'Pending',remarks:'',attachments:[]};
+            const savedDocs=priorDocs.filter(doc=>doc.name!==name);
+            savedDocs.push({...prior,name,status:prior.status==='Received'?'Received':'Pending',attachments:mergeAttachments(prior.attachments||[],localFiles),updatedAt:new Date().toISOString(),updatedBy:tenantId});
+            lead.documents=savedDocs;
             const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=savedDocs;
-            lead.documents=savedDocs;writeLocalDocumentMeta(leadId,savedDocs);
+            writeLocalDocumentMeta(leadId,savedDocs);
             loadDocumentChecklist();
-            const refreshedRow=document.querySelector('#docTrackerRows [data-doc-name="'+String(name).replace(/"/g,'')+'"]');
-            const refreshedStatus=refreshedRow&&refreshedRow.querySelector('.doc-upload-status');
-            if(refreshedStatus){refreshedStatus.textContent='✅ Uploaded to cloud · '+uploaded.length+' new file(s) · Total '+(savedDocs.find(doc=>doc.name===name)?.attachments||[]).length+' file(s). Neeche file name dikh raha hai.';refreshedStatus.style.color='#4ade80';}
+            const row=Array.from(document.querySelectorAll('#docTrackerRows [data-doc-name]')).find(el=>el.dataset.docName===name);
+            const freshStatus=row&&row.querySelector('.doc-upload-status');
+            if(freshStatus){freshStatus.textContent='⚠️ '+localFiles.length+' file(s) is device/browser par save hui. Cloud sync nahi hua; isi device/browser se access/share karein. Cloud error: '+String(reason||'unknown').slice(0,220);freshStatus.style.color='#fbbf24';}
+        };
+        setBusy(true);
+        try{
+            let cloudFailure=null;
+            try{
+                if(!window.firebase||!firebase.storage)throw new Error('Firebase Storage SDK load nahi hui.');
+                const bucket=String(firebaseConfig.storageBucket||'').trim();
+                if(!bucket)throw new Error('Firebase Storage bucket config missing.');
+                for(let index=0;index<files.length;index++){
+                    const file=files[index];
+                    setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · 0%','#fbbf24');
+                    const path='customer-documents/'+safeSegment(tenantId)+'/'+safeSegment(leadId)+'/'+Date.now()+'_'+index+'_'+safeDocumentFileName(file.name);
+                    const storage=firebase.storage();
+                    const ref=storage.ref().child(path);
+                    const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(tenantId),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
+                    await new Promise((resolve,reject)=>task.on('state_changed',snapshot=>{
+                        const percent=snapshot.totalBytes?Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100):0;
+                        setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · '+percent+'%','#fbbf24');
+                    },reject,resolve));
+                    storageRefs.push(ref);
+                    const url=await ref.getDownloadURL();
+                    uploaded.push({name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'firebase-storage'});
+                }
+                const leadRef=leadsCollection.doc(leadId);
+                let savedDocs=[];
+                await db.runTransaction(async transaction=>{
+                    const snapshot=await transaction.get(leadRef);
+                    if(!snapshot.exists)throw new Error('Customer record cloud mein nahi mila. Lead refresh karke retry karein.');
+                    const data=snapshot.data()||{},baseDocs=Array.isArray(data.documents)?data.documents:[];
+                    const cloudPrior=baseDocs.find(doc=>doc.name===name)||{name,status:'Pending',remarks:'',attachments:[]};
+                    const localPrior=(Array.isArray(lead.documents)?lead.documents:[]).find(doc=>doc.name===name)||{attachments:[]};
+                    const attachments=mergeAttachments(cloudPrior.attachments||[],localPrior.attachments||[],uploaded);
+                    savedDocs=baseDocs.filter(doc=>doc.name!==name);
+                    savedDocs.push({...cloudPrior,name,status:cloudPrior.status==='Received'||localPrior.status==='Received'?'Received':'Pending',remarks:localPrior.remarks||cloudPrior.remarks||'',attachments,updatedAt:new Date().toISOString(),updatedBy:tenantId});
+                    transaction.update(leadRef,{documents:savedDocs});
+                });
+                const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=savedDocs;
+                lead.documents=savedDocs;writeLocalDocumentMeta(leadId,savedDocs);
+                loadDocumentChecklist();
+                const row=Array.from(document.querySelectorAll('#docTrackerRows [data-doc-name]')).find(el=>el.dataset.docName===name);
+                const freshStatus=row&&row.querySelector('.doc-upload-status');
+                if(freshStatus){freshStatus.textContent='✅ Cloud par uploaded · '+uploaded.length+' new file(s) · Total '+(savedDocs.find(doc=>doc.name===name)?.attachments||[]).length+' file(s). File names neeche hain.';freshStatus.style.color='#4ade80';}
+                return;
+            }catch(error){
+                cloudFailure=error;
+                await Promise.all(storageRefs.map(ref=>ref.delete().catch(()=>{})));
+                storageRefs.length=0;
+                uploaded.length=0;
+            }
+            await saveLocalFallback(cloudFailure&&cloudFailure.message||'Firebase Storage upload error');
         }catch(error){
-            console.error('Cloud document upload failed:',error);
-            await Promise.all(storageRefs.map(ref=>ref.delete().catch(()=>{})));
-            const code=String(error&&error.code||''),raw=String(error&&error.message||error||'Unknown error');
-            const detail=/unauthorized|permission-denied|storage\/unauthorized/i.test(code+' '+raw)
-                ?'Firebase Storage access denied (Storage Rules/Auth).'
-                :/bucket|object-not-found|storage\/unknown|no default bucket/i.test(code+' '+raw)
-                    ?'Firebase Storage bucket missing/incorrect.'
-                    :/network|offline|unavailable|failed to fetch/i.test(code+' '+raw)
-                        ?'Network/Firebase connection issue.'
-                        :/quota|storage\/quota-exceeded/i.test(code+' '+raw)
-                            ?'Firebase Storage quota limit exceed.'
-                            :'Cloud upload failed: '+raw;
-            const errorCode=code||'unknown';
-            setStatus('❌ CLOUD UPLOAD FAILED · '+errorCode+' · '+detail+' '+raw,'#f87171');
-            alert('❌ Document cloud par upload nahi hua.\nError code: '+errorCode+'\nReason: '+raw+'\n\nFirebase Console mein Storage enabled, sahi bucket ('+String(firebaseConfig.storageBucket||'not set')+') aur Storage Rules/Auth check karein. File ko uploaded mark nahi kiya gaya.');
+            console.error('Document upload failed:',error);
+            setStatus('❌ Upload/save failed: '+(error&&error.message||error),'#f87171');
+            alert('❌ Document save nahi hua. '+(error&&error.message||error)+'\nBrowser storage space aur permissions check karein.');
         }finally{setBusy(false);input.value='';}
     };
     window.shareChecklistDocuments=async function(){
