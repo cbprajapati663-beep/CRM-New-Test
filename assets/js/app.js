@@ -2574,9 +2574,9 @@
                 try{return await uploadTo(defaultStorage,defaultBucket);}
                 catch(error){
                     const code=String(error&&error.code||'');
-                    if(!alternateBucket||!(code.includes('bucket-not-found')||code.includes('object-not-found')))throw error;
+                    if(!alternateBucket||!(code.includes('bucket-not-found')||code.includes('object-not-found')||code.includes('upload-timeout')))throw error;
                     const alternateStorage=app.storage('gs://'+alternateBucket);
-                    return await uploadTo(alternateStorage,alternateBucket);
+                    setStatus('⏳ Primary Storage bucket respond nahi kar raha. Alternate bucket par retry ho raha hai…','#fbbf24');return await uploadTo(alternateStorage,alternateBucket);
                 }
             };
             setProgress();
