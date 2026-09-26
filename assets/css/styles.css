@@ -945,3 +945,49 @@
  .do-modal-card #printableDOArea.delivery-order-paper .do-table,.do-modal-card #printableRentBillArea.rent-bill-paper .do-table{font-size:8pt;}
  .do-modal-card #printableDOArea.delivery-order-paper .do-table th,.do-modal-card #printableRentBillArea.rent-bill-paper .do-table th,.do-modal-card #printableDOArea.delivery-order-paper .do-table td,.do-modal-card #printableRentBillArea.rent-bill-paper .do-table td{padding:8px 7px!important;}
 }
+
+
+/* Premium unified document system v4 — DO and rent invoice share one navy/gold/emerald identity */
+@media screen {
+  .do-modal-card #printableDOArea.delivery-order-paper,
+  .do-modal-card #printableRentBillArea.rent-bill-paper {
+    border:1px solid #cbd5e1 !important;
+    border-top:7px solid #102a43 !important;
+    background:radial-gradient(circle at 100% 0%,rgba(212,175,55,.10),transparent 28%),linear-gradient(180deg,#fff 0%,#fbfcfe 100%) !important;
+    box-shadow:0 24px 60px rgba(15,23,42,.18),inset 0 0 0 1px rgba(255,255,255,.9) !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper h2,
+  .do-modal-card #printableRentBillArea.rent-bill-paper h2 {
+    color:#102a43 !important;font-size:21pt !important;font-weight:900 !important;
+    letter-spacing:.55px !important;line-height:1.18 !important;
+    padding:0 0 11px !important;margin:0 0 10px !important;
+    border-bottom:3px solid #d4af37 !important;text-shadow:none !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper h4,
+  .do-modal-card #printableRentBillArea.rent-bill-paper h4 {
+    display:inline-block !important;padding:6px 13px !important;margin:0 0 15px !important;
+    border-radius:6px !important;background:#edf4fa !important;color:#244e6b !important;
+    font-size:8.5pt !important;line-height:1.5 !important;letter-spacing:.9px !important;font-weight:800 !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper .do-table tbody tr:last-child td,
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table tbody tr:last-child td {
+    background:#e9f8ef !important;color:#14532d !important;border-top:2px solid #22a06b !important;font-weight:900 !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper #do_net_dealer_payable,
+  .do-modal-card #printableRentBillArea.rent-bill-paper #billTotalPayable {
+    display:inline-block;padding:5px 10px;border-radius:7px;background:#dcfce7 !important;
+    color:#166534 !important;font-size:17pt !important;font-weight:900 !important;
+    white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  .do-modal-card #printableRentBillArea.rent-bill-paper #billRentAmt {color:#102a43 !important;font-weight:900 !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table th,
+  .do-modal-card #printableDOArea.delivery-order-paper .do-table th {
+    background:linear-gradient(100deg,#102a43,#1b4965) !important;color:#fff !important;border-color:#102a43 !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper .do-grid,
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-grid {border-color:#d8dee8 !important;background:#f7f9fc !important;}
+}
+@media screen and (max-width:600px) {
+  .do-modal-card #printableDOArea.delivery-order-paper h2,
+  .do-modal-card #printableRentBillArea.rent-bill-paper h2 {font-size:16pt !important;overflow-wrap:anywhere;}
+}
