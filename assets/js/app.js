@@ -2136,6 +2136,40 @@
         return String(v);
     }
 
+    window.addLeadActivityNote = async function() {
+        const docId = document.getElementById('leadAuditDocId').value;
+        const input = document.getElementById('leadActivityNoteText');
+        const typeSelect = document.getElementById('leadActivityNoteType');
+        const button = document.getElementById('btnSaveLeadActivityNote');
+        const note = String(input && input.value || '').trim();
+        if (!docId) { alert('Customer record select nahi hua.'); return; }
+        if (!note) { alert('Pehle note likhein.'); input && input.focus(); return; }
+        if (note.length > 1000) { alert('Note 1000 characters se chhota rakhein.'); return; }
+        const u = getCurrentSessionUser();
+        const tenantId = (u && u.tenantId) || inspectingTenantId;
+        if (!tenantId) { alert('Secure tenant session nahi mila. Dobara login karein.'); return; }
+        if (button) { button.disabled = true; button.textContent = '⏳ Saving…'; }
+        try {
+            await leadsCollection.doc(docId).collection('activity').add({
+                type: 'Note · ' + String(typeSelect && typeSelect.value || 'General'),
+                details: { note },
+                tenantId,
+                createdBy: (u && (u.tenantId || u.userId)) || tenantId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            input.value = '';
+            const counter = document.getElementById('leadActivityNoteCount');
+            if (counter) counter.textContent = '0/1000';
+            await loadLeadActivity(docId);
+            alert('✅ Note activity timeline mein save ho gaya.');
+        } catch (error) {
+            console.error('Lead note save failed:', error);
+            alert('❌ Note save nahi hua. Firestore permissions/network check karein. ' + (error && error.message || ''));
+        } finally {
+            if (button) { button.disabled = false; button.textContent = '➕ Save Note'; }
+        }
+    };
+
     window.loadLeadActivity = async function(docIdOverride) {
         const docId = docIdOverride || document.getElementById('leadAuditDocId').value;
         const box = document.getElementById('leadActivityTimeline');
