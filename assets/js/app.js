@@ -1584,6 +1584,11 @@
 
     function renderFollowups() {
         const scopedLeads = getLeadScopedList();
+        // Calculate the 7-day horizon before metrics use it; otherwise the
+        // temporal-dead-zone ReferenceError stops all follow-up rendering.
+        const futureLimit = new Date();
+        futureLimit.setDate(futureLimit.getDate() + 7);
+        const futureLimitStr = [futureLimit.getFullYear(), String(futureLimit.getMonth()+1).padStart(2,'0'), String(futureLimit.getDate()).padStart(2,'0')].join('-');
         const pendingForMetrics = scopedLeads.filter(l => l.followDate && !['Disbursed', 'Rejected', 'Cancelled'].includes(String(l.status || '')));
         const metrics = {
             pending: pendingForMetrics.length,
@@ -1603,9 +1608,6 @@
         });
 
         const activeLeads = scopedLeads.filter(l => l.followDate && !['Disbursed', 'Rejected', 'Cancelled'].includes(String(l.status || '')));
-        const futureLimit = new Date();
-        futureLimit.setDate(futureLimit.getDate() + 7);
-        const futureLimitStr = [futureLimit.getFullYear(), String(futureLimit.getMonth()+1).padStart(2,'0'), String(futureLimit.getDate()).padStart(2,'0')].join('-');
         const todayLeads = activeLeads.filter(l => {
             if (followupFilter === 'overdue') return l.followDate < todayStr;
             if (followupFilter === 'today') return l.followDate === todayStr;
