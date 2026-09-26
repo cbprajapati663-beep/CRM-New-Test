@@ -2674,10 +2674,6 @@
                 updatedAt: new Date().toISOString(),
                 updatedBy: sessionUser && sessionUser.tenantId ? sessionUser.tenantId : 'system'
             };
-            if (status === 'Verified') {
-                entry.verifiedAt = prior.status === 'Verified' && prior.verifiedAt ? prior.verifiedAt : new Date().toISOString();
-                entry.verifiedBy = prior.status === 'Verified' && prior.verifiedBy ? prior.verifiedBy : entry.updatedBy;
-            }
             return entry;
         });
         try {
