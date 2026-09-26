@@ -889,3 +889,30 @@
   #printRoot .do-paper .do-grid-item,
   #printRoot .do-paper .do-table tr {break-inside:avoid;}
 }
+
+
+/* DO / rent invoice amount-in-words callout */
+.invoice-amount-words {
+  margin:14px 0 18px;
+  padding:11px 13px;
+  border:1px solid #dbe3ed;
+  border-left:4px solid #d4af37;
+  border-radius:7px;
+  background:#f8fafc;
+  color:#334155;
+  font-size:9pt;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.invoice-amount-words strong {
+  display:block;
+  margin-bottom:3px;
+  color:#64748b;
+  font-size:7.5pt;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+.invoice-amount-words span {font-weight:800;color:#172033;}
+@media print {
+  .invoice-amount-words {break-inside:avoid;background:#f8fafc !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
