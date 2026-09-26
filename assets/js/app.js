@@ -2536,6 +2536,26 @@
         });
     }
     function documentEntryFor(lead, name) { return (Array.isArray(lead.documents) ? lead.documents : []).find(item => item.name === name) || {name,status:'Pending',remarks:'',attachments:[]}; }
+    const LOCAL_DOC_META_KEY='heritage-local-document-meta-v1';
+    function readLocalDocumentMeta(leadId){
+        try{const all=JSON.parse(localStorage.getItem(LOCAL_DOC_META_KEY)||'{}');return Array.isArray(all[leadId])?all[leadId]:[];}catch(_){return [];}
+    }
+    function writeLocalDocumentMeta(leadId,documents){
+        try{const all=JSON.parse(localStorage.getItem(LOCAL_DOC_META_KEY)||'{}');all[leadId]=documents;localStorage.setItem(LOCAL_DOC_META_KEY,JSON.stringify(all));return true;}catch(error){console.warn('Local document metadata save failed:',error);return false;}
+    }
+    function mergeLocalDocumentMeta(lead){
+        const localDocs=readLocalDocumentMeta(lead.docId);if(!localDocs.length)return;
+        const cloudDocs=Array.isArray(lead.documents)?lead.documents:[];
+        const merged=cloudDocs.map(doc=>({...doc,attachments:[...(doc.attachments||[])]}));
+        localDocs.forEach(localDoc=>{
+            const target=merged.find(doc=>doc.name===localDoc.name);
+            if(!target){merged.push({...localDoc,attachments:[...(localDoc.attachments||[])]});return;}
+            const keys=new Set((target.attachments||[]).map(file=>file.localKey||file.path||file.url||file.name));
+            (localDoc.attachments||[]).forEach(file=>{const key=file.localKey||file.path||file.url||file.name;if(!keys.has(key)){target.attachments.push(file);keys.add(key);}});
+        });
+        lead.documents=merged;
+        const cached=leads.find(item=>item.docId===lead.docId);if(cached)cached.documents=merged;
+    }
     function renderDocumentAttachments(row, attachments, name) {
         if (!Array.isArray(attachments) || !attachments.length) return;
         const wrap=document.createElement('div'); wrap.style.cssText='grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;font-size:.78rem;';
@@ -2564,25 +2584,29 @@
                 const file=files[index];
                 setStatus('💾 Device par save ho raha hai… '+(index+1)+'/'+files.length+' · '+formatBytes(file.size),'#fbbf24');
                 const localKey='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,12)+'_'+index;
-                await saveLocalDocument(localKey,file);
-                savedKeys.push(localKey);
+                await saveLocalDocument(localKey,file);savedKeys.push(localKey);
                 uploaded.push({name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'browser-local'});
             }
-            const baseDocs=Array.isArray(lead.documents)?lead.documents:[];
-            const docs=baseDocs.filter(d=>d.name!==name);
-            docs.push({...oldEntry,name,status:(oldEntry.status==='Received'?'Received':'Pending'),attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
-            setStatus('⏳ Files device par save ho gayi. Checklist cloud record sync ho raha hai…','#fbbf24');
-            await leadsCollection.doc(leadId).update({documents:docs});
-            const cachedLead=leads.find(item=>item.docId===leadId);
-            if(cachedLead)cachedLead.documents=docs;
-            lead.documents=docs;
+            const baseDocs=Array.isArray(lead.documents)?lead.documents:[],docs=baseDocs.filter(d=>d.name!==name);
+            docs.push({...oldEntry,name,status:oldEntry.status==='Received'?'Received':'Pending',attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
+            // Persist the file references locally first. Firestore denial must not delete a successfully saved local file.
+            writeLocalDocumentMeta(leadId,docs);
+            const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=docs;lead.documents=docs;
+            let cloudSynced=true;
+            try{await leadsCollection.doc(leadId).update({documents:docs});}
+            catch(syncError){cloudSynced=false;console.warn('Document metadata cloud sync denied; local copy retained:',syncError);}
             loadDocumentChecklist();
-            setStatus('✅ '+uploaded.length+' file(s) is device/browser mein save hui.','#4ade80');
-            alert('✅ '+uploaded.length+' file(s) is device/browser mein save ho gayi. File list mein naam dikhna chahiye. Ye files dusre device par sync nahi hoti.');
+            if(cloudSynced){
+                setStatus('✅ '+uploaded.length+' file(s) device par saved; checklist cloud mein sync ho gayi.','#4ade80');
+                alert('✅ '+uploaded.length+' file(s) save ho gayi. Files isi browser/device par stored hain; cloud metadata sync ho gaya.');
+            }else{
+                setStatus('⚠️ '+uploaded.length+' file(s) is device par saved. Cloud sync permission denied.','#fbbf24');
+                alert('⚠️ File(s) is device/browser mein save ho gayi aur list mein dikhengi. Firebase permission denied ki wajah se cloud sync nahi hua. Ye files sirf isi browser/device par available rahengi.');
+            }
         }catch(error){
-            console.error('Local document save/sync failed:',error);
+            console.error('Local document save failed:',error);
             await Promise.all(savedKeys.map(key=>deleteLocalDocument(key).catch(()=>{})));
-            const message='❌ Document save nahi hua: '+(error&&error.message?error.message:String(error))+(String(error&&error.code||'').includes('permission')?'\nFirebase Firestore permission check karein.':'');
+            const message='❌ File device par save nahi hui: '+(error&&error.message?error.message:String(error));
             setStatus(message,'#f87171');alert(message);
         }finally{input.disabled=false;input.value='';}
     };
@@ -2612,7 +2636,13 @@
             if(files.length>1){if(!window.JSZip)throw new Error('ZIP library load nahi hui.');const zip=new JSZip();files.forEach((file,index)=>zip.file((index+1)+'_'+safeName(file.name),file));const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});shareFiles=[new File([blob],safeName((lead.name||'Customer')+'_Documents.zip'),{type:'application/zip'})];}
             if(navigator.share&&navigator.canShare&&navigator.canShare({files:shareFiles}))await navigator.share({title,text:message,files:shareFiles});
             else{shareFiles.forEach(file=>downloadBlob(file,file.name));alert(files.length>1?'Selected files ki ZIP download ho gayi.':'Selected file original format mein download ho gayi. Ab attach karke bhej dein.');}
-        }catch(error){console.error('Document share failed:',error);if(error&&error.name!=='AbortError')alert('File share nahi ho paya. '+(error&&error.message?error.message:'Local file access ya ZIP library check karein.'));}
+        }catch(error){
+            console.error('Document share failed:',error);
+            if(error&&error.name==='AbortError')return;
+            if(error&&/permission|not allowed|notallowed/i.test(String(error.message||error.name||''))){
+                alert('Phone/browser ne direct share permission nahi di. Share ke bajay file download karne ke liye dobara Share Documents dabayein ya browser permission check karein.');
+            }else alert('File share nahi ho paya. '+(error&&error.message?error.message:'Local file access ya ZIP library check karein.'));
+        }
     };
     const documentChecklistStatuses = ['Pending', 'Received'];
 
@@ -2652,6 +2682,7 @@
             document.getElementById('docTrackerSummary').textContent = 'Is tenant mein customer record available nahi hai.';
             return;
         }
+        mergeLocalDocumentMeta(lead);
         const saved = Array.isArray(lead.documents) ? lead.documents : [];
         documentChecklistTemplates.forEach(name => {
             const old=saved.find(item=>item.name===name)||{};
