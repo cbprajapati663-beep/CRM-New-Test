@@ -2533,9 +2533,16 @@
     window.shareChecklistDocuments=async function(){
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){alert('Pehle customer select karein.');return;}
-        const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName);
-        const chosen=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name)).flatMap(d=>(d.attachments||[]).map(f=>({...f,category:d.name})));
-        if(!chosen.length){alert('Share karne ke liye document ke aage Share checkbox select karein.');return;}
+        const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName).filter(Boolean);
+        if(!checked.length){alert('Share karne ke liye document ke aage Share checkbox select karein.');return;}
+        const selectedEntries=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name));
+        const chosen=selectedEntries.flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
+        if(!chosen.length){
+            alert('Aapne '+checked.join(', ')+' select kiya hai, lekin in documents ki file upload nahi hai. Pehle Upload button se file upload karein, phir Share karein.');
+            return;
+        }
+        const missing=checked.filter(name=>!selectedEntries.some(d=>d.name===name&&Array.isArray(d.attachments)&&d.attachments.length));
+        if(missing.length)alert('Note: '+missing.join(', ')+' mein uploaded file nahi hai, isliye ye share nahi honge.');
         const title='Customer Documents - '+(lead.name||'Customer');
         const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\\nSelected document files attached.';
         const safeName=value=>String(value||'document').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
@@ -2618,7 +2625,7 @@
             status.value=documentChecklistStatuses.includes(old.status)?old.status:'Pending';
             const remarks=document.createElement('input');remarks.type='text';remarks.className='doc-check-remarks';remarks.dataset.docName=name;remarks.placeholder='Remarks / reason';remarks.value=old.remarks||'';remarks.maxLength=300;remarks.style.cssText='width:100%;min-width:0;box-sizing:border-box;';
             const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
-            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=name==='Other';fileInput.style.display='none';fileInput.onchange=()=>uploadChecklistFiles(fileInput,name);
+            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.style.display='none';fileInput.onchange=()=>uploadChecklistFiles(fileInput,name);
             const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent='⬆ Upload';upload.onclick=()=>fileInput.click();
             const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:.78rem;';
             const share=document.createElement('input');share.type='checkbox';share.className='doc-share-check';share.dataset.docName=name;label.append(share,document.createTextNode('Share'));
