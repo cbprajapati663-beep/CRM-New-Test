@@ -2049,61 +2049,76 @@
 
     window.printSelectedDocument = function(sectionId) {
         const section = document.getElementById(sectionId);
-        if (!section) { alert('Print area nahi mila.'); return; }
+        if (!section) {
+            alert('Print area nahi mila.');
+            return;
+        }
+
+        // Open synchronously from the click so popup blockers do not reject it.
         const printWindow = window.open('', '_blank', 'width=900,height=1200');
-        if (!printWindow) { alert('Print window browser ne block ki hai. Is site ke liye pop-up allow karein.'); return; }
-        const titles = {
-            printableRentBillArea: 'Heritage FinTech Core - Rent Invoice',
-            printableDOArea: 'Heritage Auto Finance - Delivery Order',
-            printableAdminTenantReport: 'Heritage FinTech Core - Agency Report'
-        };
-        const printTitle = titles[sectionId] || 'Heritage FinTech Core - Document';
-        printWindow.document.open();
-        printWindow.document.write('<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title></title></head><body><div id="printRoot"></div></body></html>');
-        printWindow.document.close();
-        printWindow.document.title = printTitle;
-        const head = printWindow.document.head;
-        const base = printWindow.document.createElement('base');
-        base.href = document.baseURI;
-        head.appendChild(base);
-        const cssLoads = [];
-        document.querySelectorAll('link[rel~="stylesheet"]').forEach(sourceLink => {
-            const link = printWindow.document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = sourceLink.href;
-            if (sourceLink.media) link.media = sourceLink.media;
-            const loaded = new Promise(resolve => {
-                link.addEventListener('load', resolve, { once: true });
-                link.addEventListener('error', resolve, { once: true });
-            });
-            cssLoads.push(loaded);
-            head.appendChild(link);
-        });
-        document.querySelectorAll('style').forEach(sourceStyle => {
-            const style = printWindow.document.createElement('style');
-            style.textContent = sourceStyle.textContent || '';
-            if (sourceStyle.media) style.media = sourceStyle.media;
-            head.appendChild(style);
-        });
+        if (!printWindow) {
+            alert('Print window browser ne block ki hai. Is site ke liye pop-up allow karein.');
+            return;
+        }
+
+        const printTitle = sectionId === 'printableRentBillArea'
+            ? 'Heritage FinTech Core - Rent Invoice'
+            : 'Heritage Auto Finance - Delivery Order';
+        const stylesheetUrl = new URL('assets/css/styles.css', window.location.href).href;
         const clone = section.cloneNode(true);
         clone.removeAttribute('id');
+
+        printWindow.document.open();
+        printWindow.document.write(
+            '<!doctype html><html lang="en"><head>' +
+            '<meta charset="UTF-8">' +
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+            '<base href="' + window.location.href.replace(/"/g, '&quot;') + '">' +
+            '<title>' + printTitle.replace(/</g, '&lt;') + '</title>' +
+            '<link id="printStylesheet" rel="stylesheet" href="' + stylesheetUrl.replace(/"/g, '&quot;') + '">' +
+            '<style>' +
+            'html,body{margin:0!important;padding:0!important;background:#fff!important;color:#111!important;font-family:Arial,sans-serif!important;}' +
+            '#printRoot{display:block!important;width:100%!important;margin:0 auto!important;padding:0!important;background:#fff!important;}' +
+            '#printRoot .printable-section{display:block!important;position:relative!important;inset:auto!important;width:100%!important;max-width:190mm!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 auto!important;padding:9mm!important;box-sizing:border-box!important;overflow:visible!important;background:#fff!important;color:#111!important;border:1px solid #c9a227!important;border-radius:0!important;box-shadow:none!important;}' +
+            '#printRoot .do-paper{width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;box-sizing:border-box!important;overflow:visible!important;background:#fff!important;color:#111!important;box-shadow:none!important;}' +
+            '#printRoot .do-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}' +
+            '#printRoot table{width:100%!important;border-collapse:collapse!important;}' +
+            '#printRoot tr,#printRoot .do-grid-item,#printRoot .do-signatures{break-inside:avoid!important;page-break-inside:avoid!important;}' +
+            '@page{size:A4 portrait;margin:10mm;}' +
+            '@media print{html,body{width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important;}#printRoot{width:100%!important;height:auto!important;overflow:visible!important;}#printRoot .printable-section,#printRoot .do-paper{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}}' +
+            '</style></head><body><main id="printRoot"></main></body></html>'
+        );
+        printWindow.document.close();
+
         const root = printWindow.document.getElementById('printRoot');
         root.appendChild(clone);
-        const printStyle = printWindow.document.createElement('style');
-        printStyle.textContent = '@page{size:A4 portrait;margin:0} html,body{margin:0!important;padding:0!important;background:#fff!important} #printRoot{display:block!important}';
-        head.appendChild(printStyle);
+
         let printed = false;
-        const doPrint = async () => {
-            if (printed) return;
+        const doPrint = () => {
+            if (printed || printWindow.closed) return;
             printed = true;
-            try { await Promise.all(cssLoads); } catch (e) {}
-            try { if (printWindow.document.fonts && printWindow.document.fonts.ready) await printWindow.document.fonts.ready; } catch (e) {}
             printWindow.focus();
             printWindow.print();
         };
-        printWindow.addEventListener('afterprint', () => { setTimeout(() => { try { printWindow.close(); } catch (e) {} }, 250); }, { once: true });
-        setTimeout(doPrint, 500);
+
+        const cssLink = printWindow.document.getElementById('printStylesheet');
+        if (cssLink) {
+            cssLink.addEventListener('load', () => setTimeout(doPrint, 150), { once: true });
+            cssLink.addEventListener('error', () => {
+                console.warn('Print stylesheet load nahi hui; fallback print styles use honge.');
+                setTimeout(doPrint, 250);
+            }, { once: true });
+        }
+        // Fallback for browsers that do not fire stylesheet load events.
+        setTimeout(doPrint, 1800);
+
+        printWindow.addEventListener('afterprint', () => {
+            setTimeout(() => {
+                try { printWindow.close(); } catch (e) {}
+            }, 250);
+        }, { once: true });
     };
+
     window.closeDoModal = function() {
         document.getElementById('doModal').style.display = 'none';
     };
