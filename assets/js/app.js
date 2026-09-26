@@ -561,13 +561,16 @@
 
     window.openAdminRentBillModal = function(tid, agencyName, rentAmt, expiryDate) {
         document.getElementById('billDate').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-        document.getElementById('billInvNo').textContent = 'INV/' + Math.floor(100000 + Math.random() * 900000);
+        const billMonthKey = new Date().toISOString().slice(0, 7).replace('-', '');
+        document.getElementById('billInvNo').textContent = 'HFC-INV-' + billMonthKey + '-' + stableInvoiceCode(tid);
         document.getElementById('billAgencyName').textContent = agencyName;
         document.getElementById('billTenantId').textContent = tid;
         document.getElementById('billPeriod').textContent = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
         document.getElementById('billExpiry').textContent = expiryDate;
         document.getElementById('billRentAmt').textContent = formatINR(rentAmt);
         document.getElementById('billTotalPayable').textContent = formatINR(rentAmt);
+        const billWords = document.getElementById('billAmountWords');
+        if (billWords) billWords.textContent = amountInIndianWords(rentAmt);
         document.getElementById('adminRentBillModal').style.display = 'flex';
     };
 
@@ -1893,6 +1896,8 @@
         document.getElementById('do_gross_disbursed').textContent = formatINR(grossDisbursed);
         document.getElementById('do_rto').textContent = rtoCharges > 0 ? ('- ' + formatINR(rtoCharges)) : '₹0 (Nil)';
         document.getElementById('do_net_dealer_payable').textContent = formatINR(netDealerPayable);
+        const doNetWords = document.getElementById('do_net_words');
+        if (doNetWords) doNetWords.textContent = amountInIndianWords(netDealerPayable);
 
         document.getElementById('doModal').style.display = 'flex';
 
@@ -2334,6 +2339,37 @@
     function formatINR(val) {
         if (!val || isNaN(val)) return '₹0';
         return '₹' + Number(val).toLocaleString('en-IN');
+    }
+
+    function amountInIndianWords(value) {
+        const n = Math.round(Number(value) || 0);
+        if (n === 0) return 'Rupees Zero Only';
+        if (n < 0 || n > 99999999999) return 'Amount not available in words';
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const underThousand = (num) => {
+            let out = '';
+            if (num >= 100) { out += ones[Math.floor(num / 100)] + ' Hundred'; num %= 100; if (num) out += ' '; }
+            if (num >= 20) { out += tens[Math.floor(num / 10)]; num %= 10; if (num) out += ' ' + ones[num]; }
+            else if (num > 0) out += ones[num];
+            return out;
+        };
+        const parts = [];
+        const crore = Math.floor(n / 10000000); if (crore) parts.push(underThousand(crore) + ' Crore');
+        const lakh = Math.floor((n % 10000000) / 100000); if (lakh) parts.push(underThousand(lakh) + ' Lakh');
+        const thousand = Math.floor((n % 100000) / 1000); if (thousand) parts.push(underThousand(thousand) + ' Thousand');
+        const rest = n % 1000; if (rest) parts.push(underThousand(rest));
+        return 'Rupees ' + parts.join(' ') + ' Only';
+    }
+
+    function stableInvoiceCode(value) {
+        const input = String(value || 'tenant').toLowerCase();
+        let hash = 2166136261;
+        for (let i = 0; i < input.length; i++) {
+            hash ^= input.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+        return (hash >>> 0).toString(36).toUpperCase().padStart(7, '0');
     }
 
     function handleStatusChange() {
