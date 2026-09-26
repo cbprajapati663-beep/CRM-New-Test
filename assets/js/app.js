@@ -2586,19 +2586,37 @@
         setBusy(true);
         try{
             if(!window.firebase||!firebase.storage)throw new Error('Firebase Storage SDK load nahi hui. Page refresh karke retry karein.');
-            const storage=firebase.storage();
+            const defaultBucket=String(firebaseConfig.storageBucket||'').trim();
+            const bucketCandidates=Array.from(new Set([defaultBucket,String(firebaseConfig.projectId||'')+'.appspot.com'].filter(Boolean)));
             for(let index=0;index<files.length;index++){
                 const file=files[index];
                 setStatus('☁️ Cloud upload: '+(index+1)+'/'+files.length+' · '+file.name+' · '+formatBytes(file.size),'#fbbf24');
                 const path='customer-documents/'+safeSegment(tenantId)+'/'+safeSegment(leadId)+'/'+Date.now()+'_'+index+'_'+safeDocumentFileName(file.name);
-                const ref=storage.ref().child(path);storageRefs.push(ref);
-                const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(tenantId),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
-                await new Promise((resolve,reject)=>task.on('state_changed',snapshot=>{
-                    const percent=snapshot.totalBytes?Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100):0;
-                    setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · '+percent+'%','#fbbf24');
-                },reject,resolve));
-                const url=await ref.getDownloadURL();
-                uploaded.push({name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'firebase-storage'});
+                let uploadedFile=null,lastBucketError=null;
+                for(const bucket of bucketCandidates){
+                    let ref;
+                    try{
+                        const storage=bucket===defaultBucket?firebase.storage():firebase.app().storage('gs://'+bucket);
+                        ref=storage.ref().child(path);
+                        const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(tenantId),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
+                        await new Promise((resolve,reject)=>task.on('state_changed',snapshot=>{
+                            const percent=snapshot.totalBytes?Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100):0;
+                            setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · '+percent+'%','#fbbf24');
+                        },reject,resolve));
+                        const url=await ref.getDownloadURL();
+                        storageRefs.push(ref);
+                        uploadedFile={name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'firebase-storage'};
+                        break;
+                    }catch(bucketError){
+                        lastBucketError=bucketError;
+                        if(ref){try{await ref.delete();}catch(cleanupError){console.warn('Failed upload cleanup:',cleanupError);}}
+                    }
+                }
+                if(!uploadedFile){
+                    const reason=lastBucketError&&lastBucketError.message?lastBucketError.message:'Unknown Storage error';
+                    throw new Error('Firebase Storage upload failed. Tried bucket(s): '+bucketCandidates.join(', ')+'. Last error: '+reason);
+                }
+                uploaded.push(uploadedFile);
             }
             const leadRef=leadsCollection.doc(leadId);
             let savedDocs=[];
