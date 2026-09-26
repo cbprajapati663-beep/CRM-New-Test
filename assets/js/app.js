@@ -2558,29 +2558,50 @@
         if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB se chhoti honi chahiye.','#f87171');alert('Har file 15 MB se chhoti honi chahiye.');input.value='';return;}
         const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),savedKeys=[],uploaded=[];
         const totalBytes=files.reduce((sum,file)=>sum+file.size,0);
-        const formatBytes=value=>value<1024*1024?Math.round(value/1024)+' KB':(value/1024/1024).toFixed(1)+' MB';
-        input.disabled=true;setStatus('⏳ Free local storage mein save ho raha hai…','#fbbf24');
+        const formatBytes=value=>value<1024*1024?Math.max(1,Math.round(value/1024))+' KB':(value/1024/1024).toFixed(1)+' MB';
+        input.disabled=true;
         try{
             for(let index=0;index<files.length;index++){
-                const file=files[index],localKey='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,12)+'_'+index;
-                await saveLocalDocument(localKey,file);savedKeys.push(localKey);
-                uploaded.push({name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'browser-local'});
-                const bytes=files.slice(0,index+1).reduce((sum,f)=>sum+f.size,0);
-                setStatus('⏫ Saved '+Math.round(bytes/Math.max(1,totalBytes)*100)+'% ('+formatBytes(bytes)+' / '+formatBytes(totalBytes)+') · '+(index+1)+'/'+files.length+' file(s)','#fbbf24');
+                const file=files[index];
+                setStatus('⏫ Upload ho raha hai… '+(index+1)+'/'+files.length+' · '+formatBytes(file.size),'#fbbf24');
+                let attachment=null;
+                try{
+                    const safeTenant=String((sessionUser&&sessionUser.tenantId)||lead.tenantId||'tenant').replace(/[^a-zA-Z0-9_-]/g,'_');
+                    const safeLead=String(leadId).replace(/[^a-zA-Z0-9_-]/g,'_');
+                    const safeName=safeDocumentFileName(file.name);
+                    const path='customer-documents/'+safeTenant+'/'+safeLead+'/'+Date.now()+'_'+index+'_'+safeName;
+                    const storage=firebase.storage();
+                    const ref=storage.ref().child(path);
+                    const snap=await ref.put(file,{contentType:file.type||'application/octet-stream'});
+                    const url=await snap.ref.getDownloadURL();
+                    attachment={name:file.name,url,path,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'firebase-storage'};
+                    setStatus('✅ '+(index+1)+'/'+files.length+' file cloud mein upload ho gayi.','#4ade80');
+                }catch(storageError){
+                    console.warn('Firebase Storage upload failed; using browser-local fallback:',storageError);
+                    const localKey='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,12)+'_'+index;
+                    await saveLocalDocument(localKey,file);savedKeys.push(localKey);
+                    attachment={name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'browser-local'};
+                    setStatus('⚠️ Cloud upload unavailable; '+(index+1)+'/'+files.length+' file local browser mein save ho gayi.','#fbbf24');
+                }
+                uploaded.push(attachment);
             }
             const baseDocs=Array.isArray(lead.documents)?lead.documents:[];
             const docs=baseDocs.filter(d=>d.name!==name);
-            docs.push({...oldEntry,name,attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
-            setStatus('⏳ File local save ho gayi. Checklist record cloud mein save ho raha hai…','#fbbf24');
+            docs.push({...oldEntry,name,status:(oldEntry.status==='Received'?'Received':'Pending'),attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
+            setStatus('⏳ Upload complete. Checklist record save ho raha hai…','#fbbf24');
             await leadsCollection.doc(leadId).update({documents:docs});
-            const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=docs;
-            lead.documents=docs;loadDocumentChecklist();
-            setStatus('✅ '+uploaded.length+' file(s) saved on this browser/device.','#4ade80');
-            alert('✅ '+uploaded.length+' file(s) save ho gayi. Ye free local storage mein isi browser/device par rahegi; doosre device par automatically nahi dikhegi.');
+            const cachedLead=leads.find(item=>item.docId===leadId);
+            if(cachedLead)cachedLead.documents=docs;
+            lead.documents=docs;
+            loadDocumentChecklist();
+            const cloudCount=uploaded.filter(f=>f.storageType==='firebase-storage').length;
+            const localCount=uploaded.length-cloudCount;
+            setStatus('✅ '+uploaded.length+' file(s) uploaded. '+(localCount?'('+localCount+' local fallback)':'Cloud storage'),'#4ade80');
+            alert('✅ '+uploaded.length+' file(s) upload ho gayi. Ab list mein file ka naam dikhega aur Share checkbox active hoga.'+(localCount?'\n\nNote: Firebase Storage available nahi tha, isliye '+localCount+' file browser/device local storage mein save hui hai.':''));
         }catch(error){
-            console.error('Local document save failed:',error);
+            console.error('Document upload failed:',error);
             await Promise.all(savedKeys.map(key=>deleteLocalDocument(key).catch(()=>{})));
-            const message='❌ File save nahi hui: '+(error&&error.message?error.message:String(error));
+            const message='❌ File upload nahi hui: '+(error&&error.message?error.message:String(error));
             setStatus(message,'#f87171');alert(message);
         }finally{input.disabled=false;input.value='';}
     };
@@ -2657,15 +2678,16 @@
             const title=document.createElement('strong');title.textContent=name;title.style.fontSize='.82rem';
             const status=document.createElement('select');status.className='doc-check-status';status.dataset.docName=name;status.style.cssText='width:100%;min-width:0;';
             documentChecklistStatuses.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;status.appendChild(option);});
-            status.value=old.status==='Pending'?'Pending':(old.status==='Received'||old.status==='Under Review'||old.status==='Verified'||old.status==='Rejected'||old.status==='Resubmission Required'?'Received':'Pending');
+            status.value=(old.status==='Received')?'Received':'Pending';
             const remarks=document.createElement('input');remarks.type='text';remarks.className='doc-check-remarks';remarks.dataset.docName=name;remarks.placeholder='Remarks / reason';remarks.value=old.remarks||'';remarks.maxLength=300;remarks.style.cssText='width:100%;min-width:0;box-sizing:border-box;';
             const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
             const attachmentCount=Array.isArray(old.attachments)?old.attachments.length:0;
-            const uploadWrap=document.createElement('span');uploadWrap.style.cssText='position:relative;display:inline-flex;align-items:center;';
+            const uploadWrap=document.createElement('span');uploadWrap.style.cssText='display:inline-flex;align-items:center;';
             const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'No file uploaded yet. Click to choose file(s).';
-            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.cssText='position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;'; 
+            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
             const uploadStatus=document.createElement('div');uploadStatus.className='doc-upload-status';uploadStatus.style.cssText='grid-column:1/-1;font-size:.78rem;overflow-wrap:anywhere;color:var(--text-muted);';
             uploadStatus.textContent=attachmentCount?'✅ '+attachmentCount+' file(s) uploaded and saved.':'No file uploaded yet.';
+            upload.onclick=()=>{fileInput.value='';fileInput.click();};
             fileInput.onchange=()=>uploadChecklistFiles(fileInput,name,uploadStatus);
             uploadWrap.append(upload,fileInput);
             const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:.78rem;';
