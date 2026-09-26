@@ -2548,36 +2548,39 @@
                     tasks[index]=task;
                     const snapshot=await new Promise((resolve,reject)=>{
                         let settled=false;
-                        const timeout=setTimeout(()=>{
-                            if(settled)return;
-                            settled=true;
-                            const timeoutError=new Error('Storage server se 60 seconds tak response nahi mila. Upload request network, Firebase Storage bucket ya Storage Rules par atki ho sakti hai.');
-                            timeoutError.code='upload-timeout';
-                            try{task.cancel();}catch(_){}
-                            reject(timeoutError);
-                        },15000);
+                        let timeout=null;
+                        const clearIdleTimer=()=>{if(timeout){clearTimeout(timeout);timeout=null;}};
+                        const resetIdleTimer=()=>{
+                            clearIdleTimer();
+                            timeout=setTimeout(()=>{
+                                if(settled)return;
+                                settled=true;
+                                const timeoutError=new Error('Firebase Storage upload mein 90 seconds se koi progress/response nahi aaya. Configured bucket "'+bucket+'" tak request nahi pahunch rahi ya Storage Rules/network upload ko rok rahe hain.');
+                                timeoutError.code='upload-timeout';
+                                try{task.cancel();}catch(_){}
+                                reject(timeoutError);
+                            },90000);
+                        };
                         const finish=(callback,value)=>{
                             if(settled)return;
                             settled=true;
-                            clearTimeout(timeout);
+                            clearIdleTimer();
                             callback(value);
                         };
+                        resetIdleTimer();
                         task.on('state_changed',snap=>{
                             progress.set(index,snap.bytesTransferred||0);
                             setProgress();
+                            resetIdleTimer();
                         },error=>finish(reject,error),()=>finish(resolve,task.snapshot));
                     });
                     const url=await snapshot.ref.getDownloadURL();
                     progress.set(index,file.size);setProgress();
                     return {name:file.name,url,path,bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'};
                 };
-                try{return await uploadTo(defaultStorage,defaultBucket);}
-                catch(error){
-                    const code=String(error&&error.code||'');
-                    if(!alternateBucket||!(code.includes('bucket-not-found')||code.includes('object-not-found')||code.includes('upload-timeout')))throw error;
-                    const alternateStorage=app.storage('gs://'+alternateBucket);
-                    setStatus('⏳ Primary Storage bucket respond nahi kar raha. Alternate bucket par retry ho raha hai…','#fbbf24');return await uploadTo(alternateStorage,alternateBucket);
-                }
+                // Use only the exact bucket configured in Firebase. Guessing a second bucket can
+                // send customer documents to a different/unconfigured bucket and hide the real issue.
+                return await uploadTo(defaultStorage,defaultBucket);
             };
             setProgress();
             const results=await Promise.all(files.map((file,index)=>uploadOne(file,index)));
@@ -2599,10 +2602,10 @@
             const detail=String(error&&error.message||error||'Unknown error');
             let hint='';
             if(code.includes('unauthorized')||code.includes('permission-denied'))hint=' Firebase Storage Rules upload ko allow nahi kar rahi hain.';
-            else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console > Storage mein actual bucket name verify karein; project par Storage bucket create/enable hona chahiye.';
+            else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Configured bucket "'+String(firebase.app().options.storageBucket||'not set')+'" Firebase Console > Storage mein missing hai ya bucket name galat hai. Actual bucket name copy karke Firebase config mein set karein.';
             else if(code.includes('unauthenticated'))hint=' Storage Rules Firebase Authentication maang rahi hain, lekin app sign-in nahi karta.';
             else if(code.includes('quota-exceeded'))hint=' Storage billing/quota limit check karein.';
-            else if(code.includes('upload-timeout'))hint=' Firebase Console > Storage mein bucket active hai ya nahi, exact bucket name aur Storage Rules verify karein. Browser DevTools > Network mein firebasestorage.googleapis.com request ka status bhi check karein.';
+            else if(code.includes('upload-timeout'))hint=' Configured bucket "'+String(firebase.app().options.storageBucket||'not set')+'" ko Firebase Console > Storage mein verify karein. Storage bucket create/active ho, Storage Rules signed-in user ya app ke access model ko allow karein, aur DevTools > Network mein firebasestorage.googleapis.com request ka status dekhein. App ab kisi guessed alternate bucket par upload nahi karega.';
             else if(code.includes('retry-limit-exceeded'))hint=' Network slow ya unstable hai. Stable internet par chhoti file se retry karein.';
             else if(code.includes('cors'))hint=' Firebase Storage bucket ki CORS settings check karein.';
             const message='❌ Upload fail ('+code+'): '+detail+hint;
