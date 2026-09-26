@@ -2571,10 +2571,6 @@
         }); row.appendChild(wrap);
     }
     window.uploadChecklistFiles=async function(input,name,statusEl){
-        alert('🔒 Document Upload abhi temporarily disabled hai. Ye feature future upgrade mein available hoga.');
-        if(input)input.value='';
-        if(statusEl){statusEl.textContent='🔒 Upload feature upgrade ke baad available hoga.';statusEl.style.color='#fbbf24';}
-        return;
         const files=Array.from(input.files||[]);
         const setStatus=(message,color)=>{if(statusEl){statusEl.textContent=message;statusEl.style.color=color||'var(--text-muted)';}};
         if(!files.length){setStatus('File select nahi hui.');return;}
@@ -2663,15 +2659,14 @@
         }finally{setBusy(false);input.value='';}
     };
     window.shareChecklistDocuments=async function(){
-        alert('🔒 Document Sharing abhi temporarily disabled hai. Ye feature future upgrade mein available hoga.');
-        return;
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){alert('Pehle customer select karein.');return;}
         const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName).filter(Boolean);
         const allDocs=Array.isArray(lead.documents)?lead.documents:[];
         const availableDocs=allDocs.filter(d=>Array.isArray(d.attachments)&&d.attachments.length);
         if(!availableDocs.length){alert('Is customer ke liye abhi koi document file upload nahi hai. Pehle Upload button se file upload karein.');return;}
-        const selectedNames=checked.length?checked:availableDocs.map(d=>d.name);
+        if(!checked.length){alert('Share karne ke liye document ke aage Share checkbox select karein.');return;}
+        const selectedNames=checked;
         const selected=availableDocs.filter(d=>selectedNames.includes(d.name));
         const chosen=selected.flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
         if(!chosen.length){alert('Selected document ki file upload nahi hai. Pehle Upload button se file add karein.');return;}
@@ -2708,7 +2703,25 @@
     const documentChecklistStatuses = ['Pending', 'Received'];
 
     window.openDocumentTracker = function() {
-        alert('Document Hub aur Checklist filhaal disabled hain. Future upgrade mein wapas enable honge.');
+        const modal=document.getElementById('documentTrackerModal');
+        if(!modal){alert('Document Tracker interface nahi mila. Page refresh karein.');return;}
+        const list=getLeadScopedList();
+        const select=document.getElementById('docTrackerLead');
+        select.innerHTML='';
+        if(!list.length){
+            const option=document.createElement('option');
+            option.value='';option.textContent='No customer records available';
+            select.appendChild(option);
+        }else{
+            list.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).forEach(lead=>{
+                const option=document.createElement('option');
+                option.value=lead.docId;
+                option.textContent=(lead.name||'Unnamed')+' · '+(lead.mobile||'No mobile')+' · '+(lead.vehModel||'Vehicle not set');
+                select.appendChild(option);
+            });
+        }
+        modal.style.display='flex';
+        loadDocumentChecklist();
     };
 
     window.closeDocumentTracker = function() {
@@ -2738,10 +2751,10 @@
             const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
             const attachmentCount=Array.isArray(old.attachments)?old.attachments.length:0;
             const uploadWrap=document.createElement('span');uploadWrap.style.cssText='display:inline-flex;align-items:center;';
-            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent='🔒 Upgrade Feature';upload.disabled=true;upload.title='Document upload future upgrade feature mein enable hoga.';
-            const fileInput=document.createElement('input');fileInput.type='file';fileInput.disabled=true;fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
+            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'Upload '+name+' document(s).';
+            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
             const uploadStatus=document.createElement('div');uploadStatus.className='doc-upload-status';uploadStatus.style.cssText='grid-column:1/-1;font-size:.78rem;overflow-wrap:anywhere;color:var(--text-muted);';
-            const cloudCount=(old.attachments||[]).filter(file=>file.storageType==='firebase-storage'||file.path).length;const localCount=attachmentCount-cloudCount;uploadStatus.textContent=attachmentCount?(cloudCount===attachmentCount?'✅ '+cloudCount+' file(s) cloud par uploaded — file names neeche hain.':cloudCount?'☁️ '+cloudCount+' cloud · ⚠️ '+localCount+' local/old file(s)':'⚠️ '+attachmentCount+' file(s) local/old record mein hain; cloud upload confirm nahi hai.'):'🔒 Upload feature upgrade ke baad available hoga.';
+            const cloudCount=(old.attachments||[]).filter(file=>file.storageType==='firebase-storage'||file.path).length;const localCount=attachmentCount-cloudCount;uploadStatus.textContent=attachmentCount?(cloudCount===attachmentCount?'✅ '+cloudCount+' file(s) cloud par uploaded — file names neeche hain.':cloudCount?'☁️ '+cloudCount+' cloud · ⚠️ '+localCount+' local/old file(s)':'⚠️ '+attachmentCount+' file(s) local/old record mein hain; cloud upload confirm nahi hai.'):'📎 Abhi koi file upload nahi hui.';
             upload.onclick=()=>{fileInput.value='';fileInput.click();};
             fileInput.onchange=()=>uploadChecklistFiles(fileInput,name,uploadStatus);
             uploadWrap.append(upload,fileInput);
