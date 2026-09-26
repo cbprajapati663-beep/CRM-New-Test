@@ -2510,48 +2510,60 @@
             item.append(link,remove);wrap.appendChild(item);
         }); row.appendChild(wrap);
     }
-    window.uploadChecklistFiles=async function(input,name){
+    window.uploadChecklistFiles=async function(input,name,statusEl){
         const files=Array.from(input.files||[]);
-        if(!files.length)return;
+        if(!files.length){if(statusEl)statusEl.textContent='File select nahi hui.';return;}
+        const setStatus=(message,color)=>{if(statusEl){statusEl.textContent=message;statusEl.style.color=color||'var(--text-muted)';}};
         const leadId=document.getElementById('docTrackerLead').value;
         const lead=getLeadScopedList().find(x=>x.docId===leadId);
-        if(!lead){alert('Pehle customer select karein.');input.value='';return;}
-        if(files.some(file=>file.size>15*1024*1024)){alert('Har file 15 MB se chhoti honi chahiye.');input.value='';return;}
+        if(!lead){setStatus('❌ Pehle customer select karein.','#f87171');input.value='';return;}
+        if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB se chhoti honi chahiye.','#f87171');input.value='';alert('Har file 15 MB se chhoti honi chahiye.');return;}
         const sessionUser=getCurrentSessionUser();
         const oldEntry=documentEntryFor(lead,name);
         const uploaded=[];
         input.disabled=true;
+        setStatus('⏳ '+files.length+' file(s) upload ho rahi hain…','#fbbf24');
         try{
-            if(!window.firebase||typeof firebase.storage!=='function')throw new Error('Firebase Storage SDK load nahi hua. Page refresh karke dobara try karein.');
+            if(!window.firebase||typeof firebase.storage!=='function')throw new Error('Firebase Storage SDK load nahi hua. Internet aur page refresh check karein.');
             const storage=firebase.storage();
-            for(const file of files){
+            const bucket=storage.ref().toString();
+            if(!bucket)throw new Error('Firebase Storage bucket configure nahi hai.');
+            for(let index=0;index<files.length;index++){
+                const file=files[index];
                 const path='customer-documents/'+encodeURIComponent(sessionUser&&sessionUser.tenantId||'tenant')+'/'+encodeURIComponent(leadId)+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safeDocumentFileName(file.name);
-                const snapshot=await storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
+                setStatus('⏳ Upload '+(index+1)+'/'+files.length+': '+file.name,'#fbbf24');
+                const task=storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
+                const snapshot=await new Promise((resolve,reject)=>task.on('state_changed',snap=>{
+                    const pct=snap.totalBytes?Math.round(snap.bytesTransferred/snap.totalBytes*100):0;
+                    setStatus('⏳ '+file.name+' — '+pct+'%','#fbbf24');
+                },reject,()=>resolve(task.snapshot)));
                 const url=await snapshot.ref.getDownloadURL();
                 uploaded.push({name:file.name,url,path,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'});
             }
             const baseDocs=Array.isArray(lead.documents)?lead.documents:[];
             const docs=baseDocs.filter(d=>d.name!==name);
             docs.push({...oldEntry,name,attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
+            setStatus('⏳ File Storage mein aa gayi. Checklist mein save kar rahe hain…','#fbbf24');
             await leadsCollection.doc(leadId).update({documents:docs});
-            // Keep the in-memory lead cache in sync with Firestore; otherwise the
-            // UI re-renders stale documents and the Share checkbox stays disabled.
             const cachedLead=leads.find(item=>item.docId===leadId);
             if(cachedLead)cachedLead.documents=docs;
             lead.documents=docs;
             loadDocumentChecklist();
-            alert('✅ '+uploaded.length+' file(s) upload ho gayi aur checklist mein save ho gayi.');
+            alert('✅ '+uploaded.length+' file(s) upload aur checklist mein save ho gayi.');
         }catch(error){
             console.error('Document upload failed:',error);
             const code=error&&error.code?String(error.code):'unknown';
-            const detail=error&&error.message?String(error.message):'Unknown error';
+            const detail=error&&error.message?String(error.message):String(error||'Unknown error');
             let hint='';
             if(code.includes('unauthorized')||code.includes('permission-denied'))hint=' Firebase Storage Rules mein upload permission check karein.';
             else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console mein Storage bucket enable karein aur bucket name verify karein.';
-            else if(code.includes('unauthenticated'))hint=' App login Firebase Authentication session nahi banata; Storage Rules agar Firebase Auth maangti hain to authentication setup karna hoga.';
+            else if(code.includes('unauthenticated'))hint=' Firebase Storage Rules login maang rahi hain, lekin app Firebase Auth sign-in nahi karta.';
             else if(code.includes('quota-exceeded'))hint=' Firebase Storage quota/billing limit check karein.';
-            else if(code.includes('storage/unknown')||code.includes('unknown'))hint=' Firebase Console > Storage, bucket configuration, network aur browser Console ka error check karein.';
-            alert('❌ Upload nahi hua. Error: '+code+' — '+detail+hint);
+            else if(code.includes('cors'))hint=' Firebase Storage bucket ki CORS settings check karein.';
+            else if(code.includes('storage/unknown')||code.includes('unknown'))hint=' Firebase Console > Storage, bucket aur network check karein.';
+            const message='❌ Upload fail ('+code+'): '+detail+hint;
+            setStatus(message,'#f87171');
+            alert(message);
         }finally{
             input.disabled=false;
             input.value='';
@@ -2645,15 +2657,20 @@
             status.value=old.status==='Pending'?'Pending':(old.status==='Received'||old.status==='Under Review'||old.status==='Verified'||old.status==='Rejected'||old.status==='Resubmission Required'?'Received':'Pending');
             const remarks=document.createElement('input');remarks.type='text';remarks.className='doc-check-remarks';remarks.dataset.docName=name;remarks.placeholder='Remarks / reason';remarks.value=old.remarks||'';remarks.maxLength=300;remarks.style.cssText='width:100%;min-width:0;box-sizing:border-box;';
             const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
-            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.style.display='none';fileInput.onchange=()=>uploadChecklistFiles(fileInput,name);
             const attachmentCount=Array.isArray(old.attachments)?old.attachments.length:0;
-            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'No file uploaded yet. Click to upload.';upload.onclick=()=>fileInput.click();
+            const uploadWrap=document.createElement('span');uploadWrap.style.cssText='position:relative;display:inline-flex;align-items:center;';
+            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'No file uploaded yet. Click to choose file(s).';
+            const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.cssText='position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;'; 
+            const uploadStatus=document.createElement('div');uploadStatus.className='doc-upload-status';uploadStatus.style.cssText='grid-column:1/-1;font-size:.78rem;overflow-wrap:anywhere;color:var(--text-muted);';
+            uploadStatus.textContent=attachmentCount?'✅ '+attachmentCount+' file(s) uploaded and saved.':'No file uploaded yet.';
+            fileInput.onchange=()=>uploadChecklistFiles(fileInput,name,uploadStatus);
+            uploadWrap.append(upload,fileInput);
             const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:.78rem;';
             const share=document.createElement('input');share.type='checkbox';share.className='doc-share-check';share.dataset.docName=name;share.dataset.attachmentCount=String(attachmentCount);
             share.disabled=attachmentCount===0;
             share.title=attachmentCount===0?'Pehle is document ki file upload karein':'Uploaded file(s) share karne ke liye select karein';
             label.append(share,document.createTextNode(attachmentCount?'Share ('+attachmentCount+')':'Share'));
-            actions.append(upload,label,fileInput);row.append(title,status,remarks,actions);renderDocumentAttachments(row,old.attachments||[],name);rows.appendChild(row);
+            actions.append(uploadWrap,label);row.append(title,status,remarks,actions,uploadStatus);renderDocumentAttachments(row,old.attachments||[],name);rows.appendChild(row);
         });
         updateDocumentChecklistSummary();
         rows.querySelectorAll('.doc-check-status').forEach(el => el.addEventListener('change', updateDocumentChecklistSummary));
