@@ -2517,18 +2517,33 @@
         if(files.some(file=>file.size>15*1024*1024)){alert('Har file 15 MB se chhoti honi chahiye.');input.value='';return;}
         const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),uploaded=[];input.disabled=true;
         try{
+            if(!firebase||typeof firebase.storage!=='function')throw new Error('Firebase Storage SDK load nahi hua. Page refresh karke dobara try karein.');
             const storage=firebase.storage();
             for(const file of files){
-                const path='customer-documents/'+encodeURIComponent(sessionUser&&sessionUser.tenantId||'tenant')+'/'+encodeURIComponent(leadId)+'/'+Date.now()+'_'+safeDocumentFileName(file.name);
-                const snapshot=await storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
+                const path='customer-documents/'+encodeURIComponent(sessionUser&&sessionUser.tenantId||'tenant')+'/'+encodeURIComponent(leadId)+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safeDocumentFileName(file.name);
+                const task=storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
+                const snapshot=await task;
                 const url=await snapshot.ref.getDownloadURL();
                 uploaded.push({name:file.name,url,path,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'});
             }
             const docs=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>d.name!==name);
             docs.push({...oldEntry,name,attachments:[...(oldEntry.attachments||[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
-            await leadsCollection.doc(leadId).update({documents:docs});loadDocumentChecklist();alert('✅ '+uploaded.length+' file(s) upload ho gayi.');
-        }catch(error){console.error('Document upload failed:',error);alert('❌ Upload fail hua. Firebase Storage enabled hai aur Storage Rules access allow karti hain, ye check karein.');}
-        finally{input.disabled=false;input.value='';}
+            await leadsCollection.doc(leadId).update({documents:docs});
+            const freshLead=getLeadScopedList().find(x=>x.docId===leadId);
+            if(freshLead)Object.assign(lead,freshLead);
+            loadDocumentChecklist();
+            alert('✅ '+uploaded.length+' file(s) upload ho gayi aur checklist mein save ho gayi.');
+        }catch(error){
+            console.error('Document upload failed:',error);
+            const code=error&&error.code?String(error.code):'unknown';
+            const detail=error&&error.message?String(error.message):'Unknown error';
+            let hint='';
+            if(code.includes('unauthorized')||code.includes('permission-denied'))hint=' Storage Rules mein current user ko upload permission nahi mil rahi. Rules aur Firebase Authentication check karein.';
+            else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console mein Storage bucket enable/initialize karein aur bucket name verify karein.';
+            else if(code.includes('unauthenticated'))hint=' Firebase Storage ke liye authentication required hai; app ka login Firebase Auth session nahi banata.';
+            else if(code.includes('quota-exceeded'))hint=' Firebase Storage quota/billing limit check karein.';
+            alert('❌ Upload nahi hua. Error: '+code+' — '+detail+hint);
+        }finally{input.disabled=false;input.value='';}
     };
     window.shareChecklistDocuments=async function(){
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
@@ -2537,11 +2552,7 @@
         if(!checked.length){alert('Share karne ke liye document ke aage Share checkbox select karein.');return;}
         const selectedEntries=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name));
         const chosen=selectedEntries.flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
-        if(!chosen.length){
-            alert('Koi uploaded document share ke liye select nahi hai. Pehle Upload button se file upload karein.');
-            return;
-        }
-        const missing=checked.filter(name=>!selectedEntries.some(d=>d.name===name&&Array.isArray(d.attachments)&&d.attachments.length));
+        if(!chosen.length){alert('Koi uploaded document share ke liye select nahi hai. Pehle Upload button se file upload karein.');return;}
         const title='Customer Documents - '+(lead.name||'Customer');
         const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\\nSelected document files attached.';
         const safeName=value=>String(value||'document').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
@@ -2551,29 +2562,27 @@
             const files=[];
             for(const item of chosen){
                 let blob;
-                if(item.path){const url=await storage.ref().child(item.path).getDownloadURL();const response=await fetch(url);if(!response.ok)throw new Error('File download failed: '+item.name);blob=await response.blob();}
-                else {const response=await fetch(item.url);if(!response.ok)throw new Error('File download failed: '+item.name);blob=await response.blob();}
+                if(item.path){const url=await storage.ref().child(item.path).getDownloadURL();const response=await fetch(url);if(!response.ok)throw new Error('File download failed: '+item.name+' ('+response.status+')');blob=await response.blob();}
+                else {const response=await fetch(item.url);if(!response.ok)throw new Error('File download failed: '+item.name+' ('+response.status+')');blob=await response.blob();}
                 files.push(new File([blob],safeName(item.name),{type:item.contentType||blob.type||'application/octet-stream'}));
             }
-            let shareFile;
-            if(files.length===1){
-                shareFile=files[0];
-            }else{
+            let shareFiles=files;
+            if(checked.length>1){
                 if(!window.JSZip)throw new Error('ZIP library load nahi hui.');
                 const zip=new JSZip();
                 files.forEach((file,index)=>zip.file((index+1)+'_'+safeName(file.name),file));
                 const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
-                shareFile=new File([blob],safeName((lead.name||'Customer')+'_Documents.zip'),{type:'application/zip'});
+                shareFiles=[new File([blob],safeName((lead.name||'Customer')+'_Documents.zip'),{type:'application/zip'})];
             }
-            if(navigator.share&&navigator.canShare&&navigator.canShare({files:[shareFile]})){
-                await navigator.share({title,text:message,files:[shareFile]});
+            if(navigator.share&&navigator.canShare&&navigator.canShare({files:shareFiles})){
+                await navigator.share({title,text:message,files:shareFiles});
             }else{
-                downloadBlob(shareFile,shareFile.name);
-                alert(files.length===1?'File download ho gayi. Ab ise banker/financier ko attach karke bhej dein.':'Selected files ki ZIP download ho gayi. Ab ZIP ko banker/financier ko attach karke bhej dein.');
+                shareFiles.forEach(file=>downloadBlob(file,file.name));
+                alert(checked.length>1?'Selected documents ki ZIP download ho gayi.':'Selected file(s) original format mein download ho gayi. Ab attach karke bhej dein.');
             }
         }catch(error){
             console.error('Document share failed:',error);
-            if(error&&error.name!=='AbortError')alert('File share nahi ho paya. Network, Storage access aur ZIP library check karein.');
+            if(error&&error.name!=='AbortError')alert('File share nahi ho paya. '+(error&&error.message?error.message:'Network, Storage access aur ZIP library check karein.'));
         }
     };
     const documentChecklistStatuses = ['Pending', 'Received', 'Under Review', 'Verified', 'Rejected', 'Resubmission Required'];
