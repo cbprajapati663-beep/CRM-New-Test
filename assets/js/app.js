@@ -2575,43 +2575,59 @@
         const leadId=document.getElementById('docTrackerLead').value;
         const lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){setStatus('❌ Pehle customer select karein.','#f87171');input.value='';return;}
-        if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB ya usse chhoti honi chahiye.','#f87171');alert('Har file 15 MB ya usse chhoti honi chahiye.');input.value='';return;}
-        const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),uploaded=[],storageRefs=[];
+        if(files.some(file=>!file.size)){setStatus('❌ Empty file upload nahi ho sakti.','#f87171');input.value='';return;}
+        if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB ya usse chhoti honi chahiye.','#f87171');input.value='';return;}
+        const sessionUser=getCurrentSessionUser(),tenantId=sessionUser&&sessionUser.tenantId;
+        if(!tenantId){setStatus('❌ Secure tenant session nahi mila. Logout karke dobara login karein.','#f87171');input.value='';return;}
+        const uploaded=[],storageRefs=[],uploadButton=input.parentElement&&input.parentElement.querySelector('button');
         const formatBytes=value=>value<1024*1024?Math.max(1,Math.round(value/1024))+' KB':(value/1024/1024).toFixed(1)+' MB';
         const safeSegment=value=>String(value||'unknown').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,100);
-        input.disabled=true;
+        const setBusy=busy=>{input.disabled=busy;if(uploadButton){uploadButton.disabled=busy;uploadButton.textContent=busy?'⏳ Uploading…':(documentEntryFor(lead,name).attachments||[]).length?'＋ Add More ('+(documentEntryFor(lead,name).attachments||[]).length+')':'⬆ Upload';}};
+        setBusy(true);
         try{
-            if(!firebase.storage)throw new Error('Firebase Storage SDK load nahi hui. Page refresh karke dobara try karein.');
+            if(!window.firebase||!firebase.storage)throw new Error('Firebase Storage SDK load nahi hui. Page refresh karke retry karein.');
             const storage=firebase.storage();
             for(let index=0;index<files.length;index++){
                 const file=files[index];
-                setStatus('☁️ Cloud par upload ho raha hai… '+(index+1)+'/'+files.length+' · '+formatBytes(file.size),'#fbbf24');
-                const path='customer-documents/'+safeSegment(sessionUser&&sessionUser.tenantId)+'/'+safeSegment(leadId)+'/'+Date.now()+'_'+index+'_'+safeDocumentFileName(file.name);
+                setStatus('☁️ Cloud upload: '+(index+1)+'/'+files.length+' · '+file.name+' · '+formatBytes(file.size),'#fbbf24');
+                const path='customer-documents/'+safeSegment(tenantId)+'/'+safeSegment(leadId)+'/'+Date.now()+'_'+index+'_'+safeDocumentFileName(file.name);
                 const ref=storage.ref().child(path);storageRefs.push(ref);
-                const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(sessionUser&&sessionUser.tenantId||''),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
-                await task;
+                const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(tenantId),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
+                await new Promise((resolve,reject)=>task.on('state_changed',snapshot=>{
+                    const percent=snapshot.totalBytes?Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100):0;
+                    setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · '+percent+'%','#fbbf24');
+                },reject,resolve));
                 const url=await ref.getDownloadURL();
-                uploaded.push({name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'firebase-storage'});
+                uploaded.push({name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'firebase-storage'});
             }
-            const baseDocs=Array.isArray(lead.documents)?lead.documents:[],docs=baseDocs.filter(d=>d.name!==name);
-            docs.push({...oldEntry,name,status:oldEntry.status==='Received'?'Received':'Pending',attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
-            await leadsCollection.doc(leadId).update({documents:docs});
-            const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=docs;lead.documents=docs;
-            writeLocalDocumentMeta(leadId,docs);
+            const leadRef=leadsCollection.doc(leadId);
+            let savedDocs=[];
+            await db.runTransaction(async transaction=>{
+                const snapshot=await transaction.get(leadRef);
+                if(!snapshot.exists)throw new Error('Customer record cloud mein nahi mila. Lead refresh karke retry karein.');
+                const data=snapshot.data()||{},baseDocs=Array.isArray(data.documents)?data.documents:[],prior=baseDocs.find(doc=>doc.name===name)||{name,status:'Pending',remarks:'',attachments:[]};
+                savedDocs=baseDocs.filter(doc=>doc.name!==name);
+                savedDocs.push({...prior,name,status:prior.status==='Received'?'Received':'Pending',attachments:[...(Array.isArray(prior.attachments)?prior.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:tenantId});
+                transaction.update(leadRef,{documents:savedDocs});
+            });
+            const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=savedDocs;
+            lead.documents=savedDocs;writeLocalDocumentMeta(leadId,savedDocs);
             loadDocumentChecklist();
-            setStatus('✅ '+uploaded.length+' file(s) Firebase Cloud mein upload aur save ho gayi.','#4ade80');
-            alert('✅ '+uploaded.length+' file(s) cloud par upload ho gayi. Ab same tenant ke authorized devices se access ho sakti hain.');
+            const refreshedRow=document.querySelector('#docTrackerRows [data-doc-name="'+String(name).replace(/"/g,'')+'"]');
+            const refreshedStatus=refreshedRow&&refreshedRow.querySelector('.doc-upload-status');
+            if(refreshedStatus){refreshedStatus.textContent='✅ Uploaded to cloud · '+uploaded.length+' new file(s) · Total '+(savedDocs.find(doc=>doc.name===name)?.attachments||[]).length+' file(s). Neeche file name dikh raha hai.';refreshedStatus.style.color='#4ade80';}
         }catch(error){
             console.error('Cloud document upload failed:',error);
             await Promise.all(storageRefs.map(ref=>ref.delete().catch(()=>{})));
-            const raw=String(error&&error.code||error&&error.message||error||'Unknown error');
+            const code=String(error&&error.code||''),raw=String(error&&error.message||error||'Unknown error');
             let detail=raw;
-            if(/unauthorized|permission-denied|storage\/unauthorized/i.test(raw))detail='Firebase Storage permission denied. Storage Rules mein tenant ke liye upload access enable karna hoga.';
-            else if(/bucket|object-not-found|storage\/unknown/i.test(raw))detail='Firebase Storage bucket/configuration check karein.';
-            else if(/network|offline|unavailable/i.test(raw))detail='Internet connection nahi mila. Connection check karke retry karein.';
-            const message='❌ Cloud upload fail hua: '+detail;
-            setStatus(message,'#f87171');alert(message);
-        }finally{input.disabled=false;input.value='';}
+            if(/unauthorized|permission-denied|storage\/unauthorized/i.test(code+' '+raw))detail='Firebase Storage permission denied. Storage Rules / Firebase Authentication access ko admin se configure karna hoga.';
+            else if(/bucket|object-not-found|storage\/unknown|no default bucket/i.test(code+' '+raw))detail='Firebase Storage bucket missing ya incorrect hai. Firebase Console mein Storage bucket enable/verify karein.';
+            else if(/network|offline|unavailable|failed to fetch/i.test(code+' '+raw))detail='Network ya Firebase connection issue. Internet check karke retry karein.';
+            else if(/quota|storage\/quota-exceeded/i.test(code+' '+raw))detail='Firebase Storage quota limit exceed ho gayi hai.';
+            const message='❌ Upload save nahi hua: '+detail;
+            setStatus(message,'#f87171');
+        }finally{setBusy(false);input.value='';}
     };
     window.shareChecklistDocuments=async function(){
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
@@ -2692,7 +2708,7 @@
         const saved = Array.isArray(lead.documents) ? lead.documents : [];
         documentChecklistTemplates.forEach(name => {
             const old=saved.find(item=>item.name===name)||{};
-            const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:minmax(125px,1fr) minmax(130px,.8fr) minmax(130px,1fr);gap:8px;align-items:center;padding:10px;border:1px solid var(--card-border);border-radius:9px;';
+            const row=document.createElement('div');row.dataset.docName=name;row.style.cssText='display:grid;grid-template-columns:minmax(125px,1fr) minmax(130px,.8fr) minmax(130px,1fr);gap:8px;align-items:center;padding:10px;border:1px solid var(--card-border);border-radius:9px;';
             const title=document.createElement('strong');title.textContent=name;title.style.fontSize='.82rem';
             const status=document.createElement('select');status.className='doc-check-status';status.dataset.docName=name;status.style.cssText='width:100%;min-width:0;';
             documentChecklistStatuses.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;status.appendChild(option);});
@@ -2753,6 +2769,9 @@
                 documentChecklistUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 documentChecklistUpdatedBy: sessionUser && sessionUser.tenantId ? sessionUser.tenantId : 'system'
             });
+            lead.documents=documents;
+            const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=documents;
+            writeLocalDocumentMeta(leadId,documents);
             alert('✅ Document checklist cloud mein save ho gayi.');
         } catch (error) {
             console.error('Document checklist save error:', error);
