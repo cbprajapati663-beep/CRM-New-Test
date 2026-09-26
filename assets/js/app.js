@@ -1759,6 +1759,66 @@
         if (event.key === 'Escape') window.closeEmiCalculator();
     });
 
+    window.openAffordabilityCalculator = function () {
+        const modal = document.getElementById('affordabilityModal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        const income = document.getElementById('affMonthlyIncome');
+        if (income) income.focus();
+    };
+
+    window.closeAffordabilityCalculator = function () {
+        const modal = document.getElementById('affordabilityModal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.calculateAffordability = function () {
+        const income = Number(document.getElementById('affMonthlyIncome').value);
+        const existingEmi = Number(document.getElementById('affExistingEmi').value);
+        const principal = Number(document.getElementById('affLoanAmount').value);
+        const annualRate = Number(document.getElementById('affInterestRate').value);
+        const months = Number(document.getElementById('affTenureMonths').value);
+        const limitPercent = Number(document.getElementById('affFoirLimit').value);
+        const error = document.getElementById('affCalcError');
+        const result = document.getElementById('affCalcResult');
+        const showError = message => {
+            error.textContent = message;
+            error.style.display = 'block';
+            result.style.display = 'none';
+        };
+        if (!Number.isFinite(income) || income <= 0) return showError('Net monthly income 0 se zyada enter karein.');
+        if (!Number.isFinite(existingEmi) || existingEmi < 0) return showError('Existing EMI 0 ya usse zyada enter karein.');
+        if (!Number.isFinite(principal) || principal <= 0) return showError('Requested loan amount 0 se zyada enter karein.');
+        if (!Number.isFinite(annualRate) || annualRate < 0 || annualRate > 100) return showError('Interest rate 0 se 100% ke beech enter karein.');
+        if (!Number.isInteger(months) || months < 1 || months > 600) return showError('Tenure 1 se 600 months ke beech whole number mein enter karein.');
+        if (!Number.isFinite(limitPercent) || limitPercent <= 0 || limitPercent > 100) return showError('Ratio 1 se 100% ke beech enter karein.');
+
+        const rate = annualRate / 1200;
+        const emiFor = amount => rate === 0 ? amount / months : amount * rate * Math.pow(1 + rate, months) / (Math.pow(1 + rate, months) - 1);
+        const principalForEmi = emi => rate === 0 ? emi * months : emi * (Math.pow(1 + rate, months) - 1) / (rate * Math.pow(1 + rate, months));
+        const emi = emiFor(principal);
+        const totalEmi = existingEmi + emi;
+        const ratio = totalEmi / income * 100;
+        const capacity = Math.max(0, income * limitPercent / 100 - existingEmi);
+        const maxLoan = principalForEmi(capacity);
+        const fmt = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
+        document.getElementById('affMonthlyEmi').textContent = fmt(emi);
+        document.getElementById('affTotalEmi').textContent = fmt(totalEmi);
+        document.getElementById('affFoirValue').textContent = ratio.toFixed(1) + '%';
+        document.getElementById('affCapacity').textContent = fmt(capacity);
+        document.getElementById('affMaxLoan').textContent = fmt(maxLoan);
+        const status = document.getElementById('affEligibilityStatus');
+        const withinLimit = totalEmi <= income * limitPercent / 100;
+        status.textContent = withinLimit ? '✓ Within entered affordability limit' : '⚠ Above entered affordability limit';
+        status.style.color = withinLimit ? '#4ade80' : '#f87171';
+        error.style.display = 'none';
+        result.style.display = 'block';
+    };
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') window.closeAffordabilityCalculator();
+    });
+
     window.generateDO = async function(docId) {
         const l = leads.find(item => item.docId === docId);
         if (!l) return;
