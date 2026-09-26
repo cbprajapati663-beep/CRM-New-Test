@@ -2647,28 +2647,9 @@
                         :/quota|storage\/quota-exceeded/i.test(code+' '+raw)
                             ?'Firebase Storage quota limit exceed.'
                             :'Cloud upload failed: '+raw;
-            try{
-                const localUploaded=[];
-                for(const file of files){
-                    const localKey='doc_'+safeSegment(tenantId)+'_'+safeSegment(leadId)+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
-                    await saveLocalDocument(localKey,file);
-                    localUploaded.push({name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'local-device'});
-                }
-                const prior=documentEntryFor(lead,name);
-                const localDocs=(Array.isArray(lead.documents)?lead.documents:[]).filter(doc=>doc.name!==name);
-                localDocs.push({...prior,name,status:prior.status==='Received'?'Received':'Pending',attachments:[...(Array.isArray(prior.attachments)?prior.attachments:[]),...localUploaded],updatedAt:new Date().toISOString(),updatedBy:tenantId});
-                lead.documents=localDocs;
-                const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=localDocs;
-                if(!writeLocalDocumentMeta(leadId,localDocs))throw new Error('Local metadata save nahi ho saka. Browser storage space check karein.');
-                loadDocumentChecklist();
-                const refreshedRow=document.querySelector('#docTrackerRows [data-doc-name="'+String(name).replace(/"/g,'')+'"]');
-                const refreshedStatus=refreshedRow&&refreshedRow.querySelector('.doc-upload-status');
-                if(refreshedStatus){refreshedStatus.textContent='⚠️ '+localUploaded.length+' file(s) sirf isi device/browser par save hui—CLOUD PAR UPLOAD NAHI HUI. Total '+(localDocs.find(doc=>doc.name===name)?.attachments||[]).length+' local file(s). '+detail;refreshedStatus.style.color='#fbbf24';}
-                alert('⚠️ File isi device/browser par save hui, cloud par nahi. Dusre device par nahi dikhegi.\nReason: '+detail+'\nFirebase Storage Rules/Auth aur bucket settings check karni hongi.');
-            }catch(localError){
-                console.error('Local document fallback failed:',localError);
-                setStatus('❌ Upload save nahi hua. Cloud: '+detail+' Local: '+(localError.message||localError),'#f87171');
-            }
+            const errorCode=code||'unknown';
+            setStatus('❌ CLOUD UPLOAD FAILED · '+errorCode+' · '+detail+' '+raw,'#f87171');
+            alert('❌ Document cloud par upload nahi hua.\nError code: '+errorCode+'\nReason: '+raw+'\n\nFirebase Console mein Storage enabled, sahi bucket ('+String(firebaseConfig.storageBucket||'not set')+') aur Storage Rules/Auth check karein. File ko uploaded mark nahi kiya gaya.');
         }finally{setBusy(false);input.value='';}
     };
     window.shareChecklistDocuments=async function(){
@@ -2759,10 +2740,10 @@
             const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
             const attachmentCount=Array.isArray(old.attachments)?old.attachments.length:0;
             const uploadWrap=document.createElement('span');uploadWrap.style.cssText='display:inline-flex;align-items:center;';
-            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'No file uploaded yet. Click to choose file(s).';
+            const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'📎 Uploaded ('+attachmentCount+') · ＋ Add More':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) already attached below. Click to add more files.':'No file uploaded yet. Click to choose file(s).';
             const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
             const uploadStatus=document.createElement('div');uploadStatus.className='doc-upload-status';uploadStatus.style.cssText='grid-column:1/-1;font-size:.78rem;overflow-wrap:anywhere;color:var(--text-muted);';
-            const cloudCount=(old.attachments||[]).filter(file=>file.storageType==='firebase-storage'||file.path).length;const localCount=attachmentCount-cloudCount;uploadStatus.textContent=attachmentCount?(cloudCount===attachmentCount?'☁️ '+cloudCount+' file(s) cloud mein uploaded':cloudCount?'☁️ '+cloudCount+' cloud · ⚠️ '+localCount+' old/local file(s)':'⚠️ '+attachmentCount+' old/local file(s), cloud par nahi'):'No file uploaded yet.';
+            const cloudCount=(old.attachments||[]).filter(file=>file.storageType==='firebase-storage'||file.path).length;const localCount=attachmentCount-cloudCount;uploadStatus.textContent=attachmentCount?(cloudCount===attachmentCount?'✅ '+cloudCount+' file(s) cloud par uploaded — file names neeche hain.':cloudCount?'☁️ '+cloudCount+' cloud · ⚠️ '+localCount+' local/old file(s)':'⚠️ '+attachmentCount+' file(s) local/old record mein hain; cloud upload confirm nahi hai.'):'❌ Abhi koi file upload nahi hai.';
             upload.onclick=()=>{fileInput.value='';fileInput.click();};
             fileInput.onchange=()=>uploadChecklistFiles(fileInput,name,uploadStatus);
             uploadWrap.append(upload,fileInput);
