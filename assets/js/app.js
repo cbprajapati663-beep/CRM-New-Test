@@ -2612,7 +2612,7 @@
             const files=[];
             for(const item of chosen){
                 let blob;
-                if(item.path){const url=await storage.ref().child(item.path).getDownloadURL();const response=await fetch(url);if(!response.ok)throw new Error('File download failed: '+item.name+' ('+response.status+')');blob=await response.blob();}
+                if(item.path){const itemStorage=item.bucket?firebase.app().storage('gs://'+item.bucket):storage;const url=await itemStorage.ref().child(item.path).getDownloadURL();const response=await fetch(url);if(!response.ok)throw new Error('File download failed: '+item.name+' ('+response.status+')');blob=await response.blob();}
                 else {const response=await fetch(item.url);if(!response.ok)throw new Error('File download failed: '+item.name+' ('+response.status+')');blob=await response.blob();}
                 files.push(new File([blob],safeName(item.name),{type:item.contentType||blob.type||'application/octet-stream'}));
             }
