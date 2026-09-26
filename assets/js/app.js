@@ -2578,7 +2578,19 @@
         const documents = Array.from(document.querySelectorAll('#docTrackerRows .doc-check-status')).map(statusEl => {
             const name = statusEl.dataset.docName;
             const remarksEl = document.querySelector('#docTrackerRows .doc-check-remarks[data-doc-name="' + name.replace(/"/g, '') + '"]');
-            return { name, status: statusEl.value, remarks: remarksEl ? remarksEl.value.trim().slice(0,300) : '' };
+            const prior = (Array.isArray(lead.documents) ? lead.documents : []).find(item => item.name === name) || {};
+            const status = statusEl.value;
+            const remarks = remarksEl ? remarksEl.value.trim().slice(0,300) : '';
+            const entry = {
+                name, status, remarks,
+                updatedAt: new Date().toISOString(),
+                updatedBy: sessionUser && sessionUser.tenantId ? sessionUser.tenantId : 'system'
+            };
+            if (status === 'Verified') {
+                entry.verifiedAt = prior.status === 'Verified' && prior.verifiedAt ? prior.verifiedAt : new Date().toISOString();
+                entry.verifiedBy = prior.status === 'Verified' && prior.verifiedBy ? prior.verifiedBy : entry.updatedBy;
+            }
+            return entry;
         });
         try {
             await leadsCollection.doc(leadId).update({
