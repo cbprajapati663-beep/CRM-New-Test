@@ -2555,7 +2555,7 @@
                             timeoutError.code='upload-timeout';
                             try{task.cancel();}catch(_){}
                             reject(timeoutError);
-                        },60000);
+                        },15000);
                         const finish=(callback,value)=>{
                             if(settled)return;
                             settled=true;
