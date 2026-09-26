@@ -787,47 +787,49 @@
         const scopedLeads = getLeadScopedList();
         const u = getCurrentSessionUser();
         const isAdmin = (u && u.role === 'superadmin' && !inspectingTenantId);
-
-        let liveCount = 0;
-        let loginCount = 0, loginAmount = 0;
-        let disburseCount = 0, disbursedAmount = 0;
-        let totalHoldPending = 0;
-
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayKey = [today.getFullYear(), String(today.getMonth()+1).padStart(2,'0'), String(today.getDate()).padStart(2,'0')].join('-');
+        const isOpen = lead => !['Disbursed','Rejected','Not Interested','Cancelled'].includes(String(lead.status || ''));
+        const safeDateKey = value => String(value || '').slice(0, 10);
+        let liveCount = 0, loginCount = 0, loginAmount = 0;
+        let disburseCount = 0, disbursedAmount = 0, totalHoldPending = 0;
+        let overdueCount = 0, dueTodayCount = 0, noFollowUpCount = 0, docsPendingCount = 0;
         scopedLeads.forEach(l => {
             const amt = Number(String(l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
-
-            if (l.status !== 'Disbursed' && l.status !== 'Rejected' && l.status !== 'Not Interested') {
-                liveCount++;
-                loginCount++;
-                loginAmount += amt;
+            if (isOpen(l)) {
+                liveCount++; loginCount++; loginAmount += amt;
+                const followKey = safeDateKey(l.followDate || l.followUpDate || '');
+                if (!followKey) noFollowUpCount++;
+                else {
+                    const followDate = new Date(followKey + 'T00:00:00');
+                    if (!Number.isNaN(followDate.getTime())) {
+                        if (followKey < todayKey) overdueCount++;
+                        else if (followKey === todayKey) dueTodayCount++;
+                    }
+                }
+                if (String(l.status || '') === 'Documents Pending') docsPendingCount++;
             }
             if (l.status === 'Disbursed') {
-                disburseCount++;
-                disbursedAmount += disAmt;
-                if (l.holdStatus === 'Hold Kept') {
-                    totalHoldPending += Number(String(l.holdAmount || 0).replace(/[^0-9.]/g, '')) || 0;
-                }
+                disburseCount++; disbursedAmount += disAmt;
+                if (l.holdStatus === 'Hold Kept') totalHoldPending += Number(String(l.holdAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             }
         });
-
-        document.getElementById('lbl-live-leads').textContent = isAdmin ? "All Users Live Files" : "Live Open Files";
-        document.getElementById('lbl-login-leads').textContent = isAdmin ? "All Users Login Files" : "Login Files";
-        document.getElementById('lbl-login-amount').textContent = isAdmin ? "All Users Login Amt (₹)" : "Total Login Amt (₹)";
-        document.getElementById('lbl-disburse-leads').textContent = isAdmin ? "All Users Disbursed (No)" : "Disbursed (Closed)";
-        document.getElementById('lbl-month-business').textContent = isAdmin ? "All Users Disbursed Amt (₹)" : "Total Disbursed (₹)";
-
-        document.getElementById('m-live-leads').textContent = liveCount;
-        document.getElementById('badge-live-count').textContent = liveCount;
-        document.getElementById('m-login-leads').textContent = loginCount;
-        document.getElementById('m-login-amount').textContent = formatINR(loginAmount);
-        document.getElementById('m-disburse-leads').textContent = disburseCount;
-        document.getElementById('badge-disbursed-count').textContent = disburseCount;
-        document.getElementById('m-month-business').textContent = formatINR(disbursedAmount);
-        document.getElementById('m-total-hold').textContent = formatINR(totalHoldPending);
-        document.getElementById('tab-total-hold').textContent = formatINR(totalHoldPending);
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+        setText('lbl-live-leads', isAdmin ? 'All Users Live Files' : 'Live Open Files');
+        setText('lbl-login-leads', isAdmin ? 'All Users Login Files' : 'Login Files');
+        setText('lbl-login-amount', isAdmin ? 'All Users Login Amt (₹)' : 'Total Login Amt (₹)');
+        setText('lbl-disburse-leads', isAdmin ? 'All Users Disbursed (No)' : 'Disbursed (Closed)');
+        setText('lbl-month-business', isAdmin ? 'All Users Disbursed Amt (₹)' : 'Total Disbursed (₹)');
+        setText('m-live-leads', liveCount); setText('badge-live-count', liveCount);
+        setText('m-login-leads', loginCount); setText('m-login-amount', formatINR(loginAmount));
+        setText('m-disburse-leads', disburseCount); setText('badge-disbursed-count', disburseCount);
+        setText('m-month-business', formatINR(disbursedAmount));
+        setText('m-total-hold', formatINR(totalHoldPending)); setText('tab-total-hold', formatINR(totalHoldPending));
+        setText('m-overdue-followups', overdueCount); setText('m-today-followups', dueTodayCount);
+        setText('m-no-followups', noFollowUpCount); setText('m-docs-pending', docsPendingCount);
     }
-
     window.clearPipelineFilters = function() {
         const q = document.getElementById('searchQuery');
         const st = document.getElementById('filterStatus');
