@@ -676,3 +676,39 @@
             '#printRoot .do-paper p{color:#536273!important;line-height:1.45!important;}' +
             '#printRoot .do-paper .do-signatures{border-top:1px solid #d9dee6!important;padding-top:18px!important;}' +
             '
+
+
+/* Premium document refresh: Delivery Order + rent invoice */
+@media screen {
+  .do-modal-card #printableDOArea.delivery-order-paper,
+  .do-modal-card #printableRentBillArea.rent-bill-paper {
+    position:relative; isolation:isolate; overflow:hidden;
+    border-radius:14px !important; padding:10mm !important;
+    box-shadow:0 16px 42px rgba(8,20,36,.18), inset 0 0 0 1px rgba(255,255,255,.7) !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper::before,
+  .do-modal-card #printableRentBillArea.rent-bill-paper::before {
+    content:""; display:block; height:8px; margin:-10mm -10mm 16px;
+    background:linear-gradient(90deg,#d4af37,#f8e7a1,#d4af37);
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper h2 {font-size:20pt !important;letter-spacing:.8px !important;}
+  .do-modal-card #printableDOArea.delivery-order-paper h4 {
+    display:inline-block;padding:5px 12px;border-radius:999px;background:#edf4fa;color:#244e6b !important;letter-spacing:1px !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper > div[style*="VEHICLE DELIVERY ORDER"] {
+    background:linear-gradient(90deg,#102a43,#1b4965) !important;color:#fff !important;border:0 !important;border-radius:6px;padding:10px !important;letter-spacing:.8px;box-shadow:0 5px 14px rgba(16,42,67,.14);
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper #do_net_dealer_payable {font-size:17pt !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper {
+    border-color:#c4b5fd !important;border-top:7px solid #7c3aed !important;
+    background:radial-gradient(circle at 100% 0%,rgba(124,58,237,.10),transparent 30%),linear-gradient(180deg,#fff 0%,#fcfaff 100%) !important;
+  }
+  .do-modal-card #printableRentBillArea.rent-bill-paper::before {background:linear-gradient(90deg,#6d28d9,#c4b5fd,#7c3aed);}
+  .do-modal-card #printableRentBillArea.rent-bill-paper h2 {color:#4c1d95 !important;font-size:20pt !important;letter-spacing:.65px !important;border-bottom:3px solid #a78bfa !important;padding-bottom:10px !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper h4 {display:inline-block;padding:6px 13px;border-radius:999px;background:#f3e8ff;color:#6d28d9 !important;letter-spacing:1px !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-grid {background:#faf5ff !important;border-color:#ddd6fe !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-grid-item strong {color:#5b21b6 !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table th {background:linear-gradient(90deg,#5b21b6,#7c3aed) !important;border-color:#5b21b6 !important;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table tr:last-child td {background:#f3e8ff !important;color:#4c1d95 !important;border-top:2px solid #8b5cf6 !important;font-size:1.05em;}
+  .do-modal-card #printableRentBillArea.rent-bill-paper #billTotalPayable {font-size:18pt !important;font-weight:900 !important;color:#5b21b6 !important;}
+}
