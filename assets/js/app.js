@@ -2550,58 +2550,39 @@
     }
     window.uploadChecklistFiles=async function(input,name,statusEl){
         const files=Array.from(input.files||[]);
-        if(!files.length){if(statusEl)statusEl.textContent='File select nahi hui.';return;}
         const setStatus=(message,color)=>{if(statusEl){statusEl.textContent=message;statusEl.style.color=color||'var(--text-muted)';}};
+        if(!files.length){setStatus('File select nahi hui.');return;}
         const leadId=document.getElementById('docTrackerLead').value;
         const lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){setStatus('❌ Pehle customer select karein.','#f87171');input.value='';return;}
-        if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB se chhoti honi chahiye.','#f87171');alert('Har file 15 MB se chhoti honi chahiye.');input.value='';return;}
+        if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB ya usse chhoti honi chahiye.','#f87171');alert('Har file 15 MB ya usse chhoti honi chahiye.');input.value='';return;}
         const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),savedKeys=[],uploaded=[];
-        const totalBytes=files.reduce((sum,file)=>sum+file.size,0);
         const formatBytes=value=>value<1024*1024?Math.max(1,Math.round(value/1024))+' KB':(value/1024/1024).toFixed(1)+' MB';
         input.disabled=true;
         try{
             for(let index=0;index<files.length;index++){
                 const file=files[index];
-                setStatus('⏫ Upload ho raha hai… '+(index+1)+'/'+files.length+' · '+formatBytes(file.size),'#fbbf24');
-                let attachment=null;
-                try{
-                    const safeTenant=String((sessionUser&&sessionUser.tenantId)||lead.tenantId||'tenant').replace(/[^a-zA-Z0-9_-]/g,'_');
-                    const safeLead=String(leadId).replace(/[^a-zA-Z0-9_-]/g,'_');
-                    const safeName=safeDocumentFileName(file.name);
-                    const path='customer-documents/'+safeTenant+'/'+safeLead+'/'+Date.now()+'_'+index+'_'+safeName;
-                    const storage=firebase.storage();
-                    const ref=storage.ref().child(path);
-                    const snap=await ref.put(file,{contentType:file.type||'application/octet-stream'});
-                    const url=await snap.ref.getDownloadURL();
-                    attachment={name:file.name,url,path,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'firebase-storage'};
-                    setStatus('✅ '+(index+1)+'/'+files.length+' file cloud mein upload ho gayi.','#4ade80');
-                }catch(storageError){
-                    console.warn('Firebase Storage upload failed; using browser-local fallback:',storageError);
-                    const localKey='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,12)+'_'+index;
-                    await saveLocalDocument(localKey,file);savedKeys.push(localKey);
-                    attachment={name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'browser-local'};
-                    setStatus('⚠️ Cloud upload unavailable; '+(index+1)+'/'+files.length+' file local browser mein save ho gayi.','#fbbf24');
-                }
-                uploaded.push(attachment);
+                setStatus('💾 Device par save ho raha hai… '+(index+1)+'/'+files.length+' · '+formatBytes(file.size),'#fbbf24');
+                const localKey='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,12)+'_'+index;
+                await saveLocalDocument(localKey,file);
+                savedKeys.push(localKey);
+                uploaded.push({name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'browser-local'});
             }
             const baseDocs=Array.isArray(lead.documents)?lead.documents:[];
             const docs=baseDocs.filter(d=>d.name!==name);
             docs.push({...oldEntry,name,status:(oldEntry.status==='Received'?'Received':'Pending'),attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
-            setStatus('⏳ Upload complete. Checklist record save ho raha hai…','#fbbf24');
+            setStatus('⏳ Files device par save ho gayi. Checklist cloud record sync ho raha hai…','#fbbf24');
             await leadsCollection.doc(leadId).update({documents:docs});
             const cachedLead=leads.find(item=>item.docId===leadId);
             if(cachedLead)cachedLead.documents=docs;
             lead.documents=docs;
             loadDocumentChecklist();
-            const cloudCount=uploaded.filter(f=>f.storageType==='firebase-storage').length;
-            const localCount=uploaded.length-cloudCount;
-            setStatus('✅ '+uploaded.length+' file(s) uploaded. '+(localCount?'('+localCount+' local fallback)':'Cloud storage'),'#4ade80');
-            alert('✅ '+uploaded.length+' file(s) upload ho gayi. Ab list mein file ka naam dikhega aur Share checkbox active hoga.'+(localCount?'\n\nNote: Firebase Storage available nahi tha, isliye '+localCount+' file browser/device local storage mein save hui hai.':''));
+            setStatus('✅ '+uploaded.length+' file(s) is device/browser mein save hui.','#4ade80');
+            alert('✅ '+uploaded.length+' file(s) is device/browser mein save ho gayi. File list mein naam dikhna chahiye. Ye files dusre device par sync nahi hoti.');
         }catch(error){
-            console.error('Document upload failed:',error);
+            console.error('Local document save/sync failed:',error);
             await Promise.all(savedKeys.map(key=>deleteLocalDocument(key).catch(()=>{})));
-            const message='❌ File upload nahi hui: '+(error&&error.message?error.message:String(error));
+            const message='❌ Document save nahi hua: '+(error&&error.message?error.message:String(error))+(String(error&&error.code||'').includes('permission')?'\nFirebase Firestore permission check karein.':'');
             setStatus(message,'#f87171');alert(message);
         }finally{input.disabled=false;input.value='';}
     };
