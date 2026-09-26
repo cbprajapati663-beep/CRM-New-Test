@@ -2517,50 +2517,76 @@
         const leadId=document.getElementById('docTrackerLead').value;
         const lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){setStatus('❌ Pehle customer select karein.','#f87171');input.value='';return;}
-        if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB se chhoti honi chahiye.','#f87171');input.value='';alert('Har file 15 MB se chhoti honi chahiye.');return;}
+        if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB se chhoti honi chahiye.','#f87171');alert('Har file 15 MB se chhoti honi chahiye.');input.value='';return;}
+        if(!navigator.onLine){setStatus('❌ Internet connection nahi hai.','#f87171');alert('Internet connect karke dobara upload karein.');input.value='';return;}
         const sessionUser=getCurrentSessionUser();
         const oldEntry=documentEntryFor(lead,name);
         const uploaded=[];
+        const tasks=[];
+        const progress=new Map(files.map((file,index)=>[index,0]));
+        const totalBytes=files.reduce((sum,file)=>sum+file.size,0);
+        const formatBytes=value=>value<1024*1024?Math.round(value/1024)+' KB':(value/1024/1024).toFixed(1)+' MB';
+        const setProgress=()=>{
+            const transferred=Array.from(progress.values()).reduce((sum,value)=>sum+value,0);
+            const pct=totalBytes?Math.min(100,Math.round(transferred/totalBytes*100)):100;
+            setStatus('⏫ Uploading '+pct+'% ('+formatBytes(transferred)+' / '+formatBytes(totalBytes)+') · '+files.length+' file(s)','#fbbf24');
+        };
         input.disabled=true;
-        setStatus('⏳ '+files.length+' file(s) upload ho rahi hain…','#fbbf24');
+        setStatus('⏳ Upload shuru ho raha hai…','#fbbf24');
         try{
-            if(!window.firebase||typeof firebase.storage!=='function')throw new Error('Firebase Storage SDK load nahi hua. Internet aur page refresh check karein.');
-            const storage=firebase.storage();
-            const bucket=storage.ref().toString();
-            if(!bucket)throw new Error('Firebase Storage bucket configure nahi hai.');
-            for(let index=0;index<files.length;index++){
-                const file=files[index];
-                const path='customer-documents/'+encodeURIComponent(sessionUser&&sessionUser.tenantId||'tenant')+'/'+encodeURIComponent(leadId)+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safeDocumentFileName(file.name);
-                setStatus('⏳ Upload '+(index+1)+'/'+files.length+': '+file.name,'#fbbf24');
-                const task=storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
-                const snapshot=await new Promise((resolve,reject)=>task.on('state_changed',snap=>{
-                    const pct=snap.totalBytes?Math.round(snap.bytesTransferred/snap.totalBytes*100):0;
-                    setStatus('⏳ '+file.name+' — '+pct+'%','#fbbf24');
-                },reject,()=>resolve(task.snapshot)));
-                const url=await snapshot.ref.getDownloadURL();
-                uploaded.push({name:file.name,url,path,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'});
-            }
+            if(!window.firebase||typeof firebase.storage!=='function')throw new Error('Firebase Storage SDK load nahi hua. Page refresh aur internet check karein.');
+            const app=firebase.app();
+            const defaultStorage=firebase.storage();
+            const defaultBucket=String(app.options.storageBucket||'').replace(/^gs:\/\//,'').replace(/\/$/,'');
+            if(!defaultBucket)throw new Error('Firebase config mein storageBucket nahi hai. Firebase Console se exact bucket name set karein.');
+            const alternateBucket=defaultBucket.endsWith('.firebasestorage.app')?defaultBucket.replace(/\.firebasestorage\.app$/,'.appspot.com'):(defaultBucket.endsWith('.appspot.com')?defaultBucket.replace(/\.appspot\.com$/,'.firebasestorage.app'):'');
+            const uploadOne=async(file,index)=>{
+                const makePath=()=> 'customer-documents/'+encodeURIComponent(sessionUser&&sessionUser.tenantId||'tenant')+'/'+encodeURIComponent(leadId)+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safeDocumentFileName(file.name);
+                const uploadTo=async(storage,bucket)=>{
+                    const path=makePath();
+                    const task=storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
+                    tasks[index]=task;
+                    const snapshot=await new Promise((resolve,reject)=>task.on('state_changed',snap=>{
+                        progress.set(index,snap.bytesTransferred||0);
+                        setProgress();
+                    },reject,()=>resolve(task.snapshot)));
+                    const url=await snapshot.ref.getDownloadURL();
+                    progress.set(index,file.size);setProgress();
+                    return {name:file.name,url,path,bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'};
+                };
+                try{return await uploadTo(defaultStorage,defaultBucket);}
+                catch(error){
+                    const code=String(error&&error.code||'');
+                    if(!alternateBucket||!(code.includes('bucket-not-found')||code.includes('object-not-found')))throw error;
+                    const alternateStorage=app.storage('gs://'+alternateBucket);
+                    return await uploadTo(alternateStorage,alternateBucket);
+                }
+            };
+            setProgress();
+            const results=await Promise.all(files.map((file,index)=>uploadOne(file,index)));
+            uploaded.push(...results);
             const baseDocs=Array.isArray(lead.documents)?lead.documents:[];
             const docs=baseDocs.filter(d=>d.name!==name);
             docs.push({...oldEntry,name,attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
-            setStatus('⏳ File Storage mein aa gayi. Checklist mein save kar rahe hain…','#fbbf24');
+            setStatus('⏳ Upload complete. Checklist cloud mein save ho rahi hai…','#fbbf24');
             await leadsCollection.doc(leadId).update({documents:docs});
             const cachedLead=leads.find(item=>item.docId===leadId);
             if(cachedLead)cachedLead.documents=docs;
             lead.documents=docs;
             loadDocumentChecklist();
-            alert('✅ '+uploaded.length+' file(s) upload aur checklist mein save ho gayi.');
+            alert('✅ '+uploaded.length+' file(s) successfully upload aur save ho gayi.');
         }catch(error){
+            tasks.forEach(task=>{try{if(task&&task.snapshot&&task.snapshot.state==='running')task.cancel();}catch(_){}});
             console.error('Document upload failed:',error);
-            const code=error&&error.code?String(error.code):'unknown';
-            const detail=error&&error.message?String(error.message):String(error||'Unknown error');
+            const code=String(error&&error.code||'unknown');
+            const detail=String(error&&error.message||error||'Unknown error');
             let hint='';
-            if(code.includes('unauthorized')||code.includes('permission-denied'))hint=' Firebase Storage Rules mein upload permission check karein.';
-            else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console mein Storage bucket enable karein aur bucket name verify karein.';
-            else if(code.includes('unauthenticated'))hint=' Firebase Storage Rules login maang rahi hain, lekin app Firebase Auth sign-in nahi karta.';
-            else if(code.includes('quota-exceeded'))hint=' Firebase Storage quota/billing limit check karein.';
+            if(code.includes('unauthorized')||code.includes('permission-denied'))hint=' Firebase Storage Rules upload ko allow nahi kar rahi hain.';
+            else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console > Storage mein actual bucket name verify karein; project par Storage bucket create/enable hona chahiye.';
+            else if(code.includes('unauthenticated'))hint=' Storage Rules Firebase Authentication maang rahi hain, lekin app sign-in nahi karta.';
+            else if(code.includes('quota-exceeded'))hint=' Storage billing/quota limit check karein.';
+            else if(code.includes('retry-limit-exceeded'))hint=' Network slow ya unstable hai. Stable internet par chhoti file se retry karein.';
             else if(code.includes('cors'))hint=' Firebase Storage bucket ki CORS settings check karein.';
-            else if(code.includes('storage/unknown')||code.includes('unknown'))hint=' Firebase Console > Storage, bucket aur network check karein.';
             const message='❌ Upload fail ('+code+'): '+detail+hint;
             setStatus(message,'#f87171');
             alert(message);
