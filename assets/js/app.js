@@ -2587,7 +2587,11 @@
         try{
             if(!window.firebase||!firebase.storage)throw new Error('Firebase Storage SDK load nahi hui. Page refresh karke retry karein.');
             const defaultBucket=String(firebaseConfig.storageBucket||'').trim();
-            const bucketCandidates=Array.from(new Set([defaultBucket,String(firebaseConfig.projectId||'')+'.appspot.com'].filter(Boolean)));
+            // Use the configured Firebase bucket as the source of truth. Blindly trying
+            // projectId.appspot.com can hide the real permission/bucket error when the
+            // project uses the newer .firebasestorage.app bucket format.
+            const bucketCandidates=defaultBucket?[defaultBucket]:[String(firebaseConfig.projectId||'')+'.appspot.com'].filter(Boolean);
+            if(!bucketCandidates.length)throw new Error('Firebase Storage bucket config missing. Firebase Console se actual bucket name set karein.');
             for(let index=0;index<files.length;index++){
                 const file=files[index];
                 setStatus('☁️ Cloud upload: '+(index+1)+'/'+files.length+' · '+file.name+' · '+formatBytes(file.size),'#fbbf24');
