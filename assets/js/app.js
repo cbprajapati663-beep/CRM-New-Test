@@ -2511,26 +2511,34 @@
         }); row.appendChild(wrap);
     }
     window.uploadChecklistFiles=async function(input,name){
-        const files=Array.from(input.files||[]);if(!files.length)return;
-        const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
+        const files=Array.from(input.files||[]);
+        if(!files.length)return;
+        const leadId=document.getElementById('docTrackerLead').value;
+        const lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){alert('Pehle customer select karein.');input.value='';return;}
         if(files.some(file=>file.size>15*1024*1024)){alert('Har file 15 MB se chhoti honi chahiye.');input.value='';return;}
-        const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),uploaded=[];input.disabled=true;
+        const sessionUser=getCurrentSessionUser();
+        const oldEntry=documentEntryFor(lead,name);
+        const uploaded=[];
+        input.disabled=true;
         try{
-            if(!firebase||typeof firebase.storage!=='function')throw new Error('Firebase Storage SDK load nahi hua. Page refresh karke dobara try karein.');
+            if(!window.firebase||typeof firebase.storage!=='function')throw new Error('Firebase Storage SDK load nahi hua. Page refresh karke dobara try karein.');
             const storage=firebase.storage();
             for(const file of files){
                 const path='customer-documents/'+encodeURIComponent(sessionUser&&sessionUser.tenantId||'tenant')+'/'+encodeURIComponent(leadId)+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safeDocumentFileName(file.name);
-                const task=storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
-                const snapshot=await task;
+                const snapshot=await storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
                 const url=await snapshot.ref.getDownloadURL();
                 uploaded.push({name:file.name,url,path,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'});
             }
-            const docs=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>d.name!==name);
-            docs.push({...oldEntry,name,attachments:[...(oldEntry.attachments||[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
+            const baseDocs=Array.isArray(lead.documents)?lead.documents:[];
+            const docs=baseDocs.filter(d=>d.name!==name);
+            docs.push({...oldEntry,name,attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
             await leadsCollection.doc(leadId).update({documents:docs});
-            const freshLead=getLeadScopedList().find(x=>x.docId===leadId);
-            if(freshLead)Object.assign(lead,freshLead);
+            // Keep the in-memory lead cache in sync with Firestore; otherwise the
+            // UI re-renders stale documents and the Share checkbox stays disabled.
+            const cachedLead=leads.find(item=>item.docId===leadId);
+            if(cachedLead)cachedLead.documents=docs;
+            lead.documents=docs;
             loadDocumentChecklist();
             alert('✅ '+uploaded.length+' file(s) upload ho gayi aur checklist mein save ho gayi.');
         }catch(error){
@@ -2538,12 +2546,16 @@
             const code=error&&error.code?String(error.code):'unknown';
             const detail=error&&error.message?String(error.message):'Unknown error';
             let hint='';
-            if(code.includes('unauthorized')||code.includes('permission-denied'))hint=' Storage Rules mein current user ko upload permission nahi mil rahi. Rules aur Firebase Authentication check karein.';
-            else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console mein Storage bucket enable/initialize karein aur bucket name verify karein.';
-            else if(code.includes('unauthenticated'))hint=' Firebase Storage ke liye authentication required hai; app ka login Firebase Auth session nahi banata.';
+            if(code.includes('unauthorized')||code.includes('permission-denied'))hint=' Firebase Storage Rules mein upload permission check karein.';
+            else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console mein Storage bucket enable karein aur bucket name verify karein.';
+            else if(code.includes('unauthenticated'))hint=' App login Firebase Authentication session nahi banata; Storage Rules agar Firebase Auth maangti hain to authentication setup karna hoga.';
             else if(code.includes('quota-exceeded'))hint=' Firebase Storage quota/billing limit check karein.';
+            else if(code.includes('storage/unknown')||code.includes('unknown'))hint=' Firebase Console > Storage, bucket configuration, network aur browser Console ka error check karein.';
             alert('❌ Upload nahi hua. Error: '+code+' — '+detail+hint);
-        }finally{input.disabled=false;input.value='';}
+        }finally{
+            input.disabled=false;
+            input.value='';
+        }
     };
     window.shareChecklistDocuments=async function(){
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
