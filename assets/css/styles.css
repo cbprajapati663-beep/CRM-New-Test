@@ -715,6 +715,16 @@
             #printRoot .do-paper h4 {
                 color: #7a5a00 !important;
             }
+
+            /* Keep the DO title readable in the printed/PDF output.
+               The generic print rule above forces all div text to black. */
+            #printRoot .do-paper .official-document-ribbon {
+                color: #ffffff !important;
+                background: linear-gradient(100deg, #102a43 0%, #1b4965 68%, #102a43 100%) !important;
+                border-color: #d9bd68 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            } 
         }
     
         /* Mobile-first polish: navigation, forms, tables and dialogs */
