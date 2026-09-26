@@ -1461,6 +1461,40 @@
         renderFollowups();
     };
 
+    window.enableFollowupNotifications = async function () {
+        if (!('Notification' in window)) {
+            alert('Is browser mein notifications supported nahi hain.');
+            return;
+        }
+        let permission = Notification.permission;
+        if (permission === 'default') permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            alert('Browser notifications allow nahi hui. Browser site settings mein permission enable karein.');
+            return;
+        }
+
+        const due = getLeadScopedList().filter(l =>
+            l.followDate && l.followDate <= todayStr &&
+            l.status !== 'Disbursed' && l.status !== 'Rejected'
+        );
+        if (!due.length) {
+            alert('Aaj ya overdue follow-up koi pending nahi hai.');
+            return;
+        }
+        const title = due.length + ' Follow-up' + (due.length === 1 ? '' : 's') + ' Due';
+        const names = due.slice(0, 4).map(l => String(l.name || 'Customer')).join(', ');
+        const more = due.length > 4 ? ' +' + (due.length - 4) + ' more' : '';
+        const notification = new Notification(title, {
+            body: names + more + '. CRM kholkar follow-ups check karein.',
+            tag: 'haf-followup-due'
+        });
+        notification.onclick = function () {
+            window.focus();
+            switchView('followups');
+            notification.close();
+        };
+    };
+
     function getFollowupWhatsAppUrl(lead) {
         const digits = String(lead && lead.mobile || '').replace(/\\D/g, '');
         const phone = digits.length === 10 ? '91' + digits : (digits.length === 12 && digits.startsWith('91') ? digits : '');
