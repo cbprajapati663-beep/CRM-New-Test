@@ -2101,6 +2101,14 @@
             '#printRoot .do-paper .do-table tr:last-child td{background:#eaf8f2!important;color:#075e45!important;font-weight:800!important;border-top:2px solid #10b981!important;}' +
             '#printRoot .do-paper p{color:#536273!important;line-height:1.45!important;}' +
             '#printRoot .do-paper .do-signatures{border-top:1px solid #d9dee6!important;padding-top:18px!important;}' +
+            '#printRoot .rent-bill-paper{border:1px solid #c4b5fd!important;border-top:7px solid #7c3aed!important;background:#fcfaff!important;}' +
+            '#printRoot .rent-bill-paper h2{color:#4c1d95!important;border-bottom:3px solid #a78bfa!important;}' +
+            '#printRoot .rent-bill-paper h4{color:#6d28d9!important;}' +
+            '#printRoot .rent-bill-paper .do-grid{background:#faf5ff!important;border-color:#ddd6fe!important;}' +
+            '#printRoot .rent-bill-paper .do-grid-item strong{color:#5b21b6!important;}' +
+            '#printRoot .rent-bill-paper .do-table th{background:#5b21b6!important;border-color:#5b21b6!important;color:#fff!important;}' +
+            '#printRoot .rent-bill-paper .do-table tr:last-child td{background:#f3e8ff!important;color:#4c1d95!important;border-top:2px solid #8b5cf6!important;}' +
+            '#printRoot .rent-bill-paper #billTotalPayable{font-size:18pt!important;font-weight:900!important;color:#5b21b6!important;}' +
             '@page{size:A4 portrait;margin:10mm;}' +
             '@media print{html,body{width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important;}#printRoot{width:100%!important;height:auto!important;overflow:visible!important;}#printRoot .printable-section,#printRoot .do-paper{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}}' +
             '#printRoot.print-do-a4{width:190mm!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0 auto!important;overflow:visible!important;}' +
