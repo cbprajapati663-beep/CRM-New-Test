@@ -2546,10 +2546,27 @@
                     const path=makePath();
                     const task=storage.ref().child(path).put(file,{contentType:file.type||'application/octet-stream'});
                     tasks[index]=task;
-                    const snapshot=await new Promise((resolve,reject)=>task.on('state_changed',snap=>{
-                        progress.set(index,snap.bytesTransferred||0);
-                        setProgress();
-                    },reject,()=>resolve(task.snapshot)));
+                    const snapshot=await new Promise((resolve,reject)=>{
+                        let settled=false;
+                        const timeout=setTimeout(()=>{
+                            if(settled)return;
+                            settled=true;
+                            const timeoutError=new Error('Storage server se 60 seconds tak response nahi mila. Upload request network, Firebase Storage bucket ya Storage Rules par atki ho sakti hai.');
+                            timeoutError.code='upload-timeout';
+                            try{task.cancel();}catch(_){}
+                            reject(timeoutError);
+                        },60000);
+                        const finish=(callback,value)=>{
+                            if(settled)return;
+                            settled=true;
+                            clearTimeout(timeout);
+                            callback(value);
+                        };
+                        task.on('state_changed',snap=>{
+                            progress.set(index,snap.bytesTransferred||0);
+                            setProgress();
+                        },error=>finish(reject,error),()=>finish(resolve,task.snapshot));
+                    });
                     const url=await snapshot.ref.getDownloadURL();
                     progress.set(index,file.size);setProgress();
                     return {name:file.name,url,path,bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system'};
@@ -2585,6 +2602,7 @@
             else if(code.includes('bucket-not-found')||code.includes('no-default-bucket'))hint=' Firebase Console > Storage mein actual bucket name verify karein; project par Storage bucket create/enable hona chahiye.';
             else if(code.includes('unauthenticated'))hint=' Storage Rules Firebase Authentication maang rahi hain, lekin app sign-in nahi karta.';
             else if(code.includes('quota-exceeded'))hint=' Storage billing/quota limit check karein.';
+            else if(code.includes('upload-timeout'))hint=' Firebase Console > Storage mein bucket active hai ya nahi, exact bucket name aur Storage Rules verify karein. Browser DevTools > Network mein firebasestorage.googleapis.com request ka status bhi check karein.';
             else if(code.includes('retry-limit-exceeded'))hint=' Network slow ya unstable hai. Stable internet par chhoti file se retry karein.';
             else if(code.includes('cors'))hint=' Firebase Storage bucket ki CORS settings check karein.';
             const message='❌ Upload fail ('+code+'): '+detail+hint;
