@@ -2663,7 +2663,8 @@
                 loadDocumentChecklist();
                 const refreshedRow=document.querySelector('#docTrackerRows [data-doc-name="'+String(name).replace(/"/g,'')+'"]');
                 const refreshedStatus=refreshedRow&&refreshedRow.querySelector('.doc-upload-status');
-                if(refreshedStatus){refreshedStatus.textContent='⚠️ '+localUploaded.length+' file(s) is device par save hui (cloud par nahi). Total '+(localDocs.find(doc=>doc.name===name)?.attachments||[]).length+' file(s). '+detail;refreshedStatus.style.color='#fbbf24';}
+                if(refreshedStatus){refreshedStatus.textContent='⚠️ '+localUploaded.length+' file(s) sirf isi device/browser par save hui—CLOUD PAR UPLOAD NAHI HUI. Total '+(localDocs.find(doc=>doc.name===name)?.attachments||[]).length+' local file(s). '+detail;refreshedStatus.style.color='#fbbf24';}
+                alert('⚠️ File isi device/browser par save hui, cloud par nahi. Dusre device par nahi dikhegi.\nReason: '+detail+'\nFirebase Storage Rules/Auth aur bucket settings check karni hongi.');
             }catch(localError){
                 console.error('Local document fallback failed:',localError);
                 setStatus('❌ Upload save nahi hua. Cloud: '+detail+' Local: '+(localError.message||localError),'#f87171');
