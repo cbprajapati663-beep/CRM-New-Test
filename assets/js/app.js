@@ -1495,6 +1495,77 @@
         };
     };
 
+    let dailyFollowupTimer = null;
+    const DAILY_FOLLOWUP_KEY = 'haf_daily_followup_reminder';
+
+    function scheduleNextDailyFollowupReminder() {
+        if (dailyFollowupTimer) clearTimeout(dailyFollowupTimer);
+        let enabled = false;
+        try { enabled = localStorage.getItem(DAILY_FOLLOWUP_KEY) === '1'; } catch (_) {}
+        if (!enabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+        const now = new Date();
+        const next = new Date(now);
+        next.setHours(9, 0, 0, 0);
+        if (next <= now) next.setDate(next.getDate() + 1);
+        dailyFollowupTimer = setTimeout(() => {
+            const due = getLeadScopedList().filter(l =>
+                l.followDate && l.followDate <= new Date().toISOString().slice(0, 10) &&
+                !['Disbursed', 'Rejected', 'Cancelled'].includes(String(l.status || ''))
+            );
+            if (due.length) {
+                const names = due.slice(0, 4).map(l => String(l.name || 'Customer')).join(', ');
+                const more = due.length > 4 ? ' +' + (due.length - 4) + ' more' : '';
+                const note = new Notification(due.length + ' Follow-up' + (due.length === 1 ? '' : 's') + ' Due', {
+                    body: names + more + '. CRM kholkar follow-ups check karein.',
+                    tag: 'haf-daily-followup'
+                });
+                note.onclick = function () {
+                    window.focus();
+                    if (typeof switchView === 'function') switchView('followups');
+                    note.close();
+                };
+            }
+            scheduleNextDailyFollowupReminder();
+        }, Math.max(1000, next.getTime() - now.getTime()));
+    }
+
+    window.enableDailyFollowupReminder = async function () {
+        if (!('Notification' in window)) {
+            alert('Is browser mein notifications supported nahi hain.');
+            return;
+        }
+        let permission = Notification.permission;
+        if (permission === 'default') permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            alert('Notification permission allow karein, phir daily reminder enable karein.');
+            return;
+        }
+        try { localStorage.setItem(DAILY_FOLLOWUP_KEY, '1'); } catch (_) {
+            alert('Reminder preference save nahi ho saki. Browser storage check karein.');
+            return;
+        }
+        scheduleNextDailyFollowupReminder();
+        alert('Daily reminder enable ho gaya. Roz subah 9:00 baje reminder ke liye CRM/browser khula rehna chahiye.');
+    };
+
+    window.disableDailyFollowupReminder = function () {
+        try { localStorage.removeItem(DAILY_FOLLOWUP_KEY); } catch (_) {}
+        if (dailyFollowupTimer) clearTimeout(dailyFollowupTimer);
+        dailyFollowupTimer = null;
+        alert('Daily follow-up reminder band kar diya gaya.');
+    };
+
+    try {
+        if (localStorage.getItem(DAILY_FOLLOWUP_KEY) === '1') {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', scheduleNextDailyFollowupReminder, { once: true });
+            } else {
+                scheduleNextDailyFollowupReminder();
+            }
+        }
+    } catch (_) {}
+
     function getFollowupWhatsAppUrl(lead) {
         const digits = String(lead && lead.mobile || '').replace(/\\D/g, '');
         const phone = digits.length === 10 ? '91' + digits : (digits.length === 12 && digits.startsWith('91') ? digits : '');
