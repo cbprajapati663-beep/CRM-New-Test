@@ -2661,6 +2661,8 @@
         }finally{setBusy(false);input.value='';}
     };
     window.shareChecklistDocuments=async function(){
+        alert('🔒 Document Sharing abhi temporarily disabled hai. Ye feature future upgrade mein available hoga.');
+        return;
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){alert('Pehle customer select karein.');return;}
         const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName).filter(Boolean);
@@ -2704,6 +2706,10 @@
     const documentChecklistStatuses = ['Pending', 'Received'];
 
     window.openDocumentTracker = function() {
+        const notice=document.getElementById('docFeatureUpgradeNotice');
+        if(notice) notice.style.display='block';
+        const shareButton=document.getElementById('btnShareChecklistDocuments');
+        if(shareButton){shareButton.disabled=true;shareButton.title='Document sharing future upgrade mein enable hoga.';shareButton.textContent='🔒 Sharing — Upgrade Soon';}
         const modal = document.getElementById('documentTrackerModal');
         if (!modal) { alert('Document Tracker interface nahi mila. Page refresh karein.'); return; }
         const list = getLeadScopedList();
