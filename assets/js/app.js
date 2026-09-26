@@ -2656,10 +2656,14 @@
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){alert('Pehle customer select karein.');return;}
         const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName).filter(Boolean);
-        if(!checked.length){alert('Koi document select nahi hai. Jis document ko bhejna hai, uske saamne Share checkbox tick karein. File upload nahi hai to pehle Upload button se file add karein.');return;}
-        const selected=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name));
+        const allDocs=Array.isArray(lead.documents)?lead.documents:[];
+        const availableDocs=allDocs.filter(d=>Array.isArray(d.attachments)&&d.attachments.length);
+        if(!availableDocs.length){alert('Is customer ke liye abhi koi document file upload nahi hai. Pehle Upload button se file upload karein.');return;}
+        const selectedNames=checked.length?checked:availableDocs.map(d=>d.name);
+        const selected=availableDocs.filter(d=>selectedNames.includes(d.name));
         const chosen=selected.flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
-        if(!chosen.length){alert('Selected documents ki file upload nahi hai. Pehle Upload karein.');return;}
+        if(!chosen.length){alert('Selected document ki file upload nahi hai. Pehle Upload button se file add karein.');return;}
+        if(!checked.length)console.info('No Share checkbox selected; sharing all uploaded files for this customer.');
         const title='Customer Documents - '+(lead.name||'Customer');
         const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\nSelected document files attached.';
         const safeName=value=>String(value||'document').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
