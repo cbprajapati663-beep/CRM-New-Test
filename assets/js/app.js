@@ -2115,6 +2115,19 @@
             '#printRoot .rent-bill-paper .do-table th{background:#102a43!important;border-color:#102a43!important;color:#fff!important;}' +
             '#printRoot .rent-bill-paper .do-table tr:last-child td{background:#eaf8f2!important;color:#075e45!important;border-top:2px solid #10b981!important;}' +
             '#printRoot .rent-bill-paper #billTotalPayable{font-size:18pt!important;font-weight:900!important;color:#075e45!important;}' +
+            '/* Unified DO + rent invoice print theme */' +
+            '#printRoot .delivery-order-paper,#printRoot .rent-bill-paper{background:#fff!important;color:#172033!important;border:1px solid #d6bd69!important;border-top:7px solid #102a43!important;border-radius:8px!important;box-shadow:inset 0 0 0 1px rgba(212,175,55,.2)!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+            '#printRoot .delivery-order-paper h2,#printRoot .rent-bill-paper h2{color:#102a43!important;border-bottom:3px solid #d4af37!important;font-size:20pt!important;font-weight:900!important;letter-spacing:.5px!important;padding:0 0 9px!important;}' +
+            '#printRoot .delivery-order-paper h4,#printRoot .rent-bill-paper h4{color:#244e6b!important;background:#edf4fa!important;border-radius:5px!important;letter-spacing:.7px!important;}' +
+            '#printRoot .delivery-order-paper .do-grid,#printRoot .rent-bill-paper .do-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;padding:9px!important;background:#f5f8fc!important;border:1px solid #dbe3ed!important;border-radius:8px!important;}' +
+            '#printRoot .delivery-order-paper .do-grid-item,#printRoot .rent-bill-paper .do-grid-item{padding:7px!important;background:#fff!important;border:1px solid #e4eaf2!important;border-radius:5px!important;color:#172033!important;}' +
+            '#printRoot .delivery-order-paper .do-grid-item strong,#printRoot .rent-bill-paper .do-grid-item strong{color:#64748b!important;}' +
+            '#printRoot .delivery-order-paper .do-table,#printRoot .rent-bill-paper .do-table{width:100%!important;border-collapse:collapse!important;border:1px solid #d6e0eb!important;}' +
+            '#printRoot .delivery-order-paper .do-table th,#printRoot .rent-bill-paper .do-table th{background:#102a43!important;color:#fff!important;border:1px solid #102a43!important;padding:9px!important;}' +
+            '#printRoot .delivery-order-paper .do-table td,#printRoot .rent-bill-paper .do-table td{background:#fff!important;color:#243447!important;border:1px solid #e1e7ef!important;padding:8px!important;}' +
+            '#printRoot .delivery-order-paper .do-table tr:last-child td,#printRoot .rent-bill-paper .do-table tr:last-child td{background:#eaf8f2!important;color:#075e45!important;border-top:2px solid #10b981!important;font-weight:800!important;}' +
+            '#printRoot .delivery-order-paper .invoice-amount-words,#printRoot .rent-bill-paper .invoice-amount-words{background:#f8fafc!important;border-left:4px solid #d4af37!important;padding:9px!important;}' +
+            '#printRoot .delivery-order-paper #do_net_dealer_payable,#printRoot .rent-bill-paper #billTotalPayable{color:#075e45!important;font-size:17pt!important;font-weight:900!important;}' +
             '@page{size:A4 portrait;margin:10mm;}' +
             '@media print{html,body{width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important;}#printRoot{width:100%!important;height:auto!important;overflow:visible!important;}#printRoot .printable-section,#printRoot .do-paper{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}}' +
             '#printRoot.print-do-a4{width:190mm!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0 auto!important;overflow:visible!important;}' +
