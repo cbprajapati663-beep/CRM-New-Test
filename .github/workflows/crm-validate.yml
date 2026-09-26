@@ -17,19 +17,22 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const html = fs.readFileSync('index.html', 'utf8');
-          const required = [
+          const app = fs.readFileSync('assets/js/app.js', 'utf8');
+          const requiredHtml = [
             'leadForm',
             'vehRegNo',
             'printableDOArea',
             'printableRentBillArea',
             'leadAuditModal',
             'leadActivityTimeline',
-            'printSelectedDocument',
-            'generateDO'
+            'printSelectedDocument'
           ];
-          const missing = required.filter(x => !html.includes(x));
-          if (missing.length) {
-            console.error('Missing required CRM markers:', missing.join(', '));
+          const missingHtml = requiredHtml.filter(x => !html.includes(x));
+          const requiredApp = ['generateDO'];
+          const missingApp = requiredApp.filter(x => !app.includes(x));
+          if (missingHtml.length || missingApp.length) {
+            if (missingHtml.length) console.error('Missing required HTML markers:', missingHtml.join(', '));
+            if (missingApp.length) console.error('Missing required app.js markers:', missingApp.join(', '));
             process.exit(1);
           }
           const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
