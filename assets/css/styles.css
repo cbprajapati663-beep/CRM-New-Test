@@ -1095,3 +1095,27 @@
   .do-modal-card #printableDOArea.delivery-order-paper h2,
   .do-modal-card #printableRentBillArea.rent-bill-paper h2 {font-size:16pt !important;overflow-wrap:anywhere;}
 }
+
+
+/* DO readability patch — strong visible table rules and high-contrast text */
+.do-modal-card #printableDOArea.delivery-order-paper { color:#172033 !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .do-grid-item,
+.do-modal-card #printableDOArea.delivery-order-paper .do-grid-item span { color:#263648 !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .do-grid-item strong { color:#102a43 !important; font-weight:800 !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .do-table { width:100% !important; border-collapse:collapse !important; border:1.5px solid #718096 !important; table-layout:fixed !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .do-table th,
+.do-modal-card #printableDOArea.delivery-order-paper .do-table td { border:1.5px solid #9aa8b8 !important; color:#172033 !important; padding:9px 10px !important; line-height:1.45 !important; overflow-wrap:anywhere !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .do-table th { background:#102a43 !important; color:#fff !important; font-weight:800 !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .do-table tbody tr:nth-child(even) td { background:#f1f5f9 !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .do-table tbody tr:last-child td { background:#e5f5ec !important; color:#075e45 !important; font-weight:800 !important; border-top:2px solid #15803d !important; }
+.do-modal-card #printableDOArea.delivery-order-paper .invoice-amount-words,
+.do-modal-card #printableDOArea.delivery-order-paper p { color:#334155 !important; }
+@media print {
+  #printRoot #printableDOArea.delivery-order-paper .do-table,
+  #printRoot #printableDOArea.delivery-order-paper .do-table th,
+  #printRoot #printableDOArea.delivery-order-paper .do-table td { border:1.2px solid #64748b !important; border-collapse:collapse !important; color:#172033 !important; }
+  #printRoot #printableDOArea.delivery-order-paper .do-table th { background:#102a43 !important; color:#fff !important; }
+  #printRoot #printableDOArea.delivery-order-paper .do-grid-item,
+  #printRoot #printableDOArea.delivery-order-paper .do-grid-item span { color:#263648 !important; }
+  #printRoot #printableDOArea.delivery-order-paper .do-grid-item strong { color:#102a43 !important; }
+}
