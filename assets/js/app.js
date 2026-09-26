@@ -2578,7 +2578,7 @@
                 await navigator.share({title,text:message,files:shareFiles});
             }else{
                 shareFiles.forEach(file=>downloadBlob(file,file.name));
-                alert(checked.length>1?'Selected documents ki ZIP download ho gayi.':'Selected file(s) original format mein download ho gayi. Ab attach karke bhej dein.');
+                alert(files.length>1?'Selected files ki ZIP download ho gayi.':'Selected file original format mein download ho gayi. Ab attach karke bhej dein.');
             }
         }catch(error){
             console.error('Document share failed:',error);
