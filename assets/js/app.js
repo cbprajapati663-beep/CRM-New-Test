@@ -69,7 +69,7 @@
     // License expiry helpers: preserve tenant records; only gate access/status.
     function getLicenseDaysRemaining(tenant) {
         const raw = String(tenant && tenant.expiryDate || '').slice(0, 10);
-        const match = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
         if (!match) return null;
         const expiry = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
         const today = new Date();
