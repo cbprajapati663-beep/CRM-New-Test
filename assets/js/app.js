@@ -2536,9 +2536,39 @@
         const checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName);
         const chosen=(Array.isArray(lead.documents)?lead.documents:[]).filter(d=>checked.includes(d.name)).flatMap(d=>(d.attachments||[]).map(f=>({...f,category:d.name})));
         if(!chosen.length){alert('Share karne ke liye document ke aage Share checkbox select karein.');return;}
-        const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\\nDocuments:\\n'+chosen.map(f=>f.category+' — '+f.name+': '+f.url).join('\\n');
-        try{if(navigator.share)await navigator.share({title:'Customer Documents - '+(lead.name||''),text:message});else window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener');}
-        catch(error){if(error&&error.name!=='AbortError')alert('Share window open nahi hua.');}
+        const title='Customer Documents - '+(lead.name||'Customer');
+        const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\\nSelected document files attached.';
+        const safeName=value=>String(value||'document').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
+        const downloadBlob=(blob,name)=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);};
+        try{
+            const storage=firebase.storage();
+            const files=[];
+            for(const item of chosen){
+                let blob;
+                if(item.path){const url=await storage.ref().child(item.path).getDownloadURL();const response=await fetch(url);if(!response.ok)throw new Error('File download failed: '+item.name);blob=await response.blob();}
+                else {const response=await fetch(item.url);if(!response.ok)throw new Error('File download failed: '+item.name);blob=await response.blob();}
+                files.push(new File([blob],safeName(item.name),{type:item.contentType||blob.type||'application/octet-stream'}));
+            }
+            let shareFile;
+            if(files.length===1){
+                shareFile=files[0];
+            }else{
+                if(!window.JSZip)throw new Error('ZIP library load nahi hui.');
+                const zip=new JSZip();
+                files.forEach((file,index)=>zip.file((index+1)+'_'+safeName(file.name),file));
+                const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+                shareFile=new File([blob],safeName((lead.name||'Customer')+'_Documents.zip'),{type:'application/zip'});
+            }
+            if(navigator.share&&navigator.canShare&&navigator.canShare({files:[shareFile]})){
+                await navigator.share({title,text:message,files:[shareFile]});
+            }else{
+                downloadBlob(shareFile,shareFile.name);
+                alert(files.length===1?'File download ho gayi. Ab ise banker/financier ko attach karke bhej dein.':'Selected files ki ZIP download ho gayi. Ab ZIP ko banker/financier ko attach karke bhej dein.');
+            }
+        }catch(error){
+            console.error('Document share failed:',error);
+            if(error&&error.name!=='AbortError')alert('File share nahi ho paya. Network, Storage access aur ZIP library check karein.');
+        }
     };
     const documentChecklistStatuses = ['Pending', 'Received', 'Under Review', 'Verified', 'Rejected', 'Resubmission Required'];
 
