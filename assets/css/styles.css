@@ -841,3 +841,51 @@
     padding:8px 7px !important;
   }
 }
+
+
+/* Premium visual refinement v3 — styling only; document fields/content untouched */
+@media screen {
+  .do-modal-card #printableDOArea.delivery-order-paper,
+  .do-modal-card #printableRentBillArea.rent-bill-paper {
+    border:1px solid #d8e0eb !important;
+    box-shadow:0 22px 60px rgba(15,23,42,.17),0 3px 10px rgba(15,23,42,.06) !important;
+    color:#182235 !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper h2 {
+    margin:0 0 8px !important; padding:0 0 10px !important;
+    color:#102a43 !important; border-bottom:3px solid #d4af37;
+    font-size:22pt !important; line-height:1.2; font-weight:900;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper h4 {
+    margin:0 0 14px !important; font-size:8.5pt !important;
+    line-height:1.5; border-radius:6px !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper .do-table tbody tr:last-child td {
+    background:#e9f8ef !important; color:#14532d !important;
+    border-top:2px solid #22a06b !important; font-weight:900 !important;
+  }
+  .do-modal-card #printableRentBillArea.rent-bill-paper h2 {
+    margin:0 0 12px !important; padding:0 0 12px !important;
+    font-size:22pt !important; line-height:1.2; font-weight:900;
+    letter-spacing:.7px; border-bottom:3px solid #8b5cf6 !important;
+  }
+  .do-modal-card #printableRentBillArea.rent-bill-paper h4 {
+    margin:0 0 16px !important; border-radius:6px !important;
+    font-size:8.5pt !important; line-height:1.5;
+  }
+  .do-modal-card #printableRentBillArea.rent-bill-paper .do-table tbody tr:last-child td {
+    background:#f1eaff !important; color:#4c1d95 !important;
+    border-top:2px solid #8b5cf6 !important; font-weight:900 !important;
+  }
+  .do-modal-card #printableDOArea.delivery-order-paper .do-signatures > div,
+  .do-modal-card #printableRentBillArea.rent-bill-paper > div[style*="Client Acknowledgment"] > div {
+    background:linear-gradient(180deg,#fff,#f8fafc) !important;
+    border:1px dashed #b8c4d4 !important;
+  }
+}
+@media print {
+  #printRoot .do-paper {box-shadow:none !important; border-radius:0 !important;}
+  #printRoot .do-paper h2 {break-after:avoid;}
+  #printRoot .do-paper .do-grid-item,
+  #printRoot .do-paper .do-table tr {break-inside:avoid;}
+}
