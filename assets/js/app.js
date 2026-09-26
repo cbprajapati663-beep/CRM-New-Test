@@ -111,11 +111,11 @@
             header.insertAdjacentElement('afterend', notice);
         }
         const days = getLicenseDaysRemaining(user);
-        if (user && user.role !== 'superadmin' && days !== null && days >= 0 && days <= 5) {
+        if (user && user.role !== 'superadmin' && days !== null && days >= 0 && days <= 7) {
             notice.style.display = 'block';
             notice.textContent = days === 0
-                ? '🔴 LICENSE ALERT: Aaj aapki license expiry hai. Service continue rakhne ke liye admin se renewal karwayein.'
-                : '🔴 LICENSE ALERT: Aapki license ' + days + ' din mein expire hone wali hai (' + user.expiryDate + '). Renewal ke liye admin se sampark karein.';
+                ? '🔴 LICENSE ALERT: Aaj aapki license expiry hai (' + user.expiryDate + '). Service continue rakhne ke liye admin se renewal karwayein.'
+                : '⏰ LICENSE RENEWAL REMINDER: Aapki license ' + days + ' din mein expire hone wali hai (' + user.expiryDate + '). Renewal ke liye admin se sampark karein. Expiry se 7 din pehle se reminder dikhaya ja raha hai.';
         } else {
             notice.style.display = 'none';
             notice.textContent = '';
@@ -136,7 +136,7 @@
             else deck.prepend(box);
         }
         const expiring = getStoredTenants().map(t => ({...t, days:getLicenseDaysRemaining(t)}))
-            .filter(t => t.days !== null && t.days >= 0 && t.days <= 5 && t.status !== 'Suspended')
+            .filter(t => t.days !== null && t.days >= 0 && t.days <= 7 && t.status !== 'Suspended')
             .sort((a,b) => a.days-b.days);
         const expired = getStoredTenants().filter(t => t.expiryDate && getLicenseDaysRemaining(t) !== null && getLicenseDaysRemaining(t) < 0);
         if (!expiring.length && !expired.length) {
@@ -148,7 +148,7 @@
         box.innerHTML = '<strong style="font-size:1rem;color:#fbbf24;">⏰ License Expiry Alerts</strong>' +
             (expired.length ? '<div style="margin-top:8px;color:#fecaca;font-weight:800;">🔴 Expired / suspended: ' +
                 expired.map(t => escapeHtml(t.agencyName || t.tenantId) + ' (' + escapeHtml(t.expiryDate) + ')').join(' · ') + '</div>' : '') +
-            (expiring.length ? '<div style="margin-top:8px;color:#fde68a;">🟠 Expiring within 5 days: ' +
+            (expiring.length ? '<div style="margin-top:8px;color:#fde68a;">🟠 Expiring within 7 days: ' +
                 expiring.map(t => escapeHtml(t.agencyName || t.tenantId) + ' — ' + (t.days === 0 ? 'Today' : t.days + ' day(s)') + ' (' + escapeHtml(t.expiryDate) + ')').join(' · ') + '</div>' : '');
     }
 
