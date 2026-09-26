@@ -420,6 +420,110 @@
             }
         }
 
+        /* Shared premium identity for Delivery Order + Rent Invoice */
+        .official-document {
+            position: relative;
+            isolation: isolate;
+            border-top: 7px solid #102a43 !important;
+        }
+        .official-document::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 9mm;
+            right: 9mm;
+            height: 3px;
+            background: linear-gradient(90deg, #b58b22, #f1d77b, #b58b22);
+            pointer-events: none;
+        }
+        .official-document h2 {
+            font-family: "Segoe UI", Arial, sans-serif !important;
+            font-weight: 850 !important;
+            letter-spacing: .6px !important;
+            line-height: 1.2 !important;
+        }
+        .official-document .official-document-subtitle {
+            display: block;
+            margin: 0 0 12px !important;
+            color: #8c6b17 !important;
+            font-weight: 750 !important;
+        }
+        .official-document-ribbon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0 17px;
+            padding: 10px 12px;
+            border: 1px solid #d9bd68;
+            border-left: 4px solid #c49a2c;
+            border-radius: 6px;
+            background: linear-gradient(100deg, #102a43 0%, #1b4965 68%, #102a43 100%);
+            color: #fff;
+            text-align: center;
+            font-size: 9pt;
+            font-weight: 850;
+            letter-spacing: .65px;
+            line-height: 1.4;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px rgba(16,42,67,.12);
+        }
+        .official-document-ribbon span { color: #f1d77b; }
+        .official-document .invoice-amount-words {
+            padding: 10px 12px;
+            border: 1px solid #e5d7a7;
+            border-left: 4px solid #c49a2c;
+            border-radius: 6px;
+            background: #fffaf0;
+            color: #344256 !important;
+            line-height: 1.55 !important;
+        }
+        .official-document .official-document-signatures {
+            gap: 24px;
+            align-items: flex-end;
+            margin-top: 30px !important;
+            padding-top: 20px !important;
+            border-top: 1px solid #d9dee6;
+        }
+        .official-document .official-document-signatures > div {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 10px 8px 0;
+            border-bottom: 2px solid #c49a2c;
+            text-align: center;
+        }
+        .official-document .official-document-signatures > div > div {
+            margin-bottom: 30px !important;
+        }
+        .official-document .official-document-signatures strong {
+            display: block;
+            padding: 8px 0 10px;
+            color: #102a43 !important;
+            font-size: 8.5pt;
+            letter-spacing: .15px;
+        }
+        @media screen and (max-width: 760px) {
+            .official-document-ribbon {
+                margin: 10px 0 13px;
+                padding: 8px 7px;
+                font-size: 7.2pt;
+                letter-spacing: .25px;
+            }
+            .official-document .official-document-signatures {
+                gap: 10px;
+                align-items: stretch;
+            }
+            .official-document .official-document-signatures > div {
+                padding-left: 3px;
+                padding-right: 3px;
+            }
+            .official-document .official-document-signatures strong {
+                font-size: 7pt;
+                line-height: 1.35;
+            }
+        }
+
         /* Screen-only responsive DO preview.
            Print sizing remains untouched below. */
         /* Next-level CRM UX: activity timeline + data-health indicators */
