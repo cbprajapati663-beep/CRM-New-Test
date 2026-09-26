@@ -2576,37 +2576,40 @@
         const lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){setStatus('❌ Pehle customer select karein.','#f87171');input.value='';return;}
         if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB ya usse chhoti honi chahiye.','#f87171');alert('Har file 15 MB ya usse chhoti honi chahiye.');input.value='';return;}
-        const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),savedKeys=[],uploaded=[];
+        const sessionUser=getCurrentSessionUser(),oldEntry=documentEntryFor(lead,name),uploaded=[],storageRefs=[];
         const formatBytes=value=>value<1024*1024?Math.max(1,Math.round(value/1024))+' KB':(value/1024/1024).toFixed(1)+' MB';
+        const safeSegment=value=>String(value||'unknown').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,100);
         input.disabled=true;
         try{
+            if(!firebase.storage)throw new Error('Firebase Storage SDK load nahi hui. Page refresh karke dobara try karein.');
+            const storage=firebase.storage();
             for(let index=0;index<files.length;index++){
                 const file=files[index];
-                setStatus('💾 Device par save ho raha hai… '+(index+1)+'/'+files.length+' · '+formatBytes(file.size),'#fbbf24');
-                const localKey='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,12)+'_'+index;
-                await saveLocalDocument(localKey,file);savedKeys.push(localKey);
-                uploaded.push({name:file.name,localKey,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'browser-local'});
+                setStatus('☁️ Cloud par upload ho raha hai… '+(index+1)+'/'+files.length+' · '+formatBytes(file.size),'#fbbf24');
+                const path='customer-documents/'+safeSegment(sessionUser&&sessionUser.tenantId)+'/'+safeSegment(leadId)+'/'+Date.now()+'_'+index+'_'+safeDocumentFileName(file.name);
+                const ref=storage.ref().child(path);storageRefs.push(ref);
+                const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(sessionUser&&sessionUser.tenantId||''),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
+                await task;
+                const url=await ref.getDownloadURL();
+                uploaded.push({name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:sessionUser&&sessionUser.tenantId||'system',storageType:'firebase-storage'});
             }
             const baseDocs=Array.isArray(lead.documents)?lead.documents:[],docs=baseDocs.filter(d=>d.name!==name);
             docs.push({...oldEntry,name,status:oldEntry.status==='Received'?'Received':'Pending',attachments:[...(Array.isArray(oldEntry.attachments)?oldEntry.attachments:[]),...uploaded],updatedAt:new Date().toISOString(),updatedBy:sessionUser&&sessionUser.tenantId||'system'});
-            // Persist the file references locally first. Firestore denial must not delete a successfully saved local file.
-            writeLocalDocumentMeta(leadId,docs);
+            await leadsCollection.doc(leadId).update({documents:docs});
             const cachedLead=leads.find(item=>item.docId===leadId);if(cachedLead)cachedLead.documents=docs;lead.documents=docs;
-            let cloudSynced=true;
-            try{await leadsCollection.doc(leadId).update({documents:docs});}
-            catch(syncError){cloudSynced=false;console.warn('Document metadata cloud sync denied; local copy retained:',syncError);}
+            writeLocalDocumentMeta(leadId,docs);
             loadDocumentChecklist();
-            if(cloudSynced){
-                setStatus('✅ '+uploaded.length+' file(s) device par saved; checklist cloud mein sync ho gayi.','#4ade80');
-                alert('✅ '+uploaded.length+' file(s) save ho gayi. Files isi browser/device par stored hain; cloud metadata sync ho gaya.');
-            }else{
-                setStatus('⚠️ '+uploaded.length+' file(s) is device par saved. Cloud sync permission denied.','#fbbf24');
-                alert('⚠️ File(s) is device/browser mein save ho gayi aur list mein dikhengi. Firebase permission denied ki wajah se cloud sync nahi hua. Ye files sirf isi browser/device par available rahengi.');
-            }
+            setStatus('✅ '+uploaded.length+' file(s) Firebase Cloud mein upload aur save ho gayi.','#4ade80');
+            alert('✅ '+uploaded.length+' file(s) cloud par upload ho gayi. Ab same tenant ke authorized devices se access ho sakti hain.');
         }catch(error){
-            console.error('Local document save failed:',error);
-            await Promise.all(savedKeys.map(key=>deleteLocalDocument(key).catch(()=>{})));
-            const message='❌ File device par save nahi hui: '+(error&&error.message?error.message:String(error));
+            console.error('Cloud document upload failed:',error);
+            await Promise.all(storageRefs.map(ref=>ref.delete().catch(()=>{})));
+            const raw=String(error&&error.code||error&&error.message||error||'Unknown error');
+            let detail=raw;
+            if(/unauthorized|permission-denied|storage\/unauthorized/i.test(raw))detail='Firebase Storage permission denied. Storage Rules mein tenant ke liye upload access enable karna hoga.';
+            else if(/bucket|object-not-found|storage\/unknown/i.test(raw))detail='Firebase Storage bucket/configuration check karein.';
+            else if(/network|offline|unavailable/i.test(raw))detail='Internet connection nahi mila. Connection check karke retry karein.';
+            const message='❌ Cloud upload fail hua: '+detail;
             setStatus(message,'#f87171');alert(message);
         }finally{input.disabled=false;input.value='';}
     };
@@ -2701,7 +2704,7 @@
             const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'No file uploaded yet. Click to choose file(s).';
             const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
             const uploadStatus=document.createElement('div');uploadStatus.className='doc-upload-status';uploadStatus.style.cssText='grid-column:1/-1;font-size:.78rem;overflow-wrap:anywhere;color:var(--text-muted);';
-            uploadStatus.textContent=attachmentCount?'✅ '+attachmentCount+' file(s) is device/browser local storage mein saved.':'No file uploaded yet.';
+            uploadStatus.textContent=attachmentCount?'📎 '+attachmentCount+' file(s) attached. Cloud status details file link se check karein.':'No file uploaded yet.';
             upload.onclick=()=>{fileInput.value='';fileInput.click();};
             fileInput.onchange=()=>uploadChecklistFiles(fileInput,name,uploadStatus);
             uploadWrap.append(upload,fileInput);
