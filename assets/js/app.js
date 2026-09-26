@@ -1584,7 +1584,7 @@
 
     function renderFollowups() {
         const scopedLeads = getLeadScopedList();
-        const activeLeads = scopedLeads.filter(l => l.followDate && l.status !== 'Disbursed' && l.status !== 'Rejected');
+        const activeLeads = scopedLeads.filter(l => l.followDate && !['Disbursed', 'Rejected', 'Cancelled'].includes(String(l.status || '')));
         const futureLimit = new Date();
         futureLimit.setDate(futureLimit.getDate() + 7);
         const futureLimitStr = [futureLimit.getFullYear(), String(futureLimit.getMonth()+1).padStart(2,'0'), String(futureLimit.getDate()).padStart(2,'0')].join('-');
@@ -1599,7 +1599,10 @@
             const searchable = [l.name, l.mobile, l.city, l.vehModel, l.vehRegNo, l.dealerName, l.bankNbfc]
                 .map(value => String(value || '').toLowerCase()).join(' ');
             return searchable.includes(followupSearchTerm);
-        }).sort((a, b) => String(a.followDate).localeCompare(String(b.followDate)));
+        }).sort((a, b) => {
+            const priority = lead => lead.followDate < todayStr ? 0 : (lead.followDate === todayStr ? 1 : 2);
+            return priority(a) - priority(b) || String(a.followDate).localeCompare(String(b.followDate));
+        });
         document.getElementById('badge-followup-count').textContent = todayLeads.length;
 
         const tbody = document.getElementById('followupsTableBody');
@@ -1622,7 +1625,10 @@
                 </td>
                 <td>${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</td>
                 <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status)}</span></td>
-                <td style="color:#fbbf24; font-weight:600;">${escapeHtml(l.followDate || 'Today')}</td>
+                <td style="font-weight:600;">
+                    <span class="badge" style="display:inline-block;margin-bottom:4px;background:${l.followDate < todayStr ? '#7f1d1d' : (l.followDate === todayStr ? '#78350f' : '#14532d')};color:#fff;">${l.followDate < todayStr ? '🔴 OVERDUE' : (l.followDate === todayStr ? '🟠 TODAY' : '🟢 UPCOMING')}</span><br>
+                    <span>${escapeHtml(l.followDate || 'Today')}</span>
+                </td>
                 <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
                 <td><button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}'); switchView('pipeline');">✏️ Update</button></td>
             `;
