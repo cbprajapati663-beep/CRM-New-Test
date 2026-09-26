@@ -2667,7 +2667,7 @@
             const upload=document.createElement('button');upload.type='button';upload.className='btn-action';upload.textContent=attachmentCount?'＋ Add More ('+attachmentCount+')':'⬆ Upload';upload.title=attachmentCount?attachmentCount+' file(s) uploaded. Click to add more.':'No file uploaded yet. Click to choose file(s).';
             const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept=documentUploadAccept;fileInput.multiple=(name==='Other'||name==='Aadhaar Card');fileInput.setAttribute('aria-label','Upload '+name);fileInput.title='Choose '+name+' file(s)';fileInput.style.display='none';
             const uploadStatus=document.createElement('div');uploadStatus.className='doc-upload-status';uploadStatus.style.cssText='grid-column:1/-1;font-size:.78rem;overflow-wrap:anywhere;color:var(--text-muted);';
-            uploadStatus.textContent=attachmentCount?'✅ '+attachmentCount+' file(s) uploaded and saved.':'No file uploaded yet.';
+            uploadStatus.textContent=attachmentCount?'✅ '+attachmentCount+' file(s) is device/browser local storage mein saved.':'No file uploaded yet.';
             upload.onclick=()=>{fileInput.value='';fileInput.click();};
             fileInput.onchange=()=>uploadChecklistFiles(fileInput,name,uploadStatus);
             uploadWrap.append(upload,fileInput);
