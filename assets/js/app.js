@@ -502,16 +502,215 @@
         document.getElementById('passwordGateModal').style.display = 'none';
     }
 
+    // Secret DSA Payout access credentials are stored as salted PBKDF2 hashes in Firestore.
+    const payoutSecurityCollection = db.collection('payoutSecurity');
+    const payoutPasswordIterations = 120000;
+    function getPayoutTenantId() {
+        const user = getCurrentSessionUser();
+        return String(inspectingTenantId || (user && user.tenantId) || '').trim().toLowerCase();
+    }
+    function payoutUserSecurityRef(tenantId) {
+        return payoutSecurityCollection.doc('user_' + encodeURIComponent(String(tenantId || '').trim().toLowerCase()));
+    }
+    function payoutPasswordIsStrong(value) {
+        return typeof value === 'string' && value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value);
+    }
+    function bytesToHex(bytes) {
+        return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    async function makePayoutPasswordHash(password, saltHex) {
+        const salt = saltHex ? new Uint8Array((saltHex.match(/.{2}/g) || []).map(x => parseInt(x, 16))) : crypto.getRandomValues(new Uint8Array(16));
+        const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+        const bits = await crypto.subtle.deriveBits({name:'PBKDF2', salt, iterations:payoutPasswordIterations, hash:'SHA-256'}, key, 256);
+        return { salt: bytesToHex(salt), hash: bytesToHex(bits) };
+    }
+    async function verifyPayoutPassword(password, record) {
+        if (!record || !record.passwordHash || !record.salt) return false;
+        const computed = await makePayoutPasswordHash(password, record.salt);
+        return computed.hash === record.passwordHash;
+    }
+    async function readPayoutPasswordRecord(tenantId) {
+        const snap = await payoutUserSecurityRef(tenantId).get();
+        return snap.exists ? snap.data() : null;
+    }
+    async function readPayoutMasterRecord() {
+        const snap = await payoutSecurityCollection.doc('master').get();
+        return snap.exists ? snap.data() : null;
+    }
+    function showPayoutSecurityError(id, message) {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = message; el.style.display = 'block'; }
+    }
+    function hidePayoutSecurityError(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    }
+    window.openPayoutSecurityModal = async function() {
+        const user = getCurrentSessionUser();
+        if (!user) { alert('Pehle login karein.'); return; }
+        const isAdmin = user.role === 'superadmin';
+        document.getElementById('payoutOwnCurrentWrap').style.display = 'block';
+        document.getElementById('payoutOwnCurrentPass').required = false;
+        document.getElementById('payoutOwnCurrentPass').value = '';
+        document.getElementById('payoutOwnNewPass').value = '';
+        document.getElementById('payoutOwnConfirmPass').value = '';
+        document.getElementById('payoutOwnPassError').style.display = 'none';
+        document.getElementById('payoutAdminSecuritySection').style.display = isAdmin ? 'block' : 'none';
+        document.getElementById('payoutMasterCurrentWrap').style.display = 'block';
+        document.getElementById('payoutMasterCurrentPass').required = false;
+        document.getElementById('payoutMasterCurrentPass').value = '';
+        document.getElementById('payoutMasterNewPass').value = '';
+        document.getElementById('payoutMasterConfirmPass').value = '';
+        document.getElementById('payoutMasterPassError').style.display = 'none';
+        document.getElementById('payoutAdminResetPass').value = '';
+        document.getElementById('payoutAdminResetConfirm').value = '';
+        document.getElementById('payoutAdminResetError').style.display = 'none';
+        const tenantId = getPayoutTenantId();
+        try {
+            const own = tenantId ? await readPayoutPasswordRecord(tenantId) : null;
+            document.getElementById('payoutOwnCurrentWrap').style.display = own ? 'block' : 'none';
+            document.getElementById('payoutOwnCurrentPass').required = !!own;
+            if (isAdmin) {
+                const master = await readPayoutMasterRecord();
+                document.getElementById('payoutMasterCurrentWrap').style.display = master ? 'block' : 'none';
+                document.getElementById('payoutMasterCurrentPass').required = !!master;
+                const select = document.getElementById('payoutAdminTargetTenant');
+                select.innerHTML = '<option value="">Select user / tenant</option>';
+                getStoredTenants().forEach(t => {
+                    if (t && t.tenantId) {
+                        const option = document.createElement('option');
+                        option.value = t.tenantId;
+                        option.textContent = (t.agencyName || t.tenantId) + ' (' + t.tenantId + ')';
+                        select.appendChild(option);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Payout security settings load failed:', error);
+            alert('Payout security settings load nahi ho payi. Firestore access/rules check karein.');
+            return;
+        }
+        document.getElementById('payoutSecurityModal').style.display = 'flex';
+    };
+    window.handleSaveOwnPayoutPassword = async function(e) {
+        e.preventDefault();
+        const tenantId = getPayoutTenantId();
+        if (!tenantId) { alert('Current user/tenant identify nahi hua.'); return; }
+        const current = document.getElementById('payoutOwnCurrentPass').value;
+        const next = document.getElementById('payoutOwnNewPass').value;
+        const confirmNext = document.getElementById('payoutOwnConfirmPass').value;
+        hidePayoutSecurityError('payoutOwnPassError');
+        try {
+            const ref = payoutUserSecurityRef(tenantId);
+            const snap = await ref.get();
+            if (snap.exists && !(await verifyPayoutPassword(current, snap.data()))) {
+                showPayoutSecurityError('payoutOwnPassError', 'Current payout password galat hai.');
+                return;
+            }
+            if (!payoutPasswordIsStrong(next) || next !== confirmNext) {
+                showPayoutSecurityError('payoutOwnPassError', 'Password kam se kam 8 characters ka ho, letter aur number ho; dono password same hone chahiye.');
+                return;
+            }
+            const hashed = await makePayoutPasswordHash(next);
+            await ref.set({tenantId, passwordHash:hashed.hash, salt:hashed.salt, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:tenantId}, {merge:true});
+            alert('✓ Aapka payout password save ho gaya.');
+            document.getElementById('payoutOwnCurrentPass').value = '';
+            document.getElementById('payoutOwnNewPass').value = '';
+            document.getElementById('payoutOwnConfirmPass').value = '';
+        } catch (error) {
+            console.error('Own payout password save failed:', error);
+            showPayoutSecurityError('payoutOwnPassError', 'Password save nahi hua. Firestore rules/connection check karein.');
+        }
+    };
+    window.handleSavePayoutMasterPassword = async function(e) {
+        e.preventDefault();
+        const user = getCurrentSessionUser();
+        if (!user || user.role !== 'superadmin') { alert('Sirf admin universal payout password set/change kar sakta hai.'); return; }
+        const current = document.getElementById('payoutMasterCurrentPass').value;
+        const next = document.getElementById('payoutMasterNewPass').value;
+        const confirmNext = document.getElementById('payoutMasterConfirmPass').value;
+        hidePayoutSecurityError('payoutMasterPassError');
+        try {
+            const ref = payoutSecurityCollection.doc('master');
+            const snap = await ref.get();
+            if (snap.exists && !(await verifyPayoutPassword(current, snap.data()))) {
+                showPayoutSecurityError('payoutMasterPassError', 'Current universal password galat hai.');
+                return;
+            }
+            if (!payoutPasswordIsStrong(next) || next !== confirmNext) {
+                showPayoutSecurityError('payoutMasterPassError', 'Universal password kam se kam 8 characters ka ho, letter aur number ho; confirmation match hona chahiye.');
+                return;
+            }
+            const hashed = await makePayoutPasswordHash(next);
+            await ref.set({passwordHash:hashed.hash, salt:hashed.salt, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:user.tenantId || 'admin'}, {merge:true});
+            alert('✓ Universal payout password set/update ho gaya.');
+            document.getElementById('payoutMasterCurrentPass').value = '';
+            document.getElementById('payoutMasterNewPass').value = '';
+            document.getElementById('payoutMasterConfirmPass').value = '';
+        } catch (error) {
+            console.error('Universal payout password save failed:', error);
+            showPayoutSecurityError('payoutMasterPassError', 'Universal password save nahi hua. Firestore rules/connection check karein.');
+        }
+    };
+    window.handleAdminResetPayoutPassword = async function(e) {
+        e.preventDefault();
+        const user = getCurrentSessionUser();
+        if (!user || user.role !== 'superadmin') { alert('Sirf admin user password reset kar sakta hai.'); return; }
+        const tenantId = document.getElementById('payoutAdminTargetTenant').value;
+        const next = document.getElementById('payoutAdminResetPass').value;
+        const confirmNext = document.getElementById('payoutAdminResetConfirm').value;
+        hidePayoutSecurityError('payoutAdminResetError');
+        if (!tenantId) { showPayoutSecurityError('payoutAdminResetError', 'Pehle user select karein.'); return; }
+        if (!payoutPasswordIsStrong(next) || next !== confirmNext) {
+            showPayoutSecurityError('payoutAdminResetError', 'Password kam se kam 8 characters ka ho, letter aur number ho; confirmation match hona chahiye.');
+            return;
+        }
+        try {
+            const hashed = await makePayoutPasswordHash(next);
+            await payoutUserSecurityRef(tenantId).set({tenantId, passwordHash:hashed.hash, salt:hashed.salt, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:user.tenantId || 'admin', resetByAdmin:true}, {merge:true});
+            alert('✓ Selected user ka payout password reset ho gaya.');
+            document.getElementById('payoutAdminResetPass').value = '';
+            document.getElementById('payoutAdminResetConfirm').value = '';
+        } catch (error) {
+            console.error('Admin payout password reset failed:', error);
+            showPayoutSecurityError('payoutAdminResetError', 'Password reset nahi hua. Firestore rules/connection check karein.');
+        }
+    };
     function handlePinSubmit(e) {
         e.preventDefault();
         const entered = document.getElementById('secretPinInput').value;
-        if (entered === (localStorage.getItem('haf_payout_pin') || '7600')) {
-            isPayoutDeskUnlocked = true;
-            document.getElementById('passwordGateModal').style.display = 'none';
-            switchView('payoutdesk');
-        } else {
-            document.getElementById('pinErrorMsg').style.display = 'block';
-        }
+        const user = getCurrentSessionUser();
+        const tenantId = getPayoutTenantId();
+        const errorEl = document.getElementById('pinErrorMsg');
+        errorEl.style.display = 'none';
+        (async () => {
+            try {
+                const master = await readPayoutMasterRecord();
+                if (master && await verifyPayoutPassword(entered, master)) {
+                    isPayoutDeskUnlocked = true;
+                    document.getElementById('passwordGateModal').style.display = 'none';
+                    switchView('payoutdesk');
+                    return;
+                }
+                const own = tenantId ? await readPayoutPasswordRecord(tenantId) : null;
+                if (own && await verifyPayoutPassword(entered, own)) {
+                    isPayoutDeskUnlocked = true;
+                    document.getElementById('passwordGateModal').style.display = 'none';
+                    switchView('payoutdesk');
+                    return;
+                }
+                if (!own) {
+                    errorEl.textContent = 'Aapka payout password abhi set nahi hai. “Set / Change Password” par tap karke password banayein.';
+                } else {
+                    errorEl.textContent = 'Invalid payout password.';
+                }
+                errorEl.style.display = 'block';
+            } catch (error) {
+                console.error('Payout password verification failed:', error);
+                errorEl.textContent = 'Payout password verify nahi hua. Internet/Firestore rules check karein.';
+                errorEl.style.display = 'block';
+            }
+        })();
     }
 
     function applyPortalPermissions() {
