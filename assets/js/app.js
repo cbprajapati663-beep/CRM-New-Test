@@ -3874,7 +3874,13 @@
         box.innerHTML=total?'<table style="width:100%;border-collapse:collapse;min-width:720px;"><thead><tr>'+['Customer','Mobile','Status','Loan Amount','Assigned Staff','Branch','Follow-up'].map(x=>'<th align="left" style="padding:8px;border-bottom:1px solid var(--card-border);">'+x+'</th>').join('')+'</tr></thead><tbody>'+managementReportRows.slice(0,250).map(l=>'<tr>'+[l.name||'',l.mobile||'',l.status||'',formatINR(Number(l.loanAmount)||0),l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''].map(x=>'<td style="padding:8px;border-bottom:1px solid var(--card-border);">'+managementEscape(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'+(total>250?'<p>First 250 records shown; CSV mein all filtered records honge.</p>':''):'<p style="color:var(--text-muted);">Filter ke liye koi record nahi mila.</p>';
     };
     function downloadManagementCsv(filename,rows){
-        const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+        // Prevent spreadsheet formula injection from untrusted text fields.
+        const csvCell = value => {
+            const raw = String(value ?? '');
+            const safe = typeof value === 'string' && /^[\\u0000-\\u0020]*[=+@-]/.test(raw) ? "'" + raw : raw;
+            return '"' + safe.replace(/"/g, '""') + '"';
+        };
+        const csv=rows.map(row=>row.map(csvCell).join(',')).join('\\r\\n');
         const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
     }
     window.exportManagementReport=function(){
