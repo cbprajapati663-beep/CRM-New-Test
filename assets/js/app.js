@@ -1906,7 +1906,7 @@
             return !query || hay.includes(query);
         });
         const headers=['Customer','Mobile','Branch','Branch ID','Lead Date','Vehicle','Registration','Dealer/Partner','Bank/NBFC','Requested Loan','Approved Amount','Status','Remarks'];
-        const quote=v=>'"'+String(v ?? '').replace(/"/g,'""')+'"';
+        const quote=v=>{let s=String(v ?? ''); if (/^[\\t\\r ]*[=+\\-@]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"';};
         const csv=[headers,...rows.map(l=>[l.name,l.mobile,l.branchName || l.branch || l.branchId || 'Unassigned',l.branchId,l.leadDate,l.vehModel,l.vehRegNo,l.dealerName,l.bankNbfc,l.loanAmount,l.approvedAmount,l.status,l.lastConv])].map(row=>row.map(quote).join(',')).join('\r\n');
         const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Viewer-Leads-'+(selectedBranch || 'All-Branches')+'-'+new Date().toISOString().slice(0,10)+'.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     };
