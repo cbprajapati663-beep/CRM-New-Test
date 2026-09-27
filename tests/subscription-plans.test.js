@@ -53,3 +53,23 @@ assert.ok(dealerLedgerRenderer.includes("escapeJsString(l.docId)"), 'Document ID
 assert.ok(dealerLedgerRenderer.includes('opt.textContent = d'), 'Dealer filter options must use textContent');
 
 console.log('Dealer ledger safe-rendering regression checks passed.');
+
+const liveRendererStart = source.indexOf('function renderViews()');
+const liveRendererEnd = source.indexOf('function renderDisbursedHubTable()', liveRendererStart);
+assert.ok(liveRendererStart >= 0 && liveRendererEnd > liveRendererStart, 'Live lead renderer must exist');
+const liveRenderer = source.slice(liveRendererStart, liveRendererEnd);
+for (const marker of ['escapeHtml(l.name', 'escapeHtml(l.city', 'escapeHtml(l.vehModel', 'escapeHtml(l.dealerName', 'escapeHtml(l.lastConv', 'escapeJsString(l.docId)']) {
+  assert.ok(liveRenderer.includes(marker), `Live lead renderer must safely handle ${marker}`);
+}
+assert.ok(liveRenderer.includes('safeClassToken(l.status'), 'Lead status must be sanitized before CSS class interpolation');
+
+const disbursedStart = source.indexOf('function renderDisbursedHubTable()');
+const disbursedEnd = source.indexOf('window.revertToLive', disbursedStart);
+assert.ok(disbursedStart >= 0 && disbursedEnd > disbursedStart, 'Disbursed renderer must exist');
+const disbursedRenderer = source.slice(disbursedStart, disbursedEnd);
+for (const marker of ['escapeHtml(l.name', 'escapeHtml(l.holdReason', 'escapeHtml(l.holdRemarks', 'escapeJsString(l.docId)']) {
+  assert.ok(disbursedRenderer.includes(marker), `Disbursed renderer must safely handle ${marker}`);
+}
+assert.ok(disbursedRenderer.includes('safeClassToken(l.status'), 'Disbursed status must be sanitized before CSS class interpolation');
+
+console.log('Live lead and disbursed table safe-rendering regression checks passed.');
