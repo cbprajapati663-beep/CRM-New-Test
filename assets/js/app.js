@@ -456,6 +456,11 @@
     };
 
     window.switchView = function(viewKey) {
+        const requiredFeature = ({pipeline:'pipeline',disbursedhub:'disbursed',dealers:'dealerLedger',payoutdesk:'payoutDesk',followups:'followups',datahealth:'dataHealth',workflow:'smartWorkflow'})[viewKey];
+        if (requiredFeature && !isFeatureEnabled(requiredFeature)) {
+            alert('Ye feature aapke current subscription plan mein enabled nahi hai. Plan upgrade ya admin se access enable karwayein.');
+            return;
+        }
         if (viewKey === 'payoutdesk' && !isPayoutDeskUnlocked) {
             document.getElementById('passwordGateModal').style.display = 'flex';
             document.getElementById('secretPinInput').value = '';
@@ -713,6 +718,102 @@
         })();
     }
 
+    // Central subscription entitlements. UI gating is for presentation; Firestore rules/server checks are still required for security.
+    const PLAN_FEATURES = {
+        Starter: ['pipeline', 'followups', 'documents'],
+        Professional: ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'documents', 'emiCalculator', 'affordability', 'reports'],
+        Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport'],
+        Enterprise: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport']
+    };
+    const FEATURE_CATALOG = [
+        ['pipeline', 'Lead / Customer Pipeline'],
+        ['disbursed', 'Disbursed Files & Clearance Hub'],
+        ['dealerLedger', 'Dealer / Broker Ledger & Statements'],
+        ['payoutDesk', 'Private DSA Payout Desk'],
+        ['followups', 'Follow-up Dashboard'],
+        ['dataHealth', 'Data Health & Duplicate Scan'],
+        ['smartWorkflow', 'Smart Workflow / Action Center'],
+        ['documents', 'Customer Document Tracker'],
+        ['emiCalculator', 'EMI Calculator'],
+        ['affordability', 'Loan Affordability Calculator'],
+        ['reports', 'Reports & CSV Export'],
+        ['backupExport', 'CRM Backup / Data Export']
+    ];
+    function resolveFeatureTenant() {
+        const user = getCurrentSessionUser();
+        const tenantId = inspectingTenantId || (user && user.role !== 'superadmin' ? user.tenantId : '');
+        if (!tenantId) return user && user.role === 'superadmin' ? { role: 'superadmin' } : null;
+        const pool = typeof getStoredTenants === 'function' ? getStoredTenants() : [];
+        return pool.find(t => String(t.tenantId || '').toLowerCase() === String(tenantId).toLowerCase()) || (user && String(user.tenantId || '').toLowerCase() === String(tenantId).toLowerCase() ? user : null);
+    }
+    function isFeatureEnabled(featureKey) {
+        const user = getCurrentSessionUser();
+        if (user && user.role === 'superadmin' && !inspectingTenantId) return true;
+        const tenant = resolveFeatureTenant();
+        if (!tenant) return true;
+        const plan = String(tenant.subscriptionPlan || 'Starter');
+        const allowed = plan === 'Custom'
+            ? (Array.isArray(tenant.featureAccess) ? tenant.featureAccess : [])
+            : (PLAN_FEATURES[plan] || PLAN_FEATURES.Starter);
+        return allowed.includes(featureKey);
+    }
+    function applyPlanFeatureGates() {
+        const mappings = {
+            tabPipeline:'pipeline', 'view-pipeline':'pipeline',
+            tabDisbursed:'disbursed', 'view-disbursedhub':'disbursed',
+            tabDealers:'dealerLedger', 'view-dealers':'dealerLedger',
+            tabSecretPayouts:'payoutDesk', 'view-payoutdesk':'payoutDesk',
+            tabFollowups:'followups', 'view-followups':'followups',
+            tabDataHealth:'dataHealth', 'view-datahealth':'dataHealth',
+            tabWorkflow:'smartWorkflow', 'view-workflow':'smartWorkflow'
+        };
+        Object.entries(mappings).forEach(([id, feature]) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+        });
+        const selectorMappings = [
+            ['[onclick*="openDocumentTracker"]', 'documents'],
+            ['[onclick*="openEmiCalculator"]', 'emiCalculator'],
+            ['[onclick*="openAffordabilityCalculator"]', 'affordability'],
+            ['[onclick*="openDealerStatementModal"]', 'reports'],
+            ['[onclick*="downloadCRMBackup"]', 'backupExport'],
+            ['[onclick*="exportToCSV"]', 'reports']
+        ];
+        selectorMappings.forEach(([selector, feature]) => {
+            document.querySelectorAll(selector).forEach(el => {
+                el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+            });
+        });
+        const exportBtn = document.getElementById('btnExportExcel');
+        if (exportBtn && !isFeatureEnabled('reports')) exportBtn.style.display = 'none';
+    }
+    window.handleSubscriptionPlanChange = function() {
+        const plan = document.getElementById('t_subscriptionPlan').value;
+        const wrap = document.getElementById('customFeatureAccessWrap');
+        if (!wrap) return;
+        wrap.style.display = plan === 'Custom' ? 'block' : 'none';
+        const current = new Set(Array.from(document.querySelectorAll('#customFeatureAccessList input:checked')).map(el => el.value));
+        const defaults = plan === 'Custom' ? current : new Set(PLAN_FEATURES[plan] || []);
+        document.querySelectorAll('#customFeatureAccessList input[type="checkbox"]').forEach(el => { el.checked = defaults.has(el.value); });
+        const summary = document.getElementById('customFeatureAccessSummary');
+        if (summary) summary.textContent = plan === 'Custom' ? 'Custom plan: sirf checked features user ko milenge.' : 'Is plan ke default features apply honge; Custom select karne par alag access set kar sakte hain.';
+    };
+    function renderCustomFeatureAccess(selected) {
+        const list = document.getElementById('customFeatureAccessList');
+        if (!list) return;
+        const chosen = new Set(Array.isArray(selected) ? selected : []);
+        list.innerHTML = '';
+        FEATURE_CATALOG.forEach(([key, label]) => {
+            const row = document.createElement('label');
+            row.style.cssText = 'display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--card-border);border-radius:7px;background:#0f121a;';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox'; checkbox.value = key; checkbox.checked = chosen.has(key);
+            checkbox.style.cssText = 'width:auto;min-width:16px;';
+            const text = document.createElement('span'); text.textContent = label;
+            row.appendChild(checkbox); row.appendChild(text); list.appendChild(row);
+        });
+        window.handleSubscriptionPlanChange();
+    }
     function applyPortalPermissions() {
         const u = getCurrentSessionUser();
         if (!u) {
@@ -721,6 +822,7 @@
         }
         document.getElementById('authOverlay').style.display = 'none';
         renderClientLicenseNotice(u);
+        applyPlanFeatureGates();
 
         if (inspectingTenantId) {
             document.getElementById('activeUserBadge').textContent = `👁️ Viewing: ${inspectingTenantId}`;
@@ -882,6 +984,7 @@
         document.getElementById('t_password').value = t.password || '';
         document.getElementById('t_monthlyRent').value = t.rentAmount || 0;
         document.getElementById('t_subscriptionPlan').value = t.subscriptionPlan || 'Starter';
+        renderCustomFeatureAccess(t.featureAccess || []);
         document.getElementById('t_expiryDate').value = t.expiryDate || '';
         document.getElementById('t_status').value = t.status || 'Active';
 
@@ -899,6 +1002,7 @@
         document.getElementById('t_password').value = '';
         document.getElementById('t_monthlyRent').value = '3000';
         document.getElementById('t_subscriptionPlan').value = 'Starter';
+        renderCustomFeatureAccess([]);
         const d = new Date(); d.setFullYear(d.getFullYear() + 1);
         document.getElementById('t_expiryDate').value = d.toISOString().split('T')[0];
         document.getElementById('t_status').value = 'Active';
@@ -920,6 +1024,8 @@
         const pass = document.getElementById('t_password').value.trim();
         const rent = Number(document.getElementById('t_monthlyRent').value) || 0;
         const subscriptionPlan = document.getElementById('t_subscriptionPlan').value || 'Starter';
+        const featureAccess = subscriptionPlan === 'Custom' ? Array.from(document.querySelectorAll('#customFeatureAccessList input:checked')).map(el => el.value) : null;
+        if (subscriptionPlan === 'Custom' && !featureAccess.length) { alert('Custom plan ke liye kam se kam ek feature select karein.'); return; }
         const exp = document.getElementById('t_expiryDate').value;
         const stat = document.getElementById('t_status').value;
 
@@ -950,6 +1056,7 @@
                 password: pass,
                 rentAmount: rent,
                 subscriptionPlan: subscriptionPlan,
+                ...(subscriptionPlan === 'Custom' ? { featureAccess } : { featureAccess: firebase.firestore.FieldValue.delete() }),
                 expiryDate: exp,
                 status: stat,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -2129,6 +2236,7 @@
     };
 
     window.openEmiCalculator = function () {
+        if (!isFeatureEnabled('emiCalculator')) { alert('EMI Calculator aapke plan mein enabled nahi hai.'); return; }
         const modal = document.getElementById('emiCalculatorModal');
         if (!modal) return;
         modal.style.display = 'flex';
@@ -2178,6 +2286,7 @@
     });
 
     window.openAffordabilityCalculator = function () {
+        if (!isFeatureEnabled('affordability')) { alert('Loan Affordability aapke plan mein enabled nahi hai.'); return; }
         const modal = document.getElementById('affordabilityModal');
         if (!modal) {
             console.error('Loan affordability modal not found.');
@@ -3340,6 +3449,7 @@
     };
 
     window.openDocumentTracker = function() {
+        if (!isFeatureEnabled('documents')) { alert('Document Tracker aapke plan mein enabled nahi hai.'); return; }
         const modal=document.getElementById('documentTrackerModal');
         if(!modal){alert('Document Tracker interface nahi mila. Page refresh karein.');return;}
         const list=getLeadScopedList();
