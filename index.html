@@ -6,7 +6,7 @@
     <title>Heritage FinTech Core | Professional Auto Finance CRM</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b1728">
-    <link rel="stylesheet" href="assets/css/styles.css?v=admin-dashboard-hide-20260927-1">
+    <link rel="stylesheet" href="assets/css/styles.css?v=staff-login-access-20260927-1">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
@@ -1391,7 +1391,7 @@
    <button type="button" class="btn-action" data-management-module="reports" onclick="showManagementModule('reports')" style="background:#5b21b6;color:#ede9fe;padding:14px;text-align:left;">📊 Reports <small style="display:block;margin-top:5px;">Basic + Advanced Reports</small></button>
    <button type="button" class="btn-action" data-management-module="permissions" onclick="showManagementModule('permissions')" style="background:#9f1239;color:#ffe4e6;padding:14px;text-align:left;">🔐 User Permissions <small style="display:block;margin-top:5px;">Standard Roles + Detailed Access</small></button>
   </div>
-  <div id="managementHubNotice" role="status" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #38bdf8;">
+  <div id="managementPanelStaff" role="region" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #38bdf8;">
    <h3 style="margin:0 0 6px;color:#7dd3fc;">👥 Staff Accounts</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(56,189,248,.10);border:1px solid rgba(56,189,248,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Profile, contact, role, branch aur active/inactive status.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: profile, contact, active status. Advanced: role, branch, access overview.</p>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;">
     <div><label for="mhStaffName">Staff name *</label><input id="mhStaffName" placeholder="Full name" style="width:100%;box-sizing:border-box;"></div>
@@ -1400,9 +1400,18 @@
     <div><label for="mhStaffRole">Role</label><select id="mhStaffRole" style="width:100%;box-sizing:border-box;"><option>Sales Executive</option><option>Manager</option><option>Branch Manager</option><option>Operations</option><option>Viewer</option></select></div>
     <div><label for="mhStaffBranch">Branch</label><select id="mhStaffBranch" style="width:100%;box-sizing:border-box;"><option value="">Unassigned</option></select></div>
     <div><label for="mhStaffStatus">Status</label><select id="mhStaffStatus" style="width:100%;box-sizing:border-box;"><option>Active</option><option>Inactive</option></select></div>
+    <div><label for="mhStaffLoginId">Staff Login ID *</label><input id="mhStaffLoginId" autocomplete="off" placeholder="e.g. rahul.sales" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhStaffLoginPassword">Login Password <span id="mhStaffPasswordRequired">*</span></label><input id="mhStaffLoginPassword" type="password" autocomplete="new-password" placeholder="Minimum 8 characters" style="width:100%;box-sizing:border-box;"></div>
    </div>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;">
+    <strong>🔐 LOGIN & FEATURE ACCESS</strong>
+    <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff isi portal ke Client / Staff Login se apne Login ID + Password se login karega. Sirf current tenant ke subscription plan mein available features hi assign kiye ja sakte hain.</div>
+   </div>
+   <div id="mhStaffPlanSummary" style="margin:0 0 10px;color:var(--text-muted);font-size:.8rem;"></div>
+   <div id="mhStaffFeatureAccessList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;"></div>
+   <div id="mhStaffAccessNote" style="margin-top:9px;color:var(--text-muted);font-size:.75rem;"></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="btn-action" type="button" onclick="saveManagementStaff()" style="background:#0284c7;color:#fff;">➕ Save Staff Profile</button><button class="btn-action" type="button" onclick="resetManagementStaffForm()">Clear</button></div>
-   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;"><strong>ADVANCED CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff search, role/branch overview aur account status management.</div></div><div><label for="mhStaffSearch">Search staff</label><input id="mhStaffSearch" placeholder="Name, mobile, email, role..." oninput="renderManagementStaff()" style="width:100%;box-sizing:border-box;"></div><div id="mhStaffList" style="margin-top:14px;overflow:auto;"></div><p style="margin:8px 0 0;font-size:.74rem;color:var(--text-muted);">Note: yahan staff profile/role/branch mapping manage hoti hai; alag staff login account creation aur secure login abhi is form se nahi hota.</p>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;"><strong>ADVANCED CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff search, role/branch overview aur account status management.</div></div><div><label for="mhStaffSearch">Search staff</label><input id="mhStaffSearch" placeholder="Name, mobile, email, role..." oninput="renderManagementStaff()" style="width:100%;box-sizing:border-box;"></div><div id="mhStaffList" style="margin-top:14px;overflow:auto;"></div><p style="margin:8px 0 0;font-size:.74rem;color:var(--text-muted);">Staff login ID/password aur feature access yahin manage hoga. Password edit karte waqt blank chhodne par existing password same rahega.</p>
   </section>
   <section id="managementPanelBranches" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #34d399;">
    <h3 style="margin:0 0 6px;color:#6ee7b7;">🏢 Branches</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Branch profile, contact, address aur active/inactive status.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: branch profile, contact, active status. Advanced: staff mapping and branch-wise lead allocation.</p>
@@ -1449,6 +1458,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/app.js?v=admin-dashboard-hide-20260927-1"></script>
+<script src="assets/js/app.js?v=staff-login-access-20260927-1"></script>
 </body>
 </html>
