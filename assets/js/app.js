@@ -3956,18 +3956,22 @@
         }
     }
     window.showManagementModule=function(module){
-        document.querySelectorAll('.management-module-panel').forEach(el=>el.style.display='none');
-        document.querySelectorAll('.management-module-tab').forEach(el=>{
+        document.querySelectorAll('.management-module-panel').forEach(el=>{el.style.display='none';el.setAttribute('aria-hidden','true');});
+        // The actual module buttons use .btn-action; select them by their data attribute.
+        document.querySelectorAll('[data-management-module]').forEach(el=>{
             const active=el.dataset.managementModule===module;
             el.style.outline=active?'3px solid rgba(255,255,255,.82)':'none';
             el.style.boxShadow=active?'0 8px 24px rgba(0,0,0,.22)':'none';
             el.setAttribute('aria-pressed',active?'true':'false');
         });
         const panel=document.getElementById('managementPanel'+module.charAt(0).toUpperCase()+module.slice(1));
-        if(panel)panel.style.display='block';
+        if(!panel){console.error('Management panel missing:',module);return false;}
+        panel.style.display='block';
+        panel.removeAttribute('aria-hidden');
         if(module==='reports')window.generateManagementReport();
         if(module==='leads')renderManagementLeadOptions();
         if(module==='permissions')renderManagementPermissionTable();
+        return true;
     };
     window.resetManagementStaffForm=function(){
         if(managementEditingStaffId&&document.getElementById('mhStaffEditModal')?.style.display==='flex')window.closeManagementStaffEdit();
