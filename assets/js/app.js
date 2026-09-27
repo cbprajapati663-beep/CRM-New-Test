@@ -3716,7 +3716,7 @@
             if(value&&typeof value.toDate==='function')return value.toDate().toISOString().slice(0,10);
             if(value&&typeof value.seconds==='number')return new Date(value.seconds*1000).toISOString().slice(0,10);
             const raw=String(value||'').trim();
-            const match=raw.match(/^\\d{4}-\\d{2}-\\d{2}/);
+            const match=raw.match(/^\d{4}-\d{2}-\d{2}/);
             if(match)return match[0];
             const date=new Date(raw);
             return raw&&!Number.isNaN(date.getTime())?date.toISOString().slice(0,10):'';
