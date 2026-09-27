@@ -52,6 +52,7 @@
     <div class="header-actions">
         <span id="activeUserBadge" style="background:#1e2433; border:1px solid var(--primary); padding:5px 10px; border-radius:6px; font-size:0.75rem; color:var(--primary); font-weight:700;">👤 Admin</span>
         <button class="btn-action" style="background:#0f766e;color:#fff;font-weight:700;" onclick="downloadCRMBackup()">🛡️ Backup Data</button>
+        <button class="btn-action" style="background:#7c3aed;color:#fff;font-weight:800;" onclick="openManagementHub()">🧭 Management & Reports</button>
         <button id="btnChangeMyPass" class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openChangeMyPasswordModal()">🔑 Change Password</button>
         <button class="btn-action" style="background:#6b7280;color:#fff;font-weight:700;opacity:.78;" onclick="showDocumentsComingSoon()" aria-disabled="true" title="Coming soon">📁 Documents <small style="font-size:.68em;">(Coming Soon)</small></button>
         
@@ -1376,7 +1377,58 @@
 </div>
 
 
+<!-- MANAGEMENT & REPORTS HUB -->
+<div id="managementHubModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="managementHubTitle" style="display:none;z-index:1001000;padding:14px;box-sizing:border-box;">
+ <div class="modal-content" style="width:100%;max-width:1120px;max-height:94vh;overflow:auto;background:var(--panel-bg,#111827);border:1px solid #7c3aed;border-radius:16px;padding:22px;box-sizing:border-box;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;">
+   <div><div style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#a78bfa;font-weight:800;">Workspace Control Center</div><h2 id="managementHubTitle" style="margin:5px 0 4px;">🧭 Management & Reports</h2><p style="margin:0;color:var(--text-muted);font-size:.85rem;">Staff, branches, leads, reports aur permissions ke modules ek hi jagah.</p></div>
+   <button type="button" class="btn-quick" onclick="closeManagementHub()" aria-label="Close management hub">✕</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:14px;">
+   <section class="panel" style="margin:0;border:1px solid #38bdf8;background:linear-gradient(145deg,rgba(14,165,233,.10),transparent);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><h3 style="margin:0;color:#7dd3fc;">👥 Staff Accounts</h3><span class="badge" style="background:#164e63;color:#bae6fd;">Module UI</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong>Standard Controls</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Add / edit staff profile</li><li>Activate / deactivate account</li><li>Contact & login details</li></ul></div>
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong style="color:#7dd3fc;">Advanced Controls</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Role & branch assignment</li><li>Staff-wise access settings</li><li>Activity / login overview</li></ul></div>
+    </div><p style="font-size:.72rem;color:var(--text-muted);margin:12px 0 0;">Interface preview — staff management actions abhi connect nahi hain.</p>
+   </section>
+   <section class="panel" style="margin:0;border:1px solid #34d399;background:linear-gradient(145deg,rgba(16,185,129,.10),transparent);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><h3 style="margin:0;color:#6ee7b7;">🏢 Branches</h3><span class="badge" style="background:#064e3b;color:#a7f3d0;">Module UI</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong>Standard Controls</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Create / edit branch</li><li>Branch address & contact</li><li>Branch status</li></ul></div>
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong style="color:#6ee7b7;">Advanced Controls</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Branch-wise lead allocation</li><li>Staff mapping by branch</li><li>Branch performance view</li></ul></div>
+    </div><p style="font-size:.72rem;color:var(--text-muted);margin:12px 0 0;">Interface preview — branch data and allocation abhi connect nahi hain.</p>
+   </section>
+   <section class="panel" style="margin:0;border:1px solid #f59e0b;background:linear-gradient(145deg,rgba(245,158,11,.10),transparent);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><h3 style="margin:0;color:#fcd34d;">📋 Lead Management</h3><span class="badge" style="background:#78350f;color:#fde68a;">Module UI</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong>Standard Controls</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Create / edit lead</li><li>Update lead status</li><li>Follow-up date & notes</li></ul></div>
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong style="color:#fcd34d;">Advanced Controls</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Assign lead to staff / branch</li><li>Bulk import / export</li><li>Duplicate checks & automation</li></ul></div>
+    </div><p style="font-size:.72rem;color:var(--text-muted);margin:12px 0 0;">Current lead pipeline ke kuch tools already available hain; advanced assignment controls abhi connect nahi hain.</p>
+   </section>
+   <section class="panel" style="margin:0;border:1px solid #a78bfa;background:linear-gradient(145deg,rgba(139,92,246,.10),transparent);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><h3 style="margin:0;color:#c4b5fd;">📊 Reports</h3><span class="badge" style="background:#4c1d95;color:#ddd6fe;">Report Center</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong>Basic Business Reports</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Lead & pipeline summary</li><li>Monthly disbursement summary</li><li>Basic CSV reports</li></ul></div>
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong style="color:#c4b5fd;">Advanced Reports</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Branch-wise business reports</li><li>Staff performance reports</li><li>Period comparison & detailed filters</li></ul></div>
+    </div><p style="font-size:.72rem;color:var(--text-muted);margin:12px 0 0;">Report categories ka preview. Advanced reporting screens abhi implemented nahi hain.</p>
+   </section>
+   <section class="panel" style="margin:0;border:1px solid #fb7185;background:linear-gradient(145deg,rgba(244,63,94,.09),transparent);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><h3 style="margin:0;color:#fda4af;">🔐 User Permissions</h3><span class="badge" style="background:#881337;color:#fecdd3;">Access Center</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong>Standard Roles</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>Administrator</li><li>Manager</li><li>Staff / Sales Executive</li><li>Viewer / Read-only</li></ul></div>
+     <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;"><strong style="color:#fda4af;">Detailed Role-Based Access</strong><ul style="padding-left:18px;margin:9px 0 0;font-size:.82rem;line-height:1.8;"><li>View / create / edit / delete</li><li>Export & assignment rights</li><li>Module-wise permissions</li><li>Branch / data-scope limits</li></ul></div>
+    </div><p style="font-size:.72rem;color:var(--text-muted);margin:12px 0 0;">Role & permission controls ka design preview. Actual enforcement ke liye backend/security rules bhi zaroori hain.</p>
+   </section>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--card-border);">
+   <span style="font-size:.76rem;color:var(--text-muted);">Design preview: modules visible hain; jinke saamne preview likha hai unki working integration abhi pending hai.</span>
+   <button type="button" class="btn-action" onclick="closeManagementHub()" style="background:#7c3aed;color:#fff;font-weight:800;">Close Module Center</button>
+  </div>
+ </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/app.js?v=payout-password-manager-20260927-1"></script>
+<script src="assets/js/app.js?v=management-hub-20260927-1"></script>
 </body>
 </html>
