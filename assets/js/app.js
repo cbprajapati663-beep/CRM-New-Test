@@ -3807,10 +3807,15 @@
         if(module==='permissions')renderManagementPermissionTable();
     };
     window.resetManagementStaffForm=function(){
+        if(managementEditingStaffId&&document.getElementById('mhStaffEditModal')?.style.display==='flex')window.closeManagementStaffEdit();
         managementEditingStaffId='';
         ['mhStaffName','mhStaffPhone','mhStaffEmail','mhStaffLoginId','mhStaffLoginPassword'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-        document.getElementById('mhStaffRole').value='Sales Executive';document.getElementById('mhStaffBranch').value='';document.getElementById('mhStaffStatus').value='Active';
+        const role=document.getElementById('mhStaffRole');if(role)role.value='Sales Executive';
+        const branch=document.getElementById('mhStaffBranch');if(branch)branch.value='';
+        const status=document.getElementById('mhStaffStatus');if(status)status.value='Active';
         const req=document.getElementById('mhStaffPasswordRequired');if(req)req.textContent='*';
+        const title=document.getElementById('mhStaffEditorTitle');if(title)title.textContent='➕ Create Staff';
+        const saveBtn=document.querySelector('#mhStaffEditor button[onclick="saveManagementStaff()"]');if(saveBtn)saveBtn.textContent='➕ Save Staff Profile';
         renderManagementStaffFeatureAccess();
     };
     window.saveManagementStaff=async function(){
@@ -3832,7 +3837,11 @@
             if(!managementEditingStaffId)accountPayload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
             if(loginPassword){const hashed=await makeStaffPasswordHash(loginPassword);accountPayload.passwordHash=hashed.hash;accountPayload.salt=hashed.salt;}
             await staffAccountsCollection.doc(staffId).set(accountPayload,{merge:true});
-            await loadManagementData();window.resetManagementStaffForm();managementNotice('Staff profile + login account + feature access successfully save ho gaya.');
+            const wasEditing=!!managementEditingStaffId;
+            await loadManagementData();
+            if(wasEditing) window.closeManagementStaffEdit();
+            window.resetManagementStaffForm();
+            managementNotice('Staff profile + login account + feature access successfully save ho gaya.');
         }catch(error){console.error(error);managementNotice('Staff account save nahi hua: '+(error.message||''),true);}
     };
     function renderManagementStaff(){
@@ -3842,12 +3851,35 @@
         if(!rows.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">'+(query?'Search ke liye staff record nahi mila.':'Abhi staff profiles nahi hain. Upar form se add karein.')+'</p>';return;}
         box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:820px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Login</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(x.loginId?'<strong>'+managementEscape(x.loginId)+'</strong><br><small style="color:#86efac;">Enabled</small>':'<small style="color:#fbbf24;">Not created</small>')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(Array.isArray(x.featureAccess)?x.featureAccess.length:0)+' feature(s)</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
     }
+    window.closeManagementStaffEdit=function(){
+        const modal=document.getElementById('mhStaffEditModal'),editor=document.getElementById('mhStaffEditor'),panel=document.getElementById('managementPanelStaff');
+        if(editor&&panel&&editor.parentElement===document.getElementById('mhStaffEditMount')){
+            panel.insertBefore(editor,modal||null);
+        }
+        if(modal)modal.style.display='none';
+        managementEditingStaffId='';
+        const title=document.getElementById('mhStaffEditorTitle');if(title)title.textContent='➕ Create Staff';
+        const saveBtn=document.querySelector('#mhStaffEditor button[onclick="saveManagementStaff()"]');if(saveBtn)saveBtn.textContent='➕ Save Staff Profile';
+    };
     window.editManagementStaff=function(id){
-        const x=managementStaff.find(y=>y.id===id);if(!x)return;managementEditingStaffId=id;
-        document.getElementById('mhStaffName').value=x.name||'';document.getElementById('mhStaffPhone').value=x.phone||'';document.getElementById('mhStaffEmail').value=x.email||'';document.getElementById('mhStaffRole').value=x.role||'Sales Executive';document.getElementById('mhStaffBranch').value=x.branchId||'';document.getElementById('mhStaffStatus').value=x.status||'Active';document.getElementById('mhStaffLoginId').value=x.loginId||'';document.getElementById('mhStaffLoginPassword').value='';
+        const x=managementStaff.find(y=>y.id===id);if(!x)return;
+        managementEditingStaffId=id;
+        const modal=document.getElementById('mhStaffEditModal'),mount=document.getElementById('mhStaffEditMount'),editor=document.getElementById('mhStaffEditor');
+        if(!modal||!mount||!editor)return;
+        mount.appendChild(editor);
+        const title=document.getElementById('mhStaffEditorTitle');if(title)title.textContent='✏️ Edit Staff: '+(x.name||'Staff');
+        document.getElementById('mhStaffName').value=x.name||'';
+        document.getElementById('mhStaffPhone').value=x.phone||'';
+        document.getElementById('mhStaffEmail').value=x.email||'';
+        document.getElementById('mhStaffRole').value=x.role||'Sales Executive';
+        document.getElementById('mhStaffBranch').value=x.branchId||'';
+        document.getElementById('mhStaffStatus').value=x.status||'Active';
+        document.getElementById('mhStaffLoginId').value=x.loginId||'';
+        document.getElementById('mhStaffLoginPassword').value='';
         const req=document.getElementById('mhStaffPasswordRequired');if(req)req.textContent=x.loginId?'(blank = keep current)':'*';
         renderManagementStaffFeatureAccess(x.featureAccess);
-        document.getElementById('mhStaffName').focus();
+        modal.style.display='flex';
+        setTimeout(()=>document.getElementById('mhStaffName')?.focus(),0);
     };
     window.toggleManagementStaff=async function(id){
         const ref=managementTenantRef();const x=managementStaff.find(y=>y.id===id);if(!ref||!x)return;
