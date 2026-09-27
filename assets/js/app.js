@@ -3877,7 +3877,7 @@
         // Prevent spreadsheet formula injection from untrusted text fields.
         const csvCell = value => {
             const raw = String(value ?? '');
-            const safe = typeof value === 'string' && /^[\\u0000-\\u0020]*[=+@-]/.test(raw) ? "'" + raw : raw;
+            const safe = typeof value === 'string' && /^[\\s]*[=+@-]/.test(raw) ? "'" + raw : raw;
             return '"' + safe.replace(/"/g, '""') + '"';
         };
         const csv=rows.map(row=>row.map(csvCell).join(',')).join('\\r\\n');
