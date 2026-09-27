@@ -456,8 +456,22 @@
                 ? staffAccount.featureAccess.filter(key => tenantAllowed.includes(key))
                 : tenantAllowed;
 
+            // Load the tenant staff profile so legacy accounts also get the
+            // correct staff name, role and branch at login time.
+            let staffProfile = {};
+            const profileId = String(staffAccount.staffId || staffDoc.id || '').trim();
+            if (profileId) {
+                try {
+                    const profileSnap = await tenantsCollection.doc(tenantDoc.id).collection('staff').doc(profileId).get();
+                    if (profileSnap.exists) staffProfile = profileSnap.data() || {};
+                } catch (profileError) {
+                    console.warn('Staff profile lookup failed:', profileError);
+                }
+            }
+
             const matchedStaff = {
                 ...staffAccount,
+                ...staffProfile,
                 tenantId: tenant.tenantId || staffAccount.tenantId,
                 agencyName: tenant.agencyName,
                 headOffice: tenant.headOffice,
@@ -466,8 +480,8 @@
                 tenantFeatureAccess: tenantAllowed,
                 featureAccess: staffAllowed,
                 role: 'staff',
-                staffRole: staffAccount.role || staffAccount.staffRole || staffAccount.designation || 'Viewer',
-                staffId: staffAccount.staffId || staffDoc.id,
+                staffRole: staffAccount.role || staffAccount.staffRole || staffAccount.designation || staffProfile.role || staffProfile.staffRole || 'Viewer',
+                staffId: staffAccount.staffId || staffProfile.staffId || staffDoc.id,
                 staffLoginId: staffAccount.loginId
             };
 
@@ -1517,7 +1531,9 @@
         if (!user || user.role !== 'staff') return true;
         const tenantId = String(user.tenantId || '').toLowerCase();
         const tenant = tenantsCache.find(t => String(t.tenantId || '').toLowerCase() === tenantId) || {};
-        const matrix = tenant.rolePermissions || {};
+        const matrix = (user.rolePermissions && typeof user.rolePermissions === 'object')
+            ? user.rolePermissions
+            : (tenant.rolePermissions || {});
         const role = getCurrentStaffRoleName(user);
         if (Array.isArray(matrix[role])) return matrix[role].includes(permission);
         const defaults = {
@@ -3348,6 +3364,7 @@
             leadData.createdByUserRole = sessionUser && sessionUser.role === 'staff' ? getCurrentStaffRoleName(sessionUser) : 'Administrator';
             leadData.updatedByUserId = leadData.createdByUserId;
             leadData.updatedByUserName = leadData.createdByUser;
+            leadData.updatedByUserRole = leadData.createdByUserRole;
             leadData.commRate = 1.5;
             leadData.commAmount = Math.round((approvedLoan * 1.5) / 100);
             leadData.dealerCut = formCut;
@@ -4056,7 +4073,7 @@
             let staffId=managementEditingStaffId;
             if(staffId) await ref.collection('staff').doc(staffId).set(payload,{merge:true});
             else {payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();staffId=(await ref.collection('staff').add(payload)).id;}
-            const accountPayload={staffId,tenantId:tenant.tenantId,loginId,agencyName:tenant.agencyName||'',subscriptionPlan:tenant.subscriptionPlan||'Starter',featureAccess,status:payload.status,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+            const accountPayload={staffId,tenantId:tenant.tenantId,loginId,name,role:payload.role,staffRole:payload.role,phone:payload.phone||'',email:payload.email||'',branchId:payload.branchId||'',branchName:payload.branchName||'',agencyName:tenant.agencyName||'',subscriptionPlan:tenant.subscriptionPlan||'Starter',featureAccess,status:payload.status,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
             if(!managementEditingStaffId)accountPayload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
             if(loginPassword){const hashed=await makeStaffPasswordHash(loginPassword);accountPayload.passwordHash=hashed.hash;accountPayload.salt=hashed.salt;}
             await staffAccountsCollection.doc(staffId).set(accountPayload,{merge:true});
