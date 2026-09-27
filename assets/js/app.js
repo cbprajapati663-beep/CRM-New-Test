@@ -367,9 +367,6 @@
                         loginError.style.display = 'block';
                     }
                 } else {
-                    loginError.style.display = 'block';
-                }
-                } else {
                     const staffSnapshot = await staffAccountsCollection.where('loginId', '==', uid).limit(1).get();
                     if (!staffSnapshot.empty) {
                         const staffDoc = staffSnapshot.docs[0];
