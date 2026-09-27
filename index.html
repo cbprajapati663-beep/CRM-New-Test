@@ -1391,9 +1391,12 @@
    <button type="button" class="btn-action" data-management-module="reports" onclick="showManagementModule('reports')" style="background:#5b21b6;color:#ede9fe;padding:14px;text-align:left;">📊 Reports <small style="display:block;margin-top:5px;">Basic + Advanced Reports</small></button>
    <button type="button" class="btn-action" data-management-module="permissions" onclick="showManagementModule('permissions')" style="background:#9f1239;color:#ffe4e6;padding:14px;text-align:left;">🔐 User Permissions <small style="display:block;margin-top:5px;">Standard Roles + Detailed Access</small></button>
   </div>
-  <div id="managementPanelStaff" role="region" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #38bdf8;">
+  <!-- Staff editor opens inline for create and in a modal for edit. -->
+<div id="managementPanelStaff" role="region" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #38bdf8;">
    <h3 style="margin:0 0 6px;color:#7dd3fc;">👥 Staff Accounts</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(56,189,248,.10);border:1px solid rgba(56,189,248,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Profile, contact, role, branch aur active/inactive status.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: profile, contact, active status. Advanced: role, branch, access overview.</p>
-   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;">
+   <div id="mhStaffEditor" style="display:block;">
+    <div id="mhStaffEditorTitle" style="font-weight:800;color:#7dd3fc;margin-bottom:10px;">➕ Create Staff</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;">
     <div><label for="mhStaffName">Staff name *</label><input id="mhStaffName" placeholder="Full name" style="width:100%;box-sizing:border-box;"></div>
     <div><label for="mhStaffPhone">Mobile</label><input id="mhStaffPhone" type="tel" placeholder="Mobile number" style="width:100%;box-sizing:border-box;"></div>
     <div><label for="mhStaffEmail">Email</label><input id="mhStaffEmail" type="email" placeholder="Email (optional)" style="width:100%;box-sizing:border-box;"></div>
@@ -1410,7 +1413,14 @@
    <div id="mhStaffPlanSummary" style="margin:0 0 10px;color:var(--text-muted);font-size:.8rem;"></div>
    <div id="mhStaffFeatureAccessList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;"></div>
    <div id="mhStaffAccessNote" style="margin-top:9px;color:var(--text-muted);font-size:.75rem;"></div>
-   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="btn-action" type="button" onclick="saveManagementStaff()" style="background:#0284c7;color:#fff;">➕ Save Staff Profile</button><button class="btn-action" type="button" onclick="resetManagementStaffForm()">Clear</button></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="btn-action" type="button" onclick="saveManagementStaff()" style="background:#0284c7;color:#fff;">💾 Save Staff Changes</button><button class="btn-action" type="button" onclick="resetManagementStaffForm()">Cancel / Clear</button></div>
+   </div>
+   <div id="mhStaffEditModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:18px;">
+    <div style="width:min(900px,96vw);max-height:92vh;overflow:auto;background:var(--card-bg,#111827);border:1px solid #38bdf8;border-radius:14px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.5);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;"><strong style="font-size:1rem;color:#7dd3fc;">✏️ Edit Staff</strong><button type="button" class="btn-action" onclick="closeManagementStaffEdit()">✕ Close</button></div>
+      <div id="mhStaffEditMount"></div>
+    </div>
+   </div>
    <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;"><strong>ADVANCED CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff search, role/branch overview aur account status management.</div></div><div><label for="mhStaffSearch">Search staff</label><input id="mhStaffSearch" placeholder="Name, mobile, email, role..." oninput="renderManagementStaff()" style="width:100%;box-sizing:border-box;"></div><div id="mhStaffList" style="margin-top:14px;overflow:auto;"></div><p style="margin:8px 0 0;font-size:.74rem;color:var(--text-muted);">Staff login ID/password aur feature access yahin manage hoga. Password edit karte waqt blank chhodne par existing password same rahega.</p>
   </section>
   <section id="managementPanelBranches" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #34d399;">
