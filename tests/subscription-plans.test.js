@@ -92,3 +92,9 @@ assert.ok(!/\bvalue\s*=/.test(tenantIdInput[0]), 'Tenant ID must not be prefille
 assert.ok(tenantLoginSource.indexOf('delete user.password;') >= 0, 'Tenant password must be removed from the session object');
 assert.ok(tenantLoginSource.indexOf('delete user.password;') < tenantLoginSource.indexOf("localStorage.setItem('haf_active_session_user_v2'"), 'Password removal must happen before session persistence');
 console.log('Tenant login default-credential and session-password regression checks passed.');
+const loginPageSource = fs.readFileSync('assets/js/login-page.js', 'utf8');
+assert.ok(loginPageSource.includes("errorBox.textContent = safeMessage"), 'Login errors must be rendered as text');
+assert.ok(loginPageSource.includes("user.status === 'Suspended'"), 'Suspended tenant login must be rejected');
+assert.ok(loginPageSource.includes("button.disabled = true;") && loginPageSource.includes("button.disabled = false;"), 'Login submit button must be restored after the request');
+assert.ok(loginPageSource.includes("window.location.replace('../index.html')"), 'Successful tenant login must redirect to the CRM');
+console.log('Tenant login safe-error, suspended-account, and request-state regression checks passed.');
