@@ -1860,13 +1860,27 @@
     window.handleSaveDealerCutFromLedger = async function(e) {
         e.preventDefault();
         const docId = document.getElementById('dc_leadDocId').value;
-        const newCut = Number(document.getElementById('dc_dealerCut').value) || 0;
+        const rawCut = document.getElementById('dc_dealerCut').value;
+        const newCut = Number(rawCut);
         const l = leads.find(item => item.docId === docId);
+
+        if (!l) {
+            alert('Lead record nahi mila. Please refresh and try again.');
+            return;
+        }
+        if (!Number.isFinite(newCut) || newCut < 0) {
+            alert('Dealer cut valid non-negative amount hona chahiye.');
+            return;
+        }
 
         const approvedAmt = Number(String(l.approvedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
         const rate = Number(l.commRate || 1.5);
         const gross = Math.round((approvedAmt * rate) / 100);
-        const net = Math.max(0, gross - newCut);
+        if (newCut > gross) {
+            alert('Dealer cut gross commission se zyada nahi ho sakta.');
+            return;
+        }
+        const net = gross - newCut;
 
         await leadsCollection.doc(docId).update({
             dealerCut: newCut,
