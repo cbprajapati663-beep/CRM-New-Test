@@ -777,6 +777,28 @@
         ['reports', 'Reports & CSV Export'],
         ['backupExport', 'CRM Backup / Data Export']
     ];
+    // Role-based staff defaults: tenant plan is always the upper limit, while the
+    // checkboxes remain editable so an admin can customize an individual staff account.
+    const STAFF_ROLE_DEFAULT_FEATURES = {
+        Administrator: FEATURE_CATALOG.map(item => item[0]),
+        Manager: ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'dataHealth', 'documents', 'emiCalculator', 'affordability', 'reports'],
+        'Branch Manager': ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'dataHealth', 'documents', 'emiCalculator', 'affordability', 'reports'],
+        Operations: ['pipeline', 'disbursed', 'followups', 'documents', 'reports'],
+        'Sales Executive': ['pipeline', 'followups', 'documents', 'emiCalculator', 'affordability'],
+        Viewer: ['pipeline', 'reports']
+    };
+    function getStaffRoleDefaultFeatureKeys(role, tenantAllowed) {
+        const configured = STAFF_ROLE_DEFAULT_FEATURES[String(role || '').trim()] || STAFF_ROLE_DEFAULT_FEATURES.Viewer;
+        return configured.filter(key => tenantAllowed.includes(key));
+    }
+    window.applyStaffRoleDefaultFeatureAccess = function(forceRoleDefaults = true) {
+        if (!forceRoleDefaults) return;
+        renderManagementStaffFeatureAccess(getStaffRoleDefaultFeatureKeys(
+            document.getElementById('mhStaffRole')?.value,
+            getManagementAllowedStaffFeatures()
+        ));
+    };
+
     function resolveFeatureTenant() {
         const user = getCurrentSessionUser();
         const tenantId = inspectingTenantId || (user && user.role !== 'superadmin' ? user.tenantId : '');
@@ -3714,11 +3736,22 @@
     function getManagementAllowedStaffFeatures(){return getTenantAllowedFeatureKeys(getManagementTenantRecord());}
     function renderManagementStaffFeatureAccess(selected){
         const list=document.getElementById('mhStaffFeatureAccessList'),summary=document.getElementById('mhStaffPlanSummary'),note=document.getElementById('mhStaffAccessNote');if(!list)return;
-        const tenant=getManagementTenantRecord(),allowed=getManagementAllowedStaffFeatures(),chosen=new Set(Array.isArray(selected)?selected.filter(key=>allowed.includes(key)):allowed);
-        if(summary)summary.textContent='Tenant plan: '+String(tenant?.subscriptionPlan||'Starter')+' · '+allowed.length+' feature(s) available for staff access.';
+        const tenant=getManagementTenantRecord(),allowed=getManagementAllowedStaffFeatures(),role=document.getElementById('mhStaffRole')?.value||'Sales Executive';
+        const roleDefaults=new Set(getStaffRoleDefaultFeatureKeys(role,allowed));
+        const chosen=new Set(Array.isArray(selected)?selected.filter(key=>allowed.includes(key)):roleDefaults);
+        if(summary)summary.textContent='Tenant plan: '+String(tenant?.subscriptionPlan||'Starter')+' · Role: '+role+' · '+allowed.length+' feature(s) available. Role defaults are auto-assigned; checkboxes can be edited.';
         list.innerHTML='';
-        FEATURE_CATALOG.forEach(([key,label])=>{const enabled=allowed.includes(key),row=document.createElement('label');row.style.cssText='display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--card-border);border-radius:8px;background:#0f121a;'+(enabled?'':'opacity:.48;');const cb=document.createElement('input');cb.type='checkbox';cb.value=key;cb.checked=enabled&&chosen.has(key);cb.disabled=!enabled;cb.style.cssText='width:auto;min-width:16px;';const span=document.createElement('span');span.textContent=label+(enabled?'':' · Not in tenant plan');row.appendChild(cb);row.appendChild(span);list.appendChild(row);});
-        if(note)note.textContent=allowed.length?'Unchecked features will be hidden for this staff login. Tenant plan remains the upper limit.':'Current tenant plan has no configured features.';
+        FEATURE_CATALOG.forEach(([key,label])=>{
+            const enabled=allowed.includes(key),assigned=enabled&&chosen.has(key),roleDefault=enabled&&roleDefaults.has(key),row=document.createElement('label');
+            row.style.cssText='display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--card-border);border-radius:8px;background:#0f121a;'+(enabled?'':'opacity:.48;');
+            const cb=document.createElement('input');cb.type='checkbox';cb.value=key;cb.checked=assigned;cb.disabled=!enabled;cb.style.cssText='width:auto;min-width:16px;';
+            const wrap=document.createElement('span');
+            const title=document.createElement('strong');title.textContent=label;
+            const status=document.createElement('small');status.style.cssText='display:block;margin-top:2px;color:'+(assigned?'#86efac':'var(--text-muted)')+';';
+            status.textContent=enabled?(assigned?(roleDefault?'✓ Assigned by role':'✓ Assigned · Custom'):'Not assigned'):'Not available in tenant plan';
+            wrap.appendChild(title);wrap.appendChild(status);row.appendChild(cb);row.appendChild(wrap);list.appendChild(row);
+        });
+        if(note)note.textContent=allowed.length?'Role ke hisab se default access automatically check hai. Aap checkbox se access add/remove kar sakte hain; save ke baad wahi customized access staff login par apply hoga. Tenant plan is always the upper limit.':'Current tenant plan has no configured features.';
     }
     function managementNotice(message, isError=false) {
         const el=document.getElementById('managementHubNotice');
