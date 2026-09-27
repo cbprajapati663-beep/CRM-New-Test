@@ -4,7 +4,7 @@
 
 - Login method: Firebase Authentication email + password.
 - Account recovery: Admin-assisted recovery (not self-service email reset).
-- Staging: No separate staging Firebase project is currently available.
+- Staging: Separate project `heritage-crm-staging` is created; Email/Password is enabled, a web app is registered, and Firestore is created in Production mode (owner-confirmed screenshots).
 - Repository: `cbprajapati663-beep/CRM-New-Test`.
 - Work branch: `security/auth-migration-plan-20260927`.
 
@@ -19,10 +19,10 @@
 
 ## Gate before application-code or production changes
 
-A separate staging Firebase project is not available. Therefore, do not deploy authentication changes or replace production Firestore rules yet.
+Staging project creation is complete, but app integration, synthetic test data, backup/rollback readiness, identity mapping, and tests are still pending. Do not deploy authentication changes or replace production Firestore rules yet.
 
 Before implementation/testing:
-- Create or identify a staging Firebase project and confirm its project ID.
+- Connect the CRM to staging through a separate, non-production configuration; do not change the production project ID.
 - Confirm how each existing admin, tenant, and staff account will receive and verify a unique email address.
 - Define who is authorized to request admin-assisted recovery and how recovery requests are audited.
 - Prepare a migration and rollback plan, including account mapping and tenant-isolation checks.
@@ -30,4 +30,4 @@ Before implementation/testing:
 
 ## Current status
 
-This is a decision and safety-gate record only. No application code, Firebase Authentication settings, production Firestore rules, or live customer data have been changed.
+This is a decision and safety-gate record. Owner confirmed staging project setup; no application code, production Authentication settings, production Firestore rules, or live customer data have been changed.
