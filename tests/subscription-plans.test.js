@@ -43,3 +43,13 @@ assert.ok(!activityRenderer.includes('detail.innerHTML'), 'Activity details must
 
 console.log('Activity timeline safe-rendering regression checks passed.');
 
+const dealerLedgerStart = source.indexOf('function renderDealerLedgerTable()');
+const dealerLedgerEnd = source.indexOf('window.openEditDealerCutModal', dealerLedgerStart);
+assert.ok(dealerLedgerStart >= 0 && dealerLedgerEnd > dealerLedgerStart, 'Dealer ledger renderer must exist');
+const dealerLedgerRenderer = source.slice(dealerLedgerStart, dealerLedgerEnd);
+assert.ok(dealerLedgerRenderer.includes('escapeHtml(dName)'), 'Dealer names must be HTML-escaped in ledger rows');
+assert.ok(dealerLedgerRenderer.includes('escapeHtml(l.name'), 'Customer names must be HTML-escaped in ledger rows');
+assert.ok(dealerLedgerRenderer.includes("escapeJsString(l.docId)"), 'Document IDs must be escaped in inline ledger actions');
+assert.ok(dealerLedgerRenderer.includes('opt.textContent = d'), 'Dealer filter options must use textContent');
+
+console.log('Dealer ledger safe-rendering regression checks passed.');
