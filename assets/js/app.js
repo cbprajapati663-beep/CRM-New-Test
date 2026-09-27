@@ -466,6 +466,7 @@
                 tenantFeatureAccess: tenantAllowed,
                 featureAccess: staffAllowed,
                 role: 'staff',
+                staffRole: staffAccount.role || staffAccount.staffRole || staffAccount.designation || 'Viewer',
                 staffId: staffAccount.staffId || staffDoc.id,
                 staffLoginId: staffAccount.loginId
             };
@@ -1508,26 +1509,60 @@
         }
     }
 
+    function getCurrentStaffRoleName(user) {
+        return String(user && (user.staffRole || user.roleName || user.designation) || 'Viewer').trim();
+    }
+    function hasStaffLeadPermission(permission) {
+        const user = getCurrentSessionUser();
+        if (!user || user.role !== 'staff') return true;
+        const tenantId = String(user.tenantId || '').toLowerCase();
+        const tenant = tenantsCache.find(t => String(t.tenantId || '').toLowerCase() === tenantId) || {};
+        const matrix = tenant.rolePermissions || {};
+        const role = getCurrentStaffRoleName(user);
+        if (Array.isArray(matrix[role])) return matrix[role].includes(permission);
+        const defaults = {
+            'Leads · View': ['Administrator','Manager','Sales Executive','Viewer'].includes(role),
+            'Leads · Create/Edit': ['Administrator','Manager','Sales Executive'].includes(role),
+            'Leads · Delete': ['Administrator'].includes(role),
+            'Staff · Manage': ['Administrator'].includes(role),
+            'Branches · Manage': ['Administrator','Manager'].includes(role),
+            'Reports · View/Export': ['Administrator','Manager','Viewer'].includes(role),
+            'Documents · Access': ['Administrator','Manager','Sales Executive'].includes(role),
+            'Payouts · Access': ['Administrator'].includes(role)
+        };
+        return !!defaults[permission];
+    }
+    function canStaffAccessLead(lead) {
+        const user = getCurrentSessionUser();
+        if (!user || user.role !== 'staff') return true;
+        const staffId = String(user.staffId || user.docId || '');
+        return (!!staffId && String(lead.createdByUserId || '') === staffId) ||
+               (!!staffId && String(lead.assignedStaffId || '') === staffId);
+    }
     function getLeadScopedList() {
         const u = getCurrentSessionUser();
+        let tenantLeads = [];
         if (inspectingTenantId) {
-            return leads.filter(l => {
-                const c = (l.tenantId || l.createdBy || '').toLowerCase();
-                return (c === inspectingTenantId.toLowerCase()) || 
-                       (inspectingTenantId.includes('heritage') && (!c || c === 'admin'));
+            tenantLeads = leads.filter(l => {
+                const c = String(l.tenantId || l.createdBy || '').toLowerCase();
+                return (c === inspectingTenantId.toLowerCase()) ||
+                       (inspectingTenantId.toLowerCase().includes('heritage') && (!c || c === 'admin'));
+            });
+        } else if (u && u.role === 'superadmin') {
+            tenantLeads = leads;
+        } else if (u) {
+            const userTenant = String(u.tenantId || '').toLowerCase();
+            tenantLeads = leads.filter(l => {
+                const c = String(l.tenantId || l.createdBy || '').toLowerCase();
+                const isHeritage = userTenant.includes('heritage');
+                return c === userTenant || (isHeritage && (!c || c === 'admin'));
             });
         }
-        if (u && u.role === 'superadmin') {
-            return leads;
+        if (u && u.role === 'staff') {
+            if (!hasStaffLeadPermission('Leads · View')) return [];
+            return tenantLeads.filter(canStaffAccessLead);
         }
-        if (u) {
-            return leads.filter(l => {
-                const c = (l.tenantId || l.createdBy || '').toLowerCase();
-                const isHeritage = u.tenantId.toLowerCase().includes('heritage');
-                return (c === u.tenantId.toLowerCase()) || (isHeritage && (!c || c === 'admin'));
-            });
-        }
-        return [];
+        return tenantLeads;
     }
 
     function renderMetrics() {
@@ -1754,6 +1789,11 @@
                 <td>
                     <strong>${escapeHtml(l.name || 'Unnamed Client')}</strong><br>
                     <span style="color:var(--text-muted); font-size:0.75rem;">${escapeHtml(l.city || 'Mehsana')}</span>
+                    <div style="font-size:.68rem;color:var(--text-muted);margin-top:4px;line-height:1.5;">
+                      <div>Created by: ${escapeHtml(l.createdByUser || l.createdByUserName || l.createdBy || '—')}</div>
+                      <div>Created: ${escapeHtml(formatActivityTime(l.createdAt) || l.leadDate || '—')}</div>
+                      <div>Last edited: ${escapeHtml(formatActivityTime(l.updatedAt) || '—')} ${l.updatedByUserName ? '· '+escapeHtml(l.updatedByUserName) : ''}</div>
+                    </div>
                     <div class="quick-actions">
                         <a class="btn-quick btn-call" href="tel:${cleanMobile}">📞</a>
                         <a class="btn-quick btn-wa" href="https://wa.me/91${cleanMobile}" target="_blank">💬 WA</a>
@@ -1770,9 +1810,9 @@
                 <td>
                     <div style="display:flex; flex-direction:column; gap:4px;">
                         <div style="display:flex; gap:4px;">
-                            <button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}')">✏️</button>
+                            ${hasStaffLeadPermission('Leads · Create/Edit') ? `<button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}')">✏️</button>` : ''}
                             <button class="btn-quick" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);" onclick="showLeadAudit('${escapeJsString(l.docId)}')" title="Audit details">🧾</button>
-                            <button class="btn-quick btn-del" onclick="deleteLead('${escapeJsString(l.docId)}')">🗑️</button>
+                            ${hasStaffLeadPermission('Leads · Delete') ? `<button class="btn-quick btn-del" onclick="deleteLead('${escapeJsString(l.docId)}')">🗑️</button>` : ''}
                         </div>
                         ${doButtonHtml}
                     </div>
@@ -3202,6 +3242,8 @@
     document.getElementById('leadForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const editDocId = document.getElementById('editDocId').value;
+        if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko lead create/edit karne ki permission nahi hai.'); return; }
+        if (editDocId && !getLeadScopedList().some(item => item.docId === editDocId)) { alert('Ye lead aapke access mein nahi hai.'); return; }
         const currentStatus = document.getElementById('status').value;
         const requestedLoan = Number(document.getElementById('loanAmount').value) || 0;
         let approvedLoan = Number(document.getElementById('approvedAmount').value) || requestedLoan;
@@ -3274,7 +3316,9 @@
             followDate: document.getElementById('followDate').value,
             lastConv: document.getElementById('lastConv').value.trim(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedBy: (sessionUser && sessionUser.tenantId) ? sessionUser.tenantId : 'system'
+            updatedBy: (sessionUser && sessionUser.tenantId) ? sessionUser.tenantId : 'system',
+            updatedByUserId: sessionUser && sessionUser.role === 'staff' ? String(sessionUser.staffId || sessionUser.docId || '') : '',
+            updatedByUserName: sessionUser ? (sessionUser.name || sessionUser.fullName || sessionUser.staffLoginId || sessionUser.tenantId || 'system') : 'system'
         };
 
         if (formCut > 0) {
@@ -3299,7 +3343,11 @@
             leadData.createdBy = tenantIdTag;
             leadData.leadDate = todayStr;
             leadData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            leadData.createdByUser = (sessionUser && sessionUser.tenantId) ? sessionUser.tenantId : 'system';
+            leadData.createdByUser = sessionUser ? (sessionUser.name || sessionUser.fullName || sessionUser.staffLoginId || sessionUser.tenantId || 'system') : 'system';
+            leadData.createdByUserId = sessionUser && sessionUser.role === 'staff' ? String(sessionUser.staffId || sessionUser.docId || '') : '';
+            leadData.createdByUserRole = sessionUser && sessionUser.role === 'staff' ? getCurrentStaffRoleName(sessionUser) : 'Administrator';
+            leadData.updatedByUserId = leadData.createdByUserId;
+            leadData.updatedByUserName = leadData.createdByUser;
             leadData.commRate = 1.5;
             leadData.commAmount = Math.round((approvedLoan * 1.5) / 100);
             leadData.dealerCut = formCut;
@@ -3343,8 +3391,9 @@
     }
 
     window.editLead = function(docId) {
-        const l = leads.find(item => item.docId === docId);
-        if (!l) return;
+        const l = getLeadScopedList().find(item => item.docId === docId);
+        if (!l) { alert('Ye lead aapke access mein nahi hai.'); return; }
+        if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko lead edit karne ki permission nahi hai.'); return; }
         restoreLeadFormFromModal();
 
         document.getElementById('editDocId').value = docId;
@@ -3442,8 +3491,12 @@
     };
 
     window.deleteLead = async function(docId) {
+        if (!hasStaffLeadPermission('Leads · Delete')) { alert('Aapko lead delete karne ki permission nahi hai.'); return; }
+        const lead = getLeadScopedList().find(item => item.docId === docId);
+        if (!lead) { alert('Ye lead aapke access mein nahi hai.'); return; }
         if (confirm('Delete lead from Cloud?')) {
-            await leadsCollection.doc(docId).delete();
+            try { await leadsCollection.doc(docId).delete(); }
+            catch (error) { console.error('Lead delete failed:', error); alert('Lead delete nahi hui. Permission/network check karein.'); }
         }
     };
 
