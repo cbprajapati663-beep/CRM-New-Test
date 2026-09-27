@@ -485,6 +485,8 @@
                 role: 'staff',
                 staffRole: staffAccount.role || staffAccount.staffRole || staffAccount.designation || staffProfile.role || staffProfile.staffRole || 'Viewer',
                 staffId: staffAccount.staffId || staffProfile.staffId || staffDoc.id,
+                branchId: staffAccount.branchId || staffProfile.branchId || '',
+                branchName: staffAccount.branchName || staffProfile.branchName || '',
                 staffLoginId: staffAccount.loginId
             };
 
@@ -1554,9 +1556,32 @@
     function canStaffAccessLead(lead) {
         const user = getCurrentSessionUser();
         if (!user || user.role !== 'staff') return true;
+
         const staffId = String(user.staffId || user.docId || '');
-        return (!!staffId && String(lead.createdByUserId || '') === staffId) ||
-               (!!staffId && String(lead.assignedStaffId || '') === staffId);
+        const role = getCurrentStaffRoleName(user);
+        const ownLead = !!staffId && String(lead.createdByUserId || '') === staffId;
+        const assignedLead = !!staffId && String(lead.assignedStaffId || '') === staffId;
+
+        // Manager / Branch Manager are branch-scoped: they can see the complete
+        // lead, pipeline and report data belonging to their assigned branch.
+        if (role === 'Manager' || role === 'Branch Manager') {
+            const userBranchId = String(user.branchId || user.staffBranchId || '').trim();
+            const userBranchName = String(user.branchName || '').trim().toLowerCase();
+            const leadBranchId = String(lead.branchId || '').trim();
+            const leadBranchName = String(lead.branchName || '').trim().toLowerCase();
+
+            if (userBranchId && leadBranchId && leadBranchId === userBranchId) return true;
+            if (userBranchName && leadBranchName && leadBranchName === userBranchName) return true;
+
+            // Keep the manager's own leads visible even if an older record has
+            // not yet been assigned a branch.
+            if (ownLead) return true;
+
+            return false;
+        }
+
+        // Sales Executive / other non-management staff: only own or assigned leads.
+        return ownLead || assignedLead;
     }
     function getLeadScopedList() {
         const u = getCurrentSessionUser();
@@ -3365,6 +3390,8 @@
             leadData.createdByUser = sessionUser ? (sessionUser.name || sessionUser.fullName || sessionUser.staffLoginId || sessionUser.tenantId || 'system') : 'system';
             leadData.createdByUserId = sessionUser && sessionUser.role === 'staff' ? String(sessionUser.staffId || sessionUser.docId || '') : '';
             leadData.createdByUserRole = sessionUser && sessionUser.role === 'staff' ? getCurrentStaffRoleName(sessionUser) : 'Administrator';
+            leadData.branchId = sessionUser && sessionUser.role === 'staff' ? String(sessionUser.branchId || sessionUser.staffBranchId || '') : '';
+            leadData.branchName = sessionUser && sessionUser.role === 'staff' ? String(sessionUser.branchName || '') : '';
             leadData.updatedByUserId = leadData.createdByUserId;
             leadData.updatedByUserName = leadData.createdByUser;
             leadData.updatedByUserRole = leadData.createdByUserRole;
