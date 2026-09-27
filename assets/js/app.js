@@ -3826,7 +3826,20 @@
     function managementTenantRef() {
         const id = managementTenantId();
         if (!id) return null;
-        return tenantsCollection.doc(id);
+
+        // Tenant document IDs are not guaranteed to equal the visible tenantId.
+        // Prefer the Firestore document ID resolved during management data load,
+        // then the cached tenant record's docId, and only then legacy doc(id).
+        const normalized = String(id).trim().toLowerCase();
+        const cached = managementTenantRecordCache;
+        if (cached && cached.docId &&
+            String(cached.tenantId || '').trim().toLowerCase() === normalized) {
+            return tenantsCollection.doc(cached.docId);
+        }
+        const known = (Array.isArray(tenantsCache) ? tenantsCache : []).find(t =>
+            String(t.tenantId || '').trim().toLowerCase() === normalized && t.docId
+        );
+        return tenantsCollection.doc(known ? known.docId : id);
     }
     function staffPasswordIsStrong(value){const p=String(value||'');return p.length>=8&&/[A-Za-z]/.test(p)&&/\d/.test(p);}
     function bytesToHex(buffer){return Array.from(new Uint8Array(buffer)).map(b=>b.toString(16).padStart(2,'0')).join('');}
