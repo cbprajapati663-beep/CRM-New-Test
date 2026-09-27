@@ -457,6 +457,12 @@
     };
 
     window.switchView = function(viewKey) {
+        const activeUser = getCurrentSessionUser();
+        const adminOnlyOperationalView = ADMIN_OPERATIONAL_VIEW_IDS.includes(viewKey);
+        if (adminOnlyOperationalView && activeUser && activeUser.role === 'superadmin' && !inspectingTenantId) {
+            setAdminOperationalTabsVisible(false);
+            return;
+        }
         const requiredFeature = ({pipeline:'pipeline',disbursedhub:'disbursed',dealers:'dealerLedger',payoutdesk:'payoutDesk',followups:'followups',datahealth:'dataHealth',workflow:'smartWorkflow'})[viewKey];
         if (requiredFeature && !isFeatureEnabled(requiredFeature)) {
             alert('Ye feature aapke current subscription plan mein enabled nahi hai. Plan upgrade ya admin se access enable karwayein.');
@@ -870,32 +876,51 @@
         'tabWorkflow'
     ];
 
+    const ADMIN_OPERATIONAL_VIEW_IDS = [
+        'view-disbursedhub',
+        'view-dealers',
+        'view-payoutdesk',
+        'view-followups',
+        'view-datahealth',
+        'view-workflow'
+    ];
+    const ADMIN_OPERATIONAL_METRIC_IDS = [
+        'adminMetricOverdue',
+        'adminMetricDueToday',
+        'adminMetricNoFollowup',
+        'adminMetricDocsPending',
+        'cardCustomerHold'
+    ];
+
     function setAdminOperationalTabsVisible(visible) {
-        const operationalViewIds = [
-            'view-disbursedhub',
-            'view-dealers',
-            'view-payoutdesk',
-            'view-followups',
-            'view-datahealth',
-            'view-workflow'
-        ];
+        const root = document.documentElement;
+        const body = document.body;
+        [root, body].forEach(node => {
+            if (node) node.classList.toggle('admin-operational-hidden', !visible);
+        });
+
         ADMIN_OPERATIONAL_TAB_IDS.forEach(id => {
             const tab = document.getElementById(id);
             if (tab) {
                 tab.style.display = visible ? '' : 'none';
                 tab.setAttribute('aria-hidden', visible ? 'false' : 'true');
+                tab.toggleAttribute('hidden', !visible);
             }
         });
-        operationalViewIds.forEach(id => {
+        ADMIN_OPERATIONAL_VIEW_IDS.forEach(id => {
             const view = document.getElementById(id);
             if (view) {
                 view.style.display = visible ? '' : 'none';
                 view.setAttribute('aria-hidden', visible ? 'false' : 'true');
+                view.toggleAttribute('hidden', !visible);
             }
         });
-        ['adminMetricOverdue','adminMetricDueToday','adminMetricNoFollowup','adminMetricDocsPending','cardCustomerHold'].forEach(id => {
+        ADMIN_OPERATIONAL_METRIC_IDS.forEach(id => {
             const card = document.getElementById(id);
-            if (card) card.style.display = visible ? '' : 'none';
+            if (card) {
+                card.style.display = visible ? '' : 'none';
+                card.toggleAttribute('hidden', !visible);
+            }
         });
     }
 
