@@ -21,4 +21,17 @@ assert.ok(!features.Starter.includes('backupExport'));
 assert.ok(features.Enterprise.includes('backupExport'));
 assert.ok(!features.Business.includes('backupExport'));
 
-console.log('Subscription plan configuration tests passed (5 plan limits + feature access checks).');
+
+const customValidationChecks = [
+  ["whole-number validation", "Number.isInteger(value)"],
+  ["negative limit rejection", "value < -1"],
+  ["unlimited sentinel support", "value < -1"],
+  ["storage must be finite and non-negative", "Number.isFinite(storageGB) || storageGB < 0"],
+  ["at least one custom feature required", "subscriptionPlan === 'Custom' && !featureAccess.length"]
+];
+for (const [label, marker] of customValidationChecks) {
+  assert.ok(source.includes(marker), `Custom plan validation missing: ${label}`);
+}
+assert.ok(source.includes("customLimits = { ...parsedLimits, storageGB }"), "Custom plan limits must be saved together");
+
+console.log('Subscription plan configuration tests passed (5 plan limits, feature access, and custom validation safeguards).');
