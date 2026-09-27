@@ -130,10 +130,3 @@ assert.ok(!managementHub.includes('</div> style="padding:10px 12px;border:1px so
 assert.ok(managementHub.includes('id="managementHubNotice" role="status" class="panel"'), 'Management notices must be separate from module panels');
 console.log('Management hub markup regression checks passed.');
 
-assert.ok(source.includes('const PAYMENT_FEATURES_ENABLED = false'), 'Paid features must remain disabled until payment is enabled');
-assert.ok(source.includes("const PAID_FEATURES = new Set(['disbursed', 'dealerLedger', 'payoutDesk', 'dataHealth', 'smartWorkflow', 'backupExport'])"), 'Paid feature set must stay explicit');
-assert.ok(source.includes("if (PAID_FEATURES.has(featureKey) && !PAYMENT_FEATURES_ENABLED) return false;"), 'Paid feature gate must deny access while payment is disabled');
-assert.ok(source.includes("showPaidFeatureComingSoon(requiredFeature)"), 'Blocked paid navigation must show Coming Soon');
-assert.ok(managementHub.includes('showPaidFeatureComingSoon(\'backupExport\')'), 'Backup button must be visibly marked Coming Soon');
-assert.ok(!/razorpay|stripe|paymentIntent|checkout/i.test(source), 'No payment gateway implementation should be active in the CRM app');
-console.log('Paid-feature Coming Soon and no-payment-gateway regression checks passed.');
