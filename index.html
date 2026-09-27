@@ -279,6 +279,8 @@
                         </div>
                         <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=''; renderViews();" style="padding:5px 10px;">All Months</button>
                         <button class="btn-action" onclick="clearPipelineFilters()" style="padding:5px 10px;">✕ Clear Filters</button>
+                        <select id="dashboardBranchFilter" onchange="renderViews()" style="width:160px;padding:5px 8px;display:none;"><option value="">All Branches</option></select>
+                        <button class="btn-action" id="btnViewerBranchCsv" onclick="exportViewerBranchCSV()" style="padding:5px 10px;display:none;">📥 Export CSV</button>
                         <input type="text" id="searchQuery" placeholder="🔍 Name / Mobile / Reg No / Dealer..." oninput="renderViews()" style="width:190px;">
                         <select id="filterStatus" onchange="renderViews()" style="width:130px;">
                             <option value="All">All Live Files</option>
@@ -301,6 +303,7 @@
                                 <th>Requested Loan</th>
                                 <th>Approved Amt</th>
                                 <th>Dealer/Partner</th>
+                                <th>Branch</th>
                                 <th>Status</th>
                                 <th>Documents Status</th>
                                 <th>Remarks</th>
