@@ -1662,7 +1662,7 @@
             const tr=document.createElement('tr');
             const values=[label,action,l.name||'Unnamed customer',l.mobile||'—',l.status||'New',l.followDate||'Not set'];
             values.forEach((value,index)=>{const td=document.createElement('td');td.textContent=String(value);if(index===0){td.style.fontWeight='800';td.style.color=label==='Overdue'?'#f87171':label==='Today'?'#fbbf24':'var(--primary)';}tr.appendChild(td);});
-            const td=document.createElement('td');const btn=document.createElement('button');btn.className='btn-quick btn-edit';btn.textContent='✏️ Update';btn.onclick=()=>{editLead(l.docId);switchView('pipeline');};td.appendChild(btn);tr.appendChild(td);body.appendChild(tr);
+            const td=document.createElement('td');const btn=document.createElement('button');btn.className='btn-quick btn-edit';btn.textContent='✏️ Update';btn.onclick=()=>openFollowupEditModal(l.docId);td.appendChild(btn);tr.appendChild(td);body.appendChild(tr);
         });
     }
 
@@ -1874,7 +1874,7 @@
                     <span>${escapeHtml(l.followDate || 'Today')}</span>
                 </td>
                 <td><small style="color:var(--primary);">${escapeHtml(l.lastConv || '-')}</small></td>
-                <td><button class="btn-quick btn-edit" onclick="editLead('${escapeJsString(l.docId)}'); switchView('pipeline');">✏️ Update</button></td>
+                <td><button class="btn-quick btn-edit" onclick="openFollowupEditModal('${escapeJsString(l.docId)}')">✏️ Edit Follow-up</button></td>
             `;
             tbody.appendChild(row);
         });
@@ -2789,9 +2789,23 @@
         }
     });
 
+    let leadEditFormPlaceholder = null;
+
+    function restoreLeadFormFromModal() {
+        const form = document.getElementById('leadForm');
+        const modal = document.getElementById('leadEditModal');
+        if (leadEditFormPlaceholder && leadEditFormPlaceholder.parentNode && form) {
+            leadEditFormPlaceholder.parentNode.insertBefore(form, leadEditFormPlaceholder);
+            leadEditFormPlaceholder.remove();
+        }
+        leadEditFormPlaceholder = null;
+        if (modal) modal.style.display = 'none';
+    }
+
     window.editLead = function(docId) {
         const l = leads.find(item => item.docId === docId);
         if (!l) return;
+        restoreLeadFormFromModal();
 
         document.getElementById('editDocId').value = docId;
         document.getElementById('custName').value = l.name || '';
@@ -2814,16 +2828,77 @@
         document.getElementById('form-heading').textContent = 'Update Lead Details';
         document.getElementById('submitBtn').textContent = 'Update in Cloud';
         document.getElementById('cancelBtn').style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        const form = document.getElementById('leadForm');
+        const modal = document.getElementById('leadEditModal');
+        const target = document.getElementById('leadEditFormHost');
+        if (form && modal && target) {
+            leadEditFormPlaceholder = document.createComment('lead-form-location');
+            form.parentNode.insertBefore(leadEditFormPlaceholder, form);
+            target.appendChild(form);
+            document.getElementById('leadEditModalTitle').textContent = '✏️ Edit Lead — ' + (l.name || 'Customer');
+            modal.style.display = 'flex';
+            modal.scrollTop = 0;
+        }
+    };
+
+    window.closeLeadEditModal = function() {
+        window.resetForm();
     };
 
     window.resetForm = function() {
-        document.getElementById('leadForm').reset();
+        const form = document.getElementById('leadForm');
+        if (form) form.reset();
         document.getElementById('editDocId').value = '';
         document.getElementById('form-heading').textContent = 'Add New Lead';
         document.getElementById('submitBtn').textContent = 'Save to Cloud';
         document.getElementById('cancelBtn').style.display = 'none';
         handleStatusChange();
+        restoreLeadFormFromModal();
+    };
+
+    window.openFollowupEditModal = function(docId) {
+        const lead = leads.find(item => item.docId === docId);
+        if (!lead) { alert('Lead record nahi mili.'); return; }
+        document.getElementById('followupEditDocId').value = docId;
+        document.getElementById('followupEditCustomer').textContent = (lead.name || 'Customer') + (lead.mobile ? ' · ' + lead.mobile : '');
+        document.getElementById('followupEditDate').value = lead.followDate || '';
+        document.getElementById('followupEditRemarks').value = lead.lastConv || '';
+        document.getElementById('followupEditError').style.display = 'none';
+        document.getElementById('followupEditModal').style.display = 'flex';
+    };
+
+    window.closeFollowupEditModal = function() {
+        document.getElementById('followupEditModal').style.display = 'none';
+    };
+
+    window.handleSaveFollowupEdit = async function(event) {
+        event.preventDefault();
+        const docId = document.getElementById('followupEditDocId').value;
+        const followDate = document.getElementById('followupEditDate').value;
+        const lastConv = document.getElementById('followupEditRemarks').value.trim();
+        const saveBtn = document.getElementById('followupEditSaveBtn');
+        const errorBox = document.getElementById('followupEditError');
+        const sessionUser = getCurrentSessionUser();
+        if (!docId) return;
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+        errorBox.style.display = 'none';
+        try {
+            await leadsCollection.doc(docId).update({
+                followDate,
+                lastConv,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: (sessionUser && sessionUser.tenantId) ? sessionUser.tenantId : 'system'
+            });
+            await logLeadActivity(docId, 'followup_updated', { followDate: followDate || 'Not set', remarks: lastConv });
+            closeFollowupEditModal();
+        } catch (error) {
+            console.error('Follow-up update failed:', error);
+            errorBox.textContent = 'Follow-up update nahi hua. Internet/Firebase permission check karein.';
+            errorBox.style.display = 'block';
+        } finally {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Follow-up'; }
+        }
     };
 
     window.deleteLead = async function(docId) {
