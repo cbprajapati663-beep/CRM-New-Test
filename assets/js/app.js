@@ -720,7 +720,10 @@
         })();
     }
 
-    // Central subscription entitlements. UI gating is for presentation; Firestore rules/server checks are still required for security.
+    // Central subscription entitlements. Paid add-ons remain disabled until a real payment flow is enabled.
+    // Core CRM features continue to work normally; paid-only features are explicitly kept in Coming Soon state.
+    const PAYMENT_FEATURES_ENABLED = false;
+    const PAID_FEATURES = new Set(['disbursed', 'dealerLedger', 'payoutDesk', 'dataHealth', 'smartWorkflow', 'backupExport']);
     const PLAN_FEATURES = {
         Starter: ['pipeline', 'followups', 'documents'],
         Professional: ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'documents', 'emiCalculator', 'affordability', 'reports'],
@@ -778,6 +781,8 @@
         return pool.find(t => String(t.tenantId || '').toLowerCase() === String(tenantId).toLowerCase()) || (user && String(user.tenantId || '').toLowerCase() === String(tenantId).toLowerCase() ? user : null);
     }
     function isFeatureEnabled(featureKey) {
+        // Do not let a plan value alone unlock a paid feature while payment is disabled.
+        if (PAID_FEATURES.has(featureKey) && !PAYMENT_FEATURES_ENABLED) return false;
         const user = getCurrentSessionUser();
         if (user && user.role === 'superadmin' && !inspectingTenantId) return true;
         const tenant = resolveFeatureTenant();
@@ -787,6 +792,17 @@
             ? (Array.isArray(tenant.featureAccess) ? tenant.featureAccess : [])
             : (PLAN_FEATURES[plan] || PLAN_FEATURES.Starter);
         return allowed.includes(featureKey);
+    }
+    function showPaidFeatureComingSoon(featureKey) {
+        const labels = {
+            disbursed: 'Disbursed Files & Clearance Hub',
+            dealerLedger: 'Dealer / Broker Ledger',
+            payoutDesk: 'Secret DSA Payout Desk',
+            dataHealth: 'Data Health',
+            smartWorkflow: 'Smart Workflow',
+            backupExport: 'CRM Backup / Data Export'
+        };
+        alert((labels[featureKey] || 'This feature') + ' abhi Coming Soon hai. Payment/subscription system enable hone ke baad available hoga.');
     }
     function applyPlanFeatureGates() {
         const mappings = {
@@ -800,7 +816,19 @@
         };
         Object.entries(mappings).forEach(([id, feature]) => {
             const el = document.getElementById(id);
-            if (el) el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+            if (!el) return;
+            const enabled = isFeatureEnabled(feature);
+            el.style.display = enabled ? '' : '';
+            if (!enabled && PAID_FEATURES.has(feature) && !PAYMENT_FEATURES_ENABLED) {
+                el.disabled = true;
+                el.setAttribute('aria-disabled', 'true');
+                el.dataset.paidComingSoon = 'true';
+                el.title = 'Coming Soon — payment/subscription system abhi enabled nahi hai';
+                const label = el.childNodes[0];
+                if (label && label.nodeType === Node.TEXT_NODE && !String(label.textContent).includes('Coming Soon')) {
+                    label.textContent = String(label.textContent).trimEnd() + ' (Coming Soon) ';
+                }
+            }
         });
         const selectorMappings = [
             ['[onclick*="openDocumentTracker"]', 'documents'],
@@ -813,7 +841,14 @@
         ];
         selectorMappings.forEach(([selector, feature]) => {
             document.querySelectorAll(selector).forEach(el => {
-                el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+                const enabled = isFeatureEnabled(feature);
+                el.style.display = enabled ? '' : 'none';
+                if (!enabled && PAID_FEATURES.has(feature) && !PAYMENT_FEATURES_ENABLED) {
+                    el.disabled = true;
+                    el.setAttribute('aria-disabled', 'true');
+                    el.dataset.paidComingSoon = 'true';
+                    el.title = 'Coming Soon — payment/subscription system abhi enabled nahi hai';
+                }
             });
         });
         const exportBtn = document.getElementById('btnExportExcel');
