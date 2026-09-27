@@ -612,7 +612,7 @@
                 <div>
                     <div style="font-size:1.1rem; font-weight:700; color:var(--primary);">🏢 ${escapeHtml(t.agencyName)}</div>
                     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
-                        Username: <strong style="color:var(--text);">${escapeHtml(t.tenantId)}</strong> | Office: <strong style="color:#38bdf8;">${escapeHtml(t.headOffice || 'Mehsana')}</strong> | Phone: <strong style="color:#4ade80;">${escapeHtml(t.contactPhone || '-')}</strong> | Rent: <strong>₹${Number(t.rentAmount) || 0}/mo</strong> | Status: <span class="badge ${t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'}">${escapeHtml(t.status)}</span>
+                        Username: <strong style="color:var(--text);">${escapeHtml(t.tenantId)}</strong> | Plan: <strong style="color:#c084fc;">${escapeHtml(t.subscriptionPlan || 'Starter')}</strong> | Office: <strong style="color:#38bdf8;">${escapeHtml(t.headOffice || 'Mehsana')}</strong> | Phone: <strong style="color:#4ade80;">${escapeHtml(t.contactPhone || '-')}</strong> | Rent: <strong>₹${Number(t.rentAmount) || 0}/mo</strong> | Status: <span class="badge ${t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'}">${escapeHtml(t.status)}</span>
                     </div>
                 </div>
 
@@ -637,7 +637,7 @@
 
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                     <button class="btn-action" style="background:#f59e0b; color:#000; font-weight:700;" onclick="openEditTenantModal('${escapeJsString(t.tenantId)}')">⚙️ Manage License</button>
-                    <button class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openAdminRentBillModal('${escapeJsString(t.tenantId)}', '${escapeJsString(t.agencyName)}', ${Number(t.rentAmount) || 0}, '${escapeJsString(t.expiryDate)}')">🧾 Bill</button>
+                    <button class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openAdminRentBillModal('${escapeJsString(t.tenantId)}', '${escapeJsString(t.agencyName)}', ${Number(t.rentAmount) || 0}, '${escapeJsString(t.expiryDate)}', '${escapeJsString(t.subscriptionPlan || 'Starter')}')">🧾 Bill</button>
                     <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="openAdminTenantReportModal('${escapeJsString(t.tenantId)}', '${escapeJsString(t.agencyName)}')">📊 Report</button>
                     <button class="btn-action" style="background:var(--saas); color:#000; font-weight:700;" onclick="inspectUserPortal('${escapeJsString(t.tenantId)}')">👁️ View</button>
                     <button class="btn-quick btn-del" onclick="deleteTenantAccount('${escapeJsString(t.tenantId)}')">🗑️</button>
@@ -661,6 +661,7 @@
         document.getElementById('t_contactPhone').value = t.contactPhone || '+91 7600211085';
         document.getElementById('t_password').value = t.password || '';
         document.getElementById('t_monthlyRent').value = t.rentAmount || 0;
+        document.getElementById('t_subscriptionPlan').value = t.subscriptionPlan || 'Starter';
         document.getElementById('t_expiryDate').value = t.expiryDate || '';
         document.getElementById('t_status').value = t.status || 'Active';
 
@@ -677,6 +678,7 @@
         document.getElementById('t_contactPhone').value = '+91 7600211085';
         document.getElementById('t_password').value = '';
         document.getElementById('t_monthlyRent').value = '3000';
+        document.getElementById('t_subscriptionPlan').value = 'Starter';
         const d = new Date(); d.setFullYear(d.getFullYear() + 1);
         document.getElementById('t_expiryDate').value = d.toISOString().split('T')[0];
         document.getElementById('t_status').value = 'Active';
@@ -697,6 +699,7 @@
         const contactPhone = document.getElementById('t_contactPhone').value.trim();
         const pass = document.getElementById('t_password').value.trim();
         const rent = Number(document.getElementById('t_monthlyRent').value) || 0;
+        const subscriptionPlan = document.getElementById('t_subscriptionPlan').value || 'Starter';
         const exp = document.getElementById('t_expiryDate').value;
         const stat = document.getElementById('t_status').value;
 
@@ -726,6 +729,7 @@
                 role: "client",
                 password: pass,
                 rentAmount: rent,
+                subscriptionPlan: subscriptionPlan,
                 expiryDate: exp,
                 status: stat,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -742,13 +746,15 @@
         }
     }
 
-    window.openAdminRentBillModal = function(tid, agencyName, rentAmt, expiryDate) {
+    window.openAdminRentBillModal = function(tid, agencyName, rentAmt, expiryDate, planName) {
         document.getElementById('billDate').textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
         const billNow = new Date();
         const billMonthKey = String(billNow.getFullYear()) + String(billNow.getMonth() + 1).padStart(2, '0');
         document.getElementById('billInvNo').textContent = 'HFC-INV-' + billMonthKey + '-' + stableInvoiceCode(tid);
         document.getElementById('billAgencyName').textContent = agencyName;
         document.getElementById('billTenantId').textContent = tid;
+        const billPlan = document.getElementById('billPlan');
+        if (billPlan) billPlan.textContent = planName || 'Starter';
         document.getElementById('billPeriod').textContent = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
         document.getElementById('billExpiry').textContent = expiryDate;
         document.getElementById('billRentAmt').textContent = formatINR(rentAmt);
