@@ -1073,12 +1073,33 @@
         const rent = Number(document.getElementById('t_monthlyRent').value) || 0;
         const subscriptionPlan = document.getElementById('t_subscriptionPlan').value || 'Starter';
         const featureAccess = subscriptionPlan === 'Custom' ? Array.from(document.querySelectorAll('#customFeatureAccessList input:checked')).map(el => el.value) : null;
-        const customLimits = subscriptionPlan === 'Custom' ? {
-            staff: Math.max(-1, Math.floor(Number(document.getElementById('t_customStaffLimit').value) || 0)),
-            branches: Math.max(-1, Math.floor(Number(document.getElementById('t_customBranchLimit').value) || 0)),
-            leads: Math.max(-1, Math.floor(Number(document.getElementById('t_customLeadLimit').value) || 0)),
-            storageGB: Math.max(0, Number(document.getElementById('t_customStorageLimit').value) || 0)
-        } : null;
+        let customLimits = null;
+        if (subscriptionPlan === 'Custom') {
+            const limitFields = [
+                ['staff', 't_customStaffLimit'],
+                ['branches', 't_customBranchLimit'],
+                ['leads', 't_customLeadLimit']
+            ];
+            const parsedLimits = {};
+            for (const [key, elementId] of limitFields) {
+                const raw = String(document.getElementById(elementId)?.value ?? '').trim();
+                const value = Number(raw);
+                if (!raw || !Number.isFinite(value) || !Number.isInteger(value) || value < -1) {
+                    alert('Custom plan mein Staff, Branch aur Lead limits ke liye valid whole number bharein. -1 ka matlab unlimited hai.');
+                    document.getElementById(elementId)?.focus();
+                    return;
+                }
+                parsedLimits[key] = value;
+            }
+            const storageRaw = String(document.getElementById('t_customStorageLimit')?.value ?? '').trim();
+            const storageGB = Number(storageRaw);
+            if (!storageRaw || !Number.isFinite(storageGB) || storageGB < 0) {
+                alert('Custom plan ke liye Storage limit 0 ya usse zyada valid number honi chahiye.');
+                document.getElementById('t_customStorageLimit')?.focus();
+                return;
+            }
+            customLimits = { ...parsedLimits, storageGB };
+        }
         if (subscriptionPlan === 'Custom' && !featureAccess.length) { alert('Custom plan ke liye kam se kam ek feature select karein.'); return; }
         const exp = document.getElementById('t_expiryDate').value;
         const stat = document.getElementById('t_status').value;
