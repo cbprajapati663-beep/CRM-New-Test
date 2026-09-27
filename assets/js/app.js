@@ -3897,6 +3897,20 @@
             };
             editForm.querySelectorAll('[id]').forEach(el=>{if(idMap[el.id])el.id=idMap[el.id];});
             const title=editForm.querySelector('#mhStaffEditTitle');if(title)title.textContent='✏️ Edit Staff';
+            const roleSelect=editForm.querySelector('#mhStaffEditRole');
+            if(roleSelect){
+                roleSelect.onchange=function(){
+                    const selected=Array.from(editForm.querySelectorAll('#mhStaffEditFeatureAccessList input[type="checkbox"]:checked')).map(el=>el.value);
+                    const mainRole=document.getElementById('mhStaffRole');if(mainRole)mainRole.value=roleSelect.value;
+                    renderManagementStaffFeatureAccess(selected);
+                    const mainList=document.getElementById('mhStaffFeatureAccessList'),editList=document.getElementById('mhStaffEditFeatureAccessList');
+                    if(mainList&&editList)editList.innerHTML=mainList.innerHTML;
+                    const mainSummary=document.getElementById('mhStaffPlanSummary'),editSummary=document.getElementById('mhStaffEditPlanSummary');
+                    if(mainSummary&&editSummary)editSummary.textContent=mainSummary.textContent;
+                    const mainNote=document.getElementById('mhStaffAccessNote'),editNote=document.getElementById('mhStaffEditAccessNote');
+                    if(mainNote&&editNote)editNote.textContent=mainNote.textContent;
+                };
+            }
             const save=editForm.querySelector('[onclick="saveManagementStaff()"]');
             if(save){save.textContent='💾 Save Staff Changes';save.onclick=null;save.addEventListener('click',async()=>{syncStaffEditFormToMain();await window.saveManagementStaff();});}
             const cancel=editForm.querySelector('[onclick="resetManagementStaffForm()"]');
@@ -3910,6 +3924,12 @@
         const req=document.getElementById('mhStaffEditPasswordRequired');if(req)req.textContent='(blank = keep current password)';
         const pass=document.getElementById('mhStaffEditPassword');if(pass)pass.placeholder='New password (leave blank to keep current)';
         renderManagementStaffFeatureAccess(x.featureAccess);
+        const mainList=document.getElementById('mhStaffFeatureAccessList'),editList=document.getElementById('mhStaffEditFeatureAccessList');
+        if(mainList&&editList)editList.innerHTML=mainList.innerHTML;
+        const mainSummary=document.getElementById('mhStaffPlanSummary'),editSummary=document.getElementById('mhStaffEditPlanSummary');
+        if(mainSummary&&editSummary)editSummary.textContent=mainSummary.textContent;
+        const mainNote=document.getElementById('mhStaffAccessNote'),editNote=document.getElementById('mhStaffEditAccessNote');
+        if(mainNote&&editNote)editNote.textContent=mainNote.textContent;
         modal.style.display='flex';
         setTimeout(()=>document.getElementById('mhStaffEditLoginId')?.focus(),0);
     };
