@@ -2,7 +2,7 @@
 
 **Review date:** 2026-09-27  
 **Branch:** security/auth-migration-plan-20260927  
-**Scope:** Read-only review plus owner-confirmed staging setup. No application code, production Firebase configuration, database records, or deployed Rules changed.
+**Scope:** Read-only review, owner-confirmed staging setup, and readiness tracking. No application code, production Firebase configuration, database records, or deployed Rules changed.
 
 ## Confirmed application behavior
 
@@ -45,11 +45,12 @@ A correct ruleset needs a trusted mapping from Firebase Auth UID to a canonical 
 
 ## Next implementation slice (non-production)
 
-1. Build a small authentication adapter in a dedicated branch/environment only after the sign-in and recovery decisions are approved.
-2. Add account provisioning that maps Firebase Auth UID to tenant/staff identity from a trusted environment.
-3. Write Emulator Suite tests for unauthenticated denial, tenant A/B isolation, staff permissions, suspended/deleted accounts, and protected admin operations.
-4. Add draft Firestore Rules only after the UID-to-tenant model and document ownership schema are confirmed.
-5. Run UI regression tests for tenant login, staff login, password reset, lead create/edit, documents, reports, exports, and logout/session restoration.
+1. Keep the current security branch isolated from production. Add a deliberate staging-only Firebase config path; do not replace the production project config globally.
+2. Build the Firebase Auth adapter for email/password and define admin-assisted account recovery with a trusted provisioning process.
+3. Add trusted account mapping from Firebase Auth UID to tenant/staff identity; never trust client-supplied role or tenant IDs.
+4. Inventory schemas and every client read/write path, then draft least-privilege Firestore Rules.
+5. Write Emulator Suite tests for unauthenticated denial, tenant A/B isolation, staff permissions, suspended/deleted accounts, and protected admin operations.
+6. Run UI regression tests for tenant login, staff login, admin access, recovery, lead create/edit, documents, reports, exports, and logout/session restoration.
 
 ## Current status
 
@@ -57,5 +58,6 @@ A correct ruleset needs a trusted mapping from Firebase Auth UID to a canonical 
 - Production code migration: **not started**.
 - Rules draft: **blocked pending identity model and schema inventory**.
 - Staging: **project created; Email/Password enabled; web app registered; Firestore created in Production mode**. Staging config is not wired into the app, and test data/backup are not yet verified.
+- Owner decisions: **email sign-in**, **admin-assisted recovery**, and **no extra staging project** (the dedicated `heritage-crm-staging` project is the staging environment).
 - Firebase production settings and database: **not changed**.
 - Runtime/Emulator tests: **not run**.
