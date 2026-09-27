@@ -3889,7 +3889,11 @@
         document.getElementById('mhStaffStatus').value=x.status||'Active';
         document.getElementById('mhStaffLoginId').value=x.loginId||'';
         document.getElementById('mhStaffLoginPassword').value='';
-        const req=document.getElementById('mhStaffPasswordRequired');if(req)req.textContent=x.loginId?'(blank = keep current)':'*';
+        const loginIdField=document.getElementById('mhStaffLoginId');
+        if(loginIdField){loginIdField.readOnly=false;loginIdField.disabled=false;}
+        const req=document.getElementById('mhStaffPasswordRequired');if(req)req.textContent='(leave blank to keep current)';
+        const passField=document.getElementById('mhStaffLoginPassword');
+        if(passField){passField.placeholder='New password (leave blank to keep current)';passField.required=false;}
         renderManagementStaffFeatureAccess(x.featureAccess);
         modal.style.display='flex';
         setTimeout(()=>document.getElementById('mhStaffName')?.focus(),0);
