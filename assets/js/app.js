@@ -479,6 +479,9 @@
                 subscriptionPlan: tenant.subscriptionPlan || 'Starter',
                 tenantFeatureAccess: tenantAllowed,
                 featureAccess: staffAllowed,
+                // Carry the tenant's saved role-permission matrix into the
+                // staff session. This avoids relying on a stale tenantsCache.
+                rolePermissions: tenant.rolePermissions || {},
                 role: 'staff',
                 staffRole: staffAccount.role || staffAccount.staffRole || staffAccount.designation || staffProfile.role || staffProfile.staffRole || 'Viewer',
                 staffId: staffAccount.staffId || staffProfile.staffId || staffDoc.id,
