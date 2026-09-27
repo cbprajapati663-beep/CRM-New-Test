@@ -2,7 +2,7 @@
 
 **Review date:** 2026-09-27  
 **Branch:** security/auth-migration-plan-20260927  
-**Scope:** Read-only review of the current repository. No production application code, Firebase configuration, database records, or deployed Rules changed.
+**Scope:** Read-only review plus owner-confirmed staging setup. No application code, production Firebase configuration, database records, or deployed Rules changed.
 
 ## Confirmed application behavior
 
@@ -39,7 +39,7 @@ A correct ruleset needs a trusted mapping from Firebase Auth UID to a canonical 
 1. **Sign-in identifier:** choose verified email/password, verified phone, or username plus a trusted backend that issues Firebase custom tokens. Existing username-style IDs must not be converted by guessing.
 2. **Account recovery:** confirm each tenant/staff account has a verified recovery channel and define recovery for accounts without one.
 3. **Admin model:** decide the separately protected superadmin identity and who can provision/revoke admin access.
-4. **Migration environment:** confirm a separate test Firebase project and a secure backup/restore procedure.
+4. **Migration environment:** staging project `heritage-crm-staging` is now confirmed; secure backup/restore procedure and synthetic test data remain to be prepared.
 5. **Data model:** inventory the exact tenant ownership field on every protected collection/document and all client read/write paths.
 6. **Legacy credentials:** plan credential rotation and safe removal of existing password/hash fields without logging or exporting secrets.
 
@@ -56,5 +56,6 @@ A correct ruleset needs a trusted mapping from Firebase Auth UID to a canonical 
 - Repository inspection: **completed for the login/session paths listed above**.
 - Production code migration: **not started**.
 - Rules draft: **blocked pending identity model and schema inventory**.
-- Firebase Console settings and production database: **not changed**.
+- Staging: **project created; Email/Password enabled; web app registered; Firestore created in Production mode**. Staging config is not wired into the app, and test data/backup are not yet verified.
+- Firebase production settings and database: **not changed**.
 - Runtime/Emulator tests: **not run**.
