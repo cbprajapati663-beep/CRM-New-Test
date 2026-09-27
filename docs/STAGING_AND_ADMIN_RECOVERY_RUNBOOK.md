@@ -2,18 +2,18 @@
 
 **Repository:** `cbprajapati663-beep/CRM-New-Test`  
 **Branch:** `security/auth-migration-plan-20260927`  
-**Selected decisions:** Email + password sign-in; admin-assisted recovery; no staging project currently exists.
+**Selected decisions:** Email + password sign-in; admin-assisted recovery. **Staging:** owner confirms `heritage-crm-staging` exists, Email/Password is enabled, a web app is registered, and Firestore was created in Production mode.
 
 ## A. Staging project setup (owner action required)
 
-1. In Firebase Console, create a separate project for non-production testing (for example, `heritage-crm-staging`; check availability before choosing the ID).
-2. Enable **Authentication → Email/Password** in that staging project only.
-3. Create a staging Firestore database. Do not import real customer, lead, staff, or payout data; use synthetic records.
-4. Register a separate web app in staging and record its Firebase configuration in local environment configuration or repository secrets. Never commit private service-account keys or credentials.
-5. Keep production and staging project IDs clearly labeled. Confirm which Firebase project the currently deployed CRM uses before any production changes.
+1. **Completed:** separate Firebase project `heritage-crm-staging` created.
+2. **Completed:** Authentication → Email/Password enabled in staging.
+3. **Completed:** Cloud Firestore created in Production mode (default-deny initial rules). Do not import real customer, lead, staff, or payout data; use synthetic records only.
+4. **Completed:** separate staging web app registered. Keep its Firebase config in a separate local/environment configuration; never commit service-account credentials. The app is not yet wired to this project.
+5. Keep production and staging project IDs clearly labeled. The existing CRM source still points to `heritage-crm-f179a`; confirm the deployed hosting target before production changes.
 6. If the app uses Firebase Storage, Functions, hosting, or other Firebase services, create/configure their staging equivalents before integration testing.
 
-**Stop condition:** Do not proceed to production authentication or Rules changes until staging project ID is confirmed, test data is synthetic, and backups/rollback are planned.
+**Stop condition:** Staging creation is complete, but do not proceed to production authentication or Rules changes until synthetic test data, backup/restore, account mapping, app integration, and rollback are prepared and staging tests pass.
 
 ## B. Account identity mapping
 
@@ -50,4 +50,4 @@ Do not invent email addresses, reuse one email across multiple people, or migrat
 
 ## Current completion state
 
-This runbook documents the selected approach. It does not create a Firebase project, enable providers, migrate accounts, deploy code, or change production Firestore Rules. Those actions require access to the Firebase Console and verified project/account details.
+This runbook records the owner-confirmed staging setup. It does not migrate accounts, connect the app to staging, deploy code, or change production Firestore Rules. Account mapping, synthetic data, backup/restore, integration, and tests remain pending.
