@@ -3859,8 +3859,11 @@
         const duplicateSnap=await staffAccountsCollection.where('loginId','==',loginId).limit(5).get(),duplicate=duplicateSnap.docs.find(d=>d.id!==managementEditingStaffId);
         if(duplicate){alert('Ye Staff Login ID already use ho rahi hai. Dusri ID choose karein.');return;}
         const branchId=document.getElementById('mhStaffBranch').value,branch=managementBranches.find(x=>x.id===branchId);
-        const checked=Array.from(document.querySelectorAll('#mhStaffFeatureAccessList input[type="checkbox"]:checked')).map(el=>el.value),tenantAllowed=getManagementAllowedStaffFeatures(),featureAccess=checked.filter(key=>tenantAllowed.includes(key));
-        const payload={name,phone:String(document.getElementById('mhStaffPhone').value||'').trim(),email:String(document.getElementById('mhStaffEmail').value||'').trim(),role:document.getElementById('mhStaffRole').value,branchId:branchId||'',branchName:branch?branch.name:'',status:document.getElementById('mhStaffStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        const featureListSelector=managementEditingStaffId&&document.getElementById('mhStaffEditFeatureAccessList')
+            ? '#mhStaffEditFeatureAccessList input[type="checkbox"]:checked'
+            : '#mhStaffFeatureAccessList input[type="checkbox"]:checked';
+        const checked=Array.from(document.querySelectorAll(featureListSelector)).map(el=>el.value),tenantAllowed=getManagementAllowedStaffFeatures(),featureAccess=checked.filter(key=>tenantAllowed.includes(key));
+        const payload={name,phone:String(document.getElementById('mhStaffPhone').value||'').trim(),email:String(document.getElementById('mhStaffEmail').value||'').trim(),role:document.getElementById('mhStaffRole').value,branchId:branchId||'',branchName:branch?branch.name:'',status:document.getElementById('mhStaffStatus').value,featureAccess,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
             let staffId=managementEditingStaffId;
             if(staffId) await ref.collection('staff').doc(staffId).set(payload,{merge:true});
@@ -3881,7 +3884,7 @@
         const query=String(document.getElementById('mhStaffSearch')?.value||'').trim().toLowerCase();
         const rows=managementStaff.filter(x=>[x.name,x.phone,x.email,x.role,x.branchName,x.status,x.loginId].some(v=>String(v||'').toLowerCase().includes(query)));
         if(!rows.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">'+(query?'Search ke liye staff record nahi mila.':'Abhi staff profiles nahi hain. Upar form se add karein.')+'</p>';return;}
-        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:820px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Login</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(x.loginId?'<strong>'+managementEscape(x.loginId)+'</strong><br><small style="color:#86efac;">Enabled</small>':'<small style="color:#fbbf24;">Not created</small>')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(Array.isArray(x.featureAccess)?x.featureAccess.length:0)+' feature(s)</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:820px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Login</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(x.loginId?'<strong>'+managementEscape(x.loginId)+'</strong><br><small style="color:#86efac;">Enabled</small>':'<small style="color:#fbbf24;">Not created</small>')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(Array.isArray(x.featureAccess)?x.featureAccess.length:0)+' feature(s)</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button> <button class="btn-quick" type="button" style="background:#b91c1c;color:#fff;" onclick="deleteManagementStaff(''+escapeJsString(x.id)+'')">Delete</button></td></tr>').join('')+'</tbody></table>';
     }
     window.closeManagementStaffEdit=function(){
         const modal=document.getElementById('mhStaffEditModal');
@@ -3960,6 +3963,23 @@
         pairs.forEach(([from,to])=>{const a=document.getElementById(from),b=document.getElementById(to);if(a&&b)b.value=a.value;});
         const mainList=document.getElementById('mhStaffFeatureAccessList'),editList=document.getElementById('mhStaffEditFeatureAccessList');
         if(mainList&&editList)mainList.innerHTML=editList.innerHTML;
+    };
+    window.deleteManagementStaff=async function(id){
+        const x=managementStaff.find(y=>y.id===id);if(!x)return;
+        const ref=managementTenantRef();if(!ref)return;
+        const confirmed=confirm('Staff "'+(x.name||'Staff')+'" ko permanently delete karna hai?\\n\\nDelete ke baad staff ka CRM profile aur login account dono remove ho jayenge, aur wo login nahi kar payega.');
+        if(!confirmed)return;
+        try{
+            await ref.collection('staff').doc(id).delete();
+            await staffAccountsCollection.doc(id).delete();
+            if(managementEditingStaffId===id)window.closeManagementStaffEdit();
+            await loadManagementData();
+            window.resetManagementStaffForm();
+            managementNotice('Staff permanently delete ho gaya. Login account bhi remove ho gaya.');
+        }catch(error){
+            console.error('Staff delete failed:',error);
+            managementNotice('Staff delete nahi hua: '+(error.message||''),true);
+        }
     };
     window.toggleManagementStaff=async function(id){
         const ref=managementTenantRef();const x=managementStaff.find(y=>y.id===id);if(!ref||!x)return;
