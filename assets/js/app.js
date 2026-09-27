@@ -3884,18 +3884,17 @@
             editForm=document.createElement('div');
             editForm.id='mhStaffEditForm';
             editForm.innerHTML=editor.innerHTML;
-            editForm.querySelectorAll('[id]').forEach(el=>{
-                if(el.id==='mhStaffEditorTitle') el.id='mhStaffEditTitle';
-                else el.id='mhStaffName' && (el.id='mhStaffEditName');
-            });
             const idMap={
+                mhStaffEditorTitle:'mhStaffEditTitle',
                 mhStaffName:'mhStaffEditName',mhStaffPhone:'mhStaffEditPhone',mhStaffEmail:'mhStaffEditEmail',
                 mhStaffRole:'mhStaffEditRole',mhStaffBranch:'mhStaffEditBranch',mhStaffStatus:'mhStaffEditStatus',
                 mhStaffLoginId:'mhStaffEditLoginId',mhStaffLoginPassword:'mhStaffEditPassword',
                 mhStaffPasswordRequired:'mhStaffEditPasswordRequired',mhStaffPlanSummary:'mhStaffEditPlanSummary',
                 mhStaffFeatureAccessList:'mhStaffEditFeatureAccessList',mhStaffAccessNote:'mhStaffEditAccessNote'
             };
-            editForm.querySelectorAll('[id]').forEach(el=>{if(idMap[el.id])el.id=idMap[el.id];});
+            editForm.querySelectorAll('[id]').forEach(el=>{
+                if(idMap[el.id]) el.id=idMap[el.id];
+            });
             const title=editForm.querySelector('#mhStaffEditTitle');if(title)title.textContent='✏️ Edit Staff';
             const roleSelect=editForm.querySelector('#mhStaffEditRole');
             if(roleSelect){
