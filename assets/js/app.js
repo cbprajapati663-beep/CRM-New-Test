@@ -26,6 +26,7 @@
     const db = firebase.firestore();
     const leadsCollection = db.collection('leads');
     const tenantsCollection = db.collection('tenants');
+    const staffAccountsCollection = db.collection('staffAccounts');
     let tenantsCache = [];
     let tenantsReady = false;
 
@@ -367,6 +368,38 @@
                     }
                 } else {
                     loginError.style.display = 'block';
+                }
+                } else {
+                    const staffSnapshot = await staffAccountsCollection.where('loginId', '==', uid).limit(1).get();
+                    if (!staffSnapshot.empty) {
+                        const staffDoc = staffSnapshot.docs[0];
+                        const staffAccount = { docId: staffDoc.id, ...staffDoc.data() };
+                        const validPassword = await verifyStaffPassword(pass, staffAccount);
+                        if (validPassword && staffAccount.status !== 'Inactive') {
+                            const tenantSnapshot = await tenantsCollection.where('tenantId', '==', String(staffAccount.tenantId || '').toLowerCase()).limit(1).get();
+                            if (tenantSnapshot.empty) {
+                                loginError.style.display = 'block';
+                            } else {
+                                const tenantDoc = tenantSnapshot.docs[0];
+                                const tenant = { docId: tenantDoc.id, ...tenantDoc.data() };
+                                if (tenant.status === 'Suspended') {
+                                    alert("⚠️ Tenant subscription suspend / inactive hai. Kripya administrator se sampark karein.");
+                                    return;
+                                }
+                                const tenantAllowed = getTenantAllowedFeatureKeys(tenant);
+                                const staffAllowed = Array.isArray(staffAccount.featureAccess) ? staffAccount.featureAccess.filter(key => tenantAllowed.includes(key)) : tenantAllowed;
+                                const matchedStaff = {...staffAccount,tenantId:tenant.tenantId||staffAccount.tenantId,agencyName:tenant.agencyName,headOffice:tenant.headOffice,contactPhone:tenant.contactPhone,subscriptionPlan:tenant.subscriptionPlan||'Starter',tenantFeatureAccess:tenantAllowed,featureAccess:staffAllowed,role:'staff',staffId:staffAccount.staffId||staffDoc.id,staffLoginId:staffAccount.loginId};
+                                delete matchedStaff.passwordHash; delete matchedStaff.salt;
+                                loginError.style.display = 'none';
+                                document.getElementById('authOverlay').style.display = 'none';
+                                setCurrentSessionUser(matchedStaff);
+                            }
+                        } else {
+                            loginError.style.display = 'block';
+                        }
+                    } else {
+                        loginError.style.display = 'block';
+                    }
                 }
             } catch (error) {
                 console.error("Client login error:", error);
@@ -754,16 +787,22 @@
         const pool = typeof getStoredTenants === 'function' ? getStoredTenants() : [];
         return pool.find(t => String(t.tenantId || '').toLowerCase() === String(tenantId).toLowerCase()) || (user && String(user.tenantId || '').toLowerCase() === String(tenantId).toLowerCase() ? user : null);
     }
+    function getTenantAllowedFeatureKeys(tenant) {
+        if (!tenant) return [];
+        const plan = String(tenant.subscriptionPlan || 'Starter');
+        return plan === 'Custom' ? (Array.isArray(tenant.featureAccess) ? tenant.featureAccess : []) : (PLAN_FEATURES[plan] || PLAN_FEATURES.Starter);
+    }
     function isFeatureEnabled(featureKey) {
         const user = getCurrentSessionUser();
         if (user && user.role === 'superadmin' && !inspectingTenantId) return true;
         const tenant = resolveFeatureTenant();
         if (!tenant) return true;
-        const plan = String(tenant.subscriptionPlan || 'Starter');
-        const allowed = plan === 'Custom'
-            ? (Array.isArray(tenant.featureAccess) ? tenant.featureAccess : [])
-            : (PLAN_FEATURES[plan] || PLAN_FEATURES.Starter);
-        return allowed.includes(featureKey);
+        const tenantAllowed = getTenantAllowedFeatureKeys(tenant);
+        if (user && user.role === 'staff') {
+            const staffAllowed = Array.isArray(user.featureAccess) ? user.featureAccess : tenantAllowed;
+            return tenantAllowed.includes(featureKey) && staffAllowed.includes(featureKey);
+        }
+        return tenantAllowed.includes(featureKey);
     }
     // IT Master Admin dashboard-only visibility guard.
     // These operational CRM modules remain fully available to tenant CRM users
@@ -926,6 +965,8 @@
             renderAdminMasterUserCards();
         } else {
             setAdminOperationalDashboardHidden(false);
+            const managementBtn=document.querySelector('[onclick*="openManagementHub"]');
+            if(managementBtn) managementBtn.style.display = u.role === 'staff' ? 'none' : '';
             document.getElementById('crmNavTabsBar').style.display = 'flex';
             document.getElementById('activeUserBadge').textContent = `👤 ${u.agencyName}`;
             document.getElementById('headerTenantBrand').textContent = `🚗 ${u.agencyName} CRM`;
@@ -3645,6 +3686,7 @@
 
 
     // Management & Reports Center — tenant-scoped management tools.
+    const staffPasswordIterations = 120000;
     let managementStaff = [];
     let managementBranches = [];
     let managementEditingStaffId = '';
@@ -3660,6 +3702,26 @@
         const id = managementTenantId();
         if (!id) return null;
         return tenantsCollection.doc(id);
+    }
+    function staffPasswordIsStrong(value){const p=String(value||'');return p.length>=8&&/[A-Za-z]/.test(p)&&/\d/.test(p);}
+    function bytesToHex(buffer){return Array.from(new Uint8Array(buffer)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+    function hexToBytes(hex){const out=new Uint8Array(hex.length/2);for(let i=0;i<out.length;i++)out[i]=parseInt(hex.slice(i*2,i*2+2),16);return out;}
+    async function makeStaffPasswordHash(password,saltHex){
+        const salt=saltHex?hexToBytes(saltHex):crypto.getRandomValues(new Uint8Array(16));
+        const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+        const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:staffPasswordIterations,hash:'SHA-256'},key,256);
+        return {hash:bytesToHex(bits),salt:bytesToHex(salt)};
+    }
+    async function verifyStaffPassword(password,account){if(!account||!account.passwordHash||!account.salt)return false;const computed=await makeStaffPasswordHash(password,account.salt);return computed.hash===account.passwordHash;}
+    function getManagementTenantRecord(){const id=managementTenantId().toLowerCase();return tenantsCache.find(t=>String(t.tenantId||'').toLowerCase()===id)||null;}
+    function getManagementAllowedStaffFeatures(){return getTenantAllowedFeatureKeys(getManagementTenantRecord());}
+    function renderManagementStaffFeatureAccess(selected){
+        const list=document.getElementById('mhStaffFeatureAccessList'),summary=document.getElementById('mhStaffPlanSummary'),note=document.getElementById('mhStaffAccessNote');if(!list)return;
+        const tenant=getManagementTenantRecord(),allowed=getManagementAllowedStaffFeatures(),chosen=new Set(Array.isArray(selected)?selected.filter(key=>allowed.includes(key)):allowed);
+        if(summary)summary.textContent='Tenant plan: '+String(tenant?.subscriptionPlan||'Starter')+' · '+allowed.length+' feature(s) available for staff access.';
+        list.innerHTML='';
+        FEATURE_CATALOG.forEach(([key,label])=>{const enabled=allowed.includes(key),row=document.createElement('label');row.style.cssText='display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--card-border);border-radius:8px;background:#0f121a;'+(enabled?'':'opacity:.48;');const cb=document.createElement('input');cb.type='checkbox';cb.value=key;cb.checked=enabled&&chosen.has(key);cb.disabled=!enabled;cb.style.cssText='width:auto;min-width:16px;';const span=document.createElement('span');span.textContent=label+(enabled?'':' · Not in tenant plan');row.appendChild(cb);row.appendChild(span);list.appendChild(row);});
+        if(note)note.textContent=allowed.length?'Unchecked features will be hidden for this staff login. Tenant plan remains the upper limit.':'Current tenant plan has no configured features.';
     }
     function managementNotice(message, isError=false) {
         const el=document.getElementById('managementHubNotice');
@@ -3692,6 +3754,7 @@
             renderManagementBranches();
             renderManagementLeadOptions();
             renderManagementPermissionTable();
+            renderManagementStaffFeatureAccess();
             return true;
         }catch(error){
             console.error('Management data load failed:',error);
@@ -3714,36 +3777,51 @@
         if(module==='permissions')renderManagementPermissionTable();
     };
     window.resetManagementStaffForm=function(){
-        managementEditingStaffId='';['mhStaffName','mhStaffPhone','mhStaffEmail'].forEach(id=>document.getElementById(id).value='');
+        managementEditingStaffId='';
+        ['mhStaffName','mhStaffPhone','mhStaffEmail','mhStaffLoginId','mhStaffLoginPassword'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
         document.getElementById('mhStaffRole').value='Sales Executive';document.getElementById('mhStaffBranch').value='';document.getElementById('mhStaffStatus').value='Active';
+        const req=document.getElementById('mhStaffPasswordRequired');if(req)req.textContent='*';
+        renderManagementStaffFeatureAccess();
     };
     window.saveManagementStaff=async function(){
-        const ref=managementTenantRef();const name=String(document.getElementById('mhStaffName').value||'').trim();
-        if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Staff name required hai.');return;}
-        const branchId=document.getElementById('mhStaffBranch').value;
-        const branch=managementBranches.find(x=>x.id===branchId);
+        const ref=managementTenantRef(),tenant=getManagementTenantRecord(),name=String(document.getElementById('mhStaffName').value||'').trim(),loginId=String(document.getElementById('mhStaffLoginId').value||'').trim().toLowerCase(),loginPassword=String(document.getElementById('mhStaffLoginPassword').value||'');
+        if(!ref||!tenant){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Staff name required hai.');return;}
+        if(!loginId||!/^[-a-z0-9._@]+$/i.test(loginId)){alert('Staff Login ID required hai.');return;}
+        if(!managementEditingStaffId&&!staffPasswordIsStrong(loginPassword)){alert('Naya password kam se kam 8 characters ka ho aur letter + number contain kare.');return;}
+        if(managementEditingStaffId&&loginPassword&&!staffPasswordIsStrong(loginPassword)){alert('Password kam se kam 8 characters ka ho aur letter + number contain kare.');return;}
+        const duplicateSnap=await staffAccountsCollection.where('loginId','==',loginId).limit(5).get(),duplicate=duplicateSnap.docs.find(d=>d.id!==managementEditingStaffId);
+        if(duplicate){alert('Ye Staff Login ID already use ho rahi hai. Dusri ID choose karein.');return;}
+        const branchId=document.getElementById('mhStaffBranch').value,branch=managementBranches.find(x=>x.id===branchId);
+        const checked=Array.from(document.querySelectorAll('#mhStaffFeatureAccessList input[type="checkbox"]:checked')).map(el=>el.value),tenantAllowed=getManagementAllowedStaffFeatures(),featureAccess=checked.filter(key=>tenantAllowed.includes(key));
         const payload={name,phone:String(document.getElementById('mhStaffPhone').value||'').trim(),email:String(document.getElementById('mhStaffEmail').value||'').trim(),role:document.getElementById('mhStaffRole').value,branchId:branchId||'',branchName:branch?branch.name:'',status:document.getElementById('mhStaffStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
-            if(managementEditingStaffId)await ref.collection('staff').doc(managementEditingStaffId).set(payload,{merge:true});
-            else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('staff').add(payload);}
-            await loadManagementData();window.resetManagementStaffForm();managementNotice('Staff profile cloud mein save ho gaya.');
-        }catch(error){console.error(error);managementNotice('Staff save nahi hua: '+(error.message||''),true);}
+            let staffId=managementEditingStaffId;
+            if(staffId) await ref.collection('staff').doc(staffId).set(payload,{merge:true});
+            else {payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();staffId=(await ref.collection('staff').add(payload)).id;}
+            const accountPayload={staffId,tenantId:tenant.tenantId,loginId,agencyName:tenant.agencyName||'',subscriptionPlan:tenant.subscriptionPlan||'Starter',featureAccess,status:payload.status,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+            if(!managementEditingStaffId)accountPayload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+            if(loginPassword){const hashed=await makeStaffPasswordHash(loginPassword);accountPayload.passwordHash=hashed.hash;accountPayload.salt=hashed.salt;}
+            await staffAccountsCollection.doc(staffId).set(accountPayload,{merge:true});
+            await loadManagementData();window.resetManagementStaffForm();managementNotice('Staff profile + login account + feature access successfully save ho gaya.');
+        }catch(error){console.error(error);managementNotice('Staff account save nahi hua: '+(error.message||''),true);}
     };
     function renderManagementStaff(){
         const box=document.getElementById('mhStaffList');if(!box)return;
         const query=String(document.getElementById('mhStaffSearch')?.value||'').trim().toLowerCase();
-        const rows=managementStaff.filter(x=>[x.name,x.phone,x.email,x.role,x.branchName,x.status].some(v=>String(v||'').toLowerCase().includes(query)));
+        const rows=managementStaff.filter(x=>[x.name,x.phone,x.email,x.role,x.branchName,x.status,x.loginId].some(v=>String(v||'').toLowerCase().includes(query)));
         if(!rows.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">'+(query?'Search ke liye staff record nahi mila.':'Abhi staff profiles nahi hain. Upar form se add karein.')+'</p>';return;}
-        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:620px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:820px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Login</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(x.loginId?'<strong>'+managementEscape(x.loginId)+'</strong><br><small style="color:#86efac;">Enabled</small>':'<small style="color:#fbbf24;">Not created</small>')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(Array.isArray(x.featureAccess)?x.featureAccess.length:0)+' feature(s)</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
     }
     window.editManagementStaff=function(id){
         const x=managementStaff.find(y=>y.id===id);if(!x)return;managementEditingStaffId=id;
-        document.getElementById('mhStaffName').value=x.name||'';document.getElementById('mhStaffPhone').value=x.phone||'';document.getElementById('mhStaffEmail').value=x.email||'';document.getElementById('mhStaffRole').value=x.role||'Sales Executive';document.getElementById('mhStaffBranch').value=x.branchId||'';document.getElementById('mhStaffStatus').value=x.status||'Active';
+        document.getElementById('mhStaffName').value=x.name||'';document.getElementById('mhStaffPhone').value=x.phone||'';document.getElementById('mhStaffEmail').value=x.email||'';document.getElementById('mhStaffRole').value=x.role||'Sales Executive';document.getElementById('mhStaffBranch').value=x.branchId||'';document.getElementById('mhStaffStatus').value=x.status||'Active';document.getElementById('mhStaffLoginId').value=x.loginId||'';document.getElementById('mhStaffLoginPassword').value='';
+        const req=document.getElementById('mhStaffPasswordRequired');if(req)req.textContent=x.loginId?'(blank = keep current)':'*';
+        renderManagementStaffFeatureAccess(x.featureAccess);
         document.getElementById('mhStaffName').focus();
     };
     window.toggleManagementStaff=async function(id){
         const ref=managementTenantRef();const x=managementStaff.find(y=>y.id===id);if(!ref||!x)return;
-        try{await ref.collection('staff').doc(id).update({status:x.status==='Inactive'?'Active':'Inactive',updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadManagementData();managementNotice('Staff status update ho gaya.');}
+        try{const next=x.status==='Inactive'?'Active':'Inactive';await ref.collection('staff').doc(id).update({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await staffAccountsCollection.doc(id).set({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});await loadManagementData();managementNotice('Staff status + login status update ho gaya.');}
         catch(error){managementNotice('Status update nahi hua: '+(error.message||''),true);}
     };
     window.resetManagementBranchForm=function(){
@@ -3849,6 +3927,8 @@
     };
 
     window.openManagementHub = async function() {
+        const activeUser=getCurrentSessionUser();
+        if(activeUser&&activeUser.role==='staff'){alert('Management & Reports sirf tenant administrator ke liye available hai.');return;}
         const modal = document.getElementById('managementHubModal');
         if (modal) modal.style.display = 'flex';
         await loadManagementData();
