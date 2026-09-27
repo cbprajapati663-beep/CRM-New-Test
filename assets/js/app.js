@@ -576,8 +576,29 @@
         }
     }
 
+    function renderAdminSaaSMetrics(tenants) {
+        const list = Array.isArray(tenants) ? tenants : [];
+        const active = list.filter(t => t.status === 'Active');
+        const suspended = list.filter(t => t.status !== 'Active');
+        const mrr = active.reduce((sum, t) => sum + (Number(t.rentAmount) || 0), 0);
+        const expiring = active.filter(t => {
+            const days = getLicenseDaysRemaining(t);
+            return days !== null && days >= 0 && days <= 7;
+        }).length;
+        const setMetric = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+        setMetric('saasMetricTenants', list.length);
+        setMetric('saasMetricActive', active.length);
+        setMetric('saasMetricMRR', formatINR(mrr));
+        setMetric('saasMetricExpiring', expiring);
+        setMetric('saasMetricSuspended', suspended.length);
+    }
+
     function renderAdminMasterUserCards() {
         const tenants = getStoredTenants();
+        renderAdminSaaSMetrics(tenants);
         renderAdminLicenseExpiryAlerts();
         if (!Array.isArray(tenants)) return;
         const container = document.getElementById('userCardsContainer');
