@@ -160,6 +160,14 @@ for (const id of [
 for (const id of ['adminMetricOverdue','adminMetricDueToday','adminMetricNoFollowup','adminMetricDocsPending','cardCustomerHold']) {
   assert.ok(adminGate.includes("'" + id + "'"), 'Admin visibility helper must hide operational metric ' + id);
 }
+assert.ok(adminGate.includes('ADMIN_OPERATIONAL_VIEW_IDS'), 'Admin visibility helper must centralize operational view IDs');
+assert.ok(adminGate.includes('admin-operational-hidden'), 'Admin visibility helper must set a hard DOM visibility guard class');
+assert.ok(adminGate.includes("toggleAttribute('hidden', !visible)"), 'Admin visibility helper must use the hidden attribute as a second DOM guard');
+const adminSwitchStart = source.indexOf('window.switchView = function(viewKey)');
+const adminSwitchEnd = source.indexOf('};', adminSwitchStart);
+assert.ok(adminSwitchStart >= 0 && adminSwitchEnd > adminSwitchStart, 'switchView must exist');
+assert.ok(source.slice(adminSwitchStart, adminSwitchEnd).includes("activeUser.role === 'superadmin'"), 'Operational view switching must recognize the master admin session');
+assert.ok(source.slice(adminSwitchStart, adminSwitchEnd).includes('ADMIN_OPERATIONAL_VIEW_IDS.includes(viewKey)'), 'Operational view switching must guard every hidden admin view');
 const adminPortalBlockStart = source.indexOf("if (u.role === 'superadmin')");
 const adminPortalBlockEnd = source.indexOf('} else {', adminPortalBlockStart);
 assert.ok(adminPortalBlockStart >= 0 && adminPortalBlockEnd > adminPortalBlockStart, 'Superadmin portal branch must exist');
