@@ -1423,3 +1423,38 @@
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* Tenant portal full-width layout correction */
+@media screen {
+  body > header,
+  body > .crm-nav-tabs,
+  body > .dashboard-grid,
+  body > .crm-container {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .crm-container:not(.admin-mode) {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard-grid {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    grid-template-columns: repeat(auto-fit, minmax(min(165px, 100%), 1fr));
+  }
+  .dashboard-grid > .metric-card {
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+@media screen and (max-width: 760px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
