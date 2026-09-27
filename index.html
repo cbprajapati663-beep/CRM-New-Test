@@ -1460,7 +1460,48 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/app.js?v=management-hub-visible-20260927-5"></script>
+<style>
+/* Management Hub: keep module tabs above any modal/content stacking layer. */
+#managementHubModal { pointer-events:auto !important; }
+#managementHubModal .management-module-tab {
+  position:relative !important;
+  z-index:1001005 !important;
+  pointer-events:auto !important;
+  cursor:pointer !important;
+}
+</style>
+<script>
+/* Management Hub click delegation: handles tab clicks even if another startup
+   handler or inline handler is unavailable. */
+(function () {
+  document.addEventListener('click', function (event) {
+    var button = event.target && event.target.closest
+      ? event.target.closest('#managementHubModal .management-module-tab')
+      : null;
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    var module = button.getAttribute('data-management-module');
+    var modal = document.getElementById('managementHubModal');
+    if (modal) modal.style.display = 'flex';
+    document.querySelectorAll('#managementHubModal .management-module-panel').forEach(function (panel) {
+      panel.style.display = 'none';
+    });
+    document.querySelectorAll('#managementHubModal .management-module-tab').forEach(function (tab) {
+      tab.style.outline = 'none';
+      tab.style.boxShadow = 'none';
+      tab.setAttribute('aria-pressed', 'false');
+    });
+    var panelId = 'managementPanel' + String(module || '').charAt(0).toUpperCase() + String(module || '').slice(1);
+    var panel = document.getElementById(panelId);
+    if (panel) panel.style.display = 'block';
+    button.style.outline = '3px solid rgba(255,255,255,.82)';
+    button.style.boxShadow = '0 8px 24px rgba(0,0,0,.22)';
+    button.setAttribute('aria-pressed', 'true');
+  }, true);
+})();
+</script>
+<script src="assets/js/app.js?v=management-hub-visible-20260927-6"></script>
 <script>
 /* Management Hub emergency UI fallback: keeps navigation usable if a non-management
    startup error prevents app.js from registering its window handlers. */
