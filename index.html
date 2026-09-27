@@ -1397,7 +1397,7 @@
     <div><label for="mhStaffName">Staff name *</label><input id="mhStaffName" placeholder="Full name" style="width:100%;box-sizing:border-box;"></div>
     <div><label for="mhStaffPhone">Mobile</label><input id="mhStaffPhone" type="tel" placeholder="Mobile number" style="width:100%;box-sizing:border-box;"></div>
     <div><label for="mhStaffEmail">Email</label><input id="mhStaffEmail" type="email" placeholder="Email (optional)" style="width:100%;box-sizing:border-box;"></div>
-    <div><label for="mhStaffRole">Role</label><select id="mhStaffRole" style="width:100%;box-sizing:border-box;"><option>Sales Executive</option><option>Manager</option><option>Branch Manager</option><option>Operations</option><option>Viewer</option></select></div>
+    <div><label for="mhStaffRole">Role</label><select id="mhStaffRole" onchange="applyStaffRoleDefaultFeatureAccess(true)" style="width:100%;box-sizing:border-box;"><option>Sales Executive</option><option>Manager</option><option>Branch Manager</option><option>Operations</option><option>Viewer</option><option>Administrator</option></select></div>
     <div><label for="mhStaffBranch">Branch</label><select id="mhStaffBranch" style="width:100%;box-sizing:border-box;"><option value="">Unassigned</option></select></div>
     <div><label for="mhStaffStatus">Status</label><select id="mhStaffStatus" style="width:100%;box-sizing:border-box;"><option>Active</option><option>Inactive</option></select></div>
     <div><label for="mhStaffLoginId">Staff Login ID *</label><input id="mhStaffLoginId" autocomplete="off" placeholder="e.g. rahul.sales" style="width:100%;box-sizing:border-box;"></div>
@@ -1405,7 +1405,7 @@
    </div>
    <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;">
     <strong>🔐 LOGIN & FEATURE ACCESS</strong>
-    <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff isi portal ke Client / Staff Login se apne Login ID + Password se login karega. Sirf current tenant ke subscription plan mein available features hi assign kiye ja sakte hain.</div>
+    <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff isi portal ke Client / Staff Login se apne Login ID + Password se login karega. Role select karte hi us role ke default features automatically check honge. Checkbox se admin individual access edit kar sakta hai. Sirf current tenant ke subscription plan mein available features hi assign kiye ja sakte hain.</div>
    </div>
    <div id="mhStaffPlanSummary" style="margin:0 0 10px;color:var(--text-muted);font-size:.8rem;"></div>
    <div id="mhStaffFeatureAccessList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;"></div>
