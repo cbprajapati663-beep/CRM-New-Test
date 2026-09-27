@@ -3219,6 +3219,12 @@
         renderDealerLedgerTable();
         renderAdminMasterUserCards();
         renderSmartWorkflow();
+        // Keep an already-open report current when the Firestore lead snapshot arrives.
+        const reportPanel=document.getElementById('managementPanelReports');
+        const reportModal=document.getElementById('managementHubModal');
+        if(reportPanel && reportModal && reportModal.style.display==='flex' && reportPanel.style.display!=='none'){
+            window.generateManagementReport();
+        }
     });
 
     function formatINR(val) {
@@ -4300,10 +4306,18 @@
         // a Viewer with Reports · View/Export can inspect the complete tenant report
         // across all branches, while the rest of the CRM remains access-scoped.
         if(u && u.role==='staff' && hasStaffLeadPermission('Reports · View/Export')){
-            const tenantId=String(u.tenantId||'').toLowerCase();
+            // Match each legacy ownership field independently. Older records may
+            // have a non-empty tenantId but the correct tenant stored in createdBy.
+            const normalize=value=>String(value||'').trim().toLowerCase().replace(/\\s+/g,' ');
+            const tenantId=normalize(u.tenantId);
+            const agencyName=normalize(u.agencyName);
+            const tenantKeys=new Set([tenantId,agencyName].filter(Boolean));
+            const isHeritage=tenantId.includes('heritage') || agencyName.includes('heritage auto finance');
             return leads.filter(l=>{
-                const c=String(l.tenantId||l.createdBy||'').toLowerCase();
-                return c===tenantId || (tenantId.includes('heritage') && (!c || c==='admin'));
+                const owners=[l.tenantId,l.createdBy,l.updatedBy,l.agencyName,l.tenantName].map(normalize).filter(Boolean);
+                if(owners.some(owner=>tenantKeys.has(owner))) return true;
+                // Preserve older Heritage records that predate tenant ownership fields.
+                return isHeritage && (!owners.length || owners.every(owner=>owner==='admin' || owner==='system'));
             });
         }
         return getLeadScopedList();
