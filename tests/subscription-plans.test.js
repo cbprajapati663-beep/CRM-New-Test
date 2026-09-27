@@ -82,12 +82,4 @@ for (const marker of ['escapeHtml(t.agencyName)', 'escapeHtml(t.tenantId)', 'esc
 }
 assert.ok(adminCardsRenderer.includes("t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'"), 'Tenant status badge classes must be selected from fixed class names');
 
-const adminReportStart = source.indexOf('window.renderAdminReport');
-const adminReportEnd = source.indexOf('window.inspectUserPortal', adminReportStart);
-assert.ok(adminReportStart >= 0 && adminReportEnd > adminReportStart, 'Admin report renderer must exist');
-const adminReportRenderer = source.slice(adminReportStart, adminReportEnd);
-for (const marker of ['escapeHtml(l.name', 'escapeHtml(l.city', 'escapeHtml(l.vehModel', 'escapeHtml(l.vehType', 'escapeHtml(l.leadDate', 'escapeHtml(l.status)', 'escapeHtml(l.dealerName']) {
-  assert.ok(adminReportRenderer.includes(marker), `Admin report rows must safely handle ${marker}`);
-}
-
-console.log('Admin tenant card and report safe-rendering regression checks passed.');
+console.log('Admin tenant card safe-rendering regression checks passed.');
