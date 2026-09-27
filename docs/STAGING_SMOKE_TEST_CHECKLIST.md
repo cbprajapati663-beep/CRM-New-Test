@@ -2,24 +2,29 @@
 
 Project: `heritage-crm-staging`  
 Environment: staging only  
-Status: checklist prepared; execution is pending application wiring and test identities.
+Status: staging project, Web App, Email/Password provider, and Firestore setup confirmed from user-provided Console screenshots. Application migration and security tests are not yet done.
+
+## Verified setup
+
+- [x] Firebase project `heritage-crm-staging` exists.
+- [x] A Web App is registered in that staging project.
+- [x] Authentication → Sign-in method → Email/Password is enabled.
+- [x] Cloud Firestore database was created in Production mode.
+- [ ] Confirm the final Firestore Rules tab shows the expected deny-by-default rules before any app access is attempted.
+- [ ] Record the approved staging app URL and exact branch/commit under test.
+- [ ] Verify no production customer data or credentials are present in staging.
+
+## Important code wiring blocker
+
+The current CRM entry points still initialize Firebase with the production project `heritage-crm-f179a`. Do not deploy or test the existing CRM against staging until a deliberate environment-specific config path is implemented and reviewed. Do not replace production config with staging config globally, and do not copy customer data into staging.
 
 ## Guardrails
 
 - Use only synthetic test identities and synthetic records. Do not copy production customer, staff, tenant, or payout data into staging.
-- Do not paste Firebase configuration secrets, passwords, email verification links, ID tokens, refresh tokens, or service-account keys into issues, pull requests, or chat.
+- Do not paste Firebase config objects, API keys, passwords, email verification links, ID tokens, refresh tokens, or service-account keys into issues, pull requests, or chat. Firebase web API keys are not server secrets by themselves, but still avoid unnecessary public exposure.
 - Keep production rules and configuration untouched while validating staging.
-- Firestore was created in Production mode. Keep its default-deny rules until the application’s authenticated access design is ready and tested. Do not switch to open/test rules.
-- Email/Password provider is enabled in the staging Authentication settings. Enabling the provider alone does not migrate the CRM login flow.
-
-## Preflight
-
-- [ ] Confirm Firebase Console project selector says `heritage-crm-staging`.
-- [ ] Confirm the registered Web App belongs to that project.
-- [ ] Confirm Authentication → Sign-in method → Email/Password is enabled.
-- [ ] Confirm Firestore is available and rules deny unauthenticated reads/writes by default.
-- [ ] Record the approved staging app URL and the exact branch/commit under test.
-- [ ] Verify no production customer data or credentials are present in staging.
+- Keep Firestore in Production mode with explicit least-privilege rules. Never switch to open/test rules.
+- Enabling Email/Password alone does not migrate the CRM login flow.
 
 ## Authentication checks (after app wiring)
 
