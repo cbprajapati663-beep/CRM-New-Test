@@ -256,6 +256,13 @@
                         <button class="btn-action" style="background:#a855f7; color:#000; font-weight:700;" onclick="openAddTenantModal()">➕ Onboard New Client</button>
                     </div>
                 </div>
+                <div class="dashboard-grid saas-kpi-grid" style="margin:16px 0;">
+                    <div class="metric-card"><div class="metric-title">Total Tenants</div><div class="metric-value" id="saasMetricTenants">0</div></div>
+                    <div class="metric-card"><div class="metric-title">Active Subscriptions</div><div class="metric-value" id="saasMetricActive">0</div></div>
+                    <div class="metric-card"><div class="metric-title">Monthly Recurring Revenue</div><div class="metric-value metric-gold" id="saasMetricMRR">₹0</div></div>
+                    <div class="metric-card"><div class="metric-title">Expiring in 7 Days</div><div class="metric-value" style="color:#fbbf24;" id="saasMetricExpiring">0</div></div>
+                    <div class="metric-card"><div class="metric-title">Inactive / Suspended</div><div class="metric-value" style="color:#f87171;" id="saasMetricSuspended">0</div></div>
+                </div>
                 <div id="userCardsContainer"></div>
             </div>
         </div>
