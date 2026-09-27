@@ -3723,6 +3723,7 @@
     let managementBranches = [];
     let managementEditingStaffId = '';
     let managementEditingBranchId = '';
+    let managementTenantRecordCache = null;
     let managementReportRows = [];
     const managementRoleNames = ['Administrator','Manager','Sales Executive','Viewer'];
     const managementPermissionModules = ['Leads · View','Leads · Create/Edit','Leads · Delete','Staff · Manage','Branches · Manage','Reports · View/Export','Documents · Access','Payouts · Access'];
@@ -3745,7 +3746,13 @@
         return {hash:bytesToHex(bits),salt:bytesToHex(salt)};
     }
     async function verifyStaffPassword(password,account){if(!account||!account.passwordHash||!account.salt)return false;const computed=await makeStaffPasswordHash(password,account.salt);return computed.hash===account.passwordHash;}
-    function getManagementTenantRecord(){const id=managementTenantId().toLowerCase();return tenantsCache.find(t=>String(t.tenantId||'').toLowerCase()===id)||null;}
+    function getManagementTenantRecord(){
+        const id=managementTenantId().toLowerCase();
+        if(managementTenantRecordCache && String(managementTenantRecordCache.tenantId||'').toLowerCase()===id)return managementTenantRecordCache;
+        const cached=tenantsCache.find(t=>String(t.tenantId||'').toLowerCase()===id)||null;
+        if(cached)managementTenantRecordCache=cached;
+        return cached;
+    }
     function getManagementAllowedStaffFeatures(){return getTenantAllowedFeatureKeys(getManagementTenantRecord());}
     function renderManagementStaffFeatureAccess(selected){
         const list=document.getElementById('mhStaffFeatureAccessList'),summary=document.getElementById('mhStaffPlanSummary'),note=document.getElementById('mhStaffAccessNote');if(!list)return;
@@ -3783,6 +3790,25 @@
         const ref=managementTenantRef();
         if(!ref){managementNotice('Staff/branch management ke liye tenant login karein ya Admin se tenant view open karein.',true);return false;}
         try{
+            let tenantRecord=null;
+            try{
+                const tenantSnap=await tenantsCollection.where('tenantId','==',managementTenantId()).limit(1).get();
+                if(!tenantSnap.empty){
+                    const tenantDoc=tenantSnap.docs[0];
+                    tenantRecord={docId:tenantDoc.id,...tenantDoc.data()};
+                }
+            }catch(tenantLookupError){
+                console.warn('Management tenant lookup failed, trying tenant document ref.',tenantLookupError);
+            }
+            if(!tenantRecord){
+                const directTenantSnap=await ref.get();
+                if(directTenantSnap.exists)tenantRecord={docId:directTenantSnap.id,...directTenantSnap.data()};
+            }
+            managementTenantRecordCache=tenantRecord;
+            if(tenantRecord){
+                const cacheIndex=tenantsCache.findIndex(t=>String(t.tenantId||'').toLowerCase()===String(tenantRecord.tenantId||'').toLowerCase());
+                if(cacheIndex>=0)tenantsCache[cacheIndex]=tenantRecord;else tenantsCache.push(tenantRecord);
+            }
             const [staffSnap,branchSnap]=await Promise.all([ref.collection('staff').orderBy('name').get(),ref.collection('branches').orderBy('name').get()]);
             const staffRows=staffSnap.docs.map(d=>({id:d.id,...d.data()}));
             // Login credentials live in the global staffAccounts collection. Merge the
@@ -3851,7 +3877,7 @@
         renderManagementStaffFeatureAccess();
     };
     window.saveManagementStaff=async function(){
-        const ref=managementTenantRef(),tenant=getManagementTenantRecord(),name=String(document.getElementById('mhStaffName').value||'').trim(),loginId=String(document.getElementById('mhStaffLoginId').value||'').trim().toLowerCase(),loginPassword=String(document.getElementById('mhStaffLoginPassword').value||'');
+        const ref=managementTenantRef(),tenant=getManagementTenantRecord(),name=String((managementEditingStaffId?document.getElementById('mhStaffEditName')?.value:document.getElementById('mhStaffName')?.value)||'').trim(),loginId=String((managementEditingStaffId?document.getElementById('mhStaffEditLoginId')?.value:document.getElementById('mhStaffLoginId')?.value)||'').trim().toLowerCase(),loginPassword=String((managementEditingStaffId?document.getElementById('mhStaffEditPassword')?.value:document.getElementById('mhStaffLoginPassword')?.value)||'');
         if(!ref||!tenant){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Staff name required hai.');return;}
         if(!loginId||!/^[-a-z0-9._@]+$/i.test(loginId)){alert('Staff Login ID required hai.');return;}
         if(!managementEditingStaffId&&!staffPasswordIsStrong(loginPassword)){alert('Naya password kam se kam 8 characters ka ho aur letter + number contain kare.');return;}
@@ -3884,7 +3910,7 @@
         const query=String(document.getElementById('mhStaffSearch')?.value||'').trim().toLowerCase();
         const rows=managementStaff.filter(x=>[x.name,x.phone,x.email,x.role,x.branchName,x.status,x.loginId].some(v=>String(v||'').toLowerCase().includes(query)));
         if(!rows.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">'+(query?'Search ke liye staff record nahi mila.':'Abhi staff profiles nahi hain. Upar form se add karein.')+'</p>';return;}
-        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:820px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Login</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(x.loginId?'<strong>'+managementEscape(x.loginId)+'</strong><br><small style="color:#86efac;">Enabled</small>':'<small style="color:#fbbf24;">Not created</small>')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(Array.isArray(x.featureAccess)?x.featureAccess.length:0)+' feature(s)</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button> <button class="btn-quick" type="button" style="background:#b91c1c;color:#fff;" onclick="deleteManagementStaff(''+escapeJsString(x.id)+'')">Delete</button></td></tr>').join('')+'</tbody></table>';
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:820px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Login</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(x.loginId?'<strong>'+managementEscape(x.loginId)+'</strong><br><small style="color:#86efac;">Enabled</small>':'<small style="color:#fbbf24;">Not created</small>')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(Array.isArray(x.featureAccess)?x.featureAccess.length:0)+' feature(s)</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button> <button class="btn-quick" type="button" style="background:#b91c1c;color:#fff;" onclick="deleteManagementStaff(\''+escapeJsString(x.id)+'\')">Delete</button></td></tr>').join('')+'</tbody></table>';
     }
     window.closeManagementStaffEdit=function(){
         const modal=document.getElementById('mhStaffEditModal');
