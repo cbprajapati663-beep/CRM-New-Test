@@ -1564,6 +1564,10 @@
         const ownLead = !!staffId && String(lead.createdByUserId || '') === staffId;
         const assignedLead = !!staffId && String(lead.assignedStaffId || '') === staffId;
 
+        // Viewer is a read-only dashboard role: show all leads within the staff member's tenant.
+        // Tenant filtering is already applied by getLeadScopedList() before this check.
+        if (role === 'Viewer') return hasStaffLeadPermission('Leads · View');
+
         // Manager / Branch Manager are branch-scoped: they can see the complete
         // lead, pipeline and report data belonging to their assigned branch.
         if (role === 'Manager' || role === 'Branch Manager') {
