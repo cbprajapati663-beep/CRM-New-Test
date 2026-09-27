@@ -117,3 +117,15 @@ assert.ok(csvHelper.includes("typeof value === 'string'"), 'Formula protection m
 assert.ok(csvHelper.includes("/^[\\\\s]*[=+@-]/"), 'CSV export must neutralize formula-leading characters');
 assert.ok(csvHelper.includes("safe.replace(/\"/g, '\"\"')"), 'CSV cells must continue escaping embedded quotes');
 console.log('Management CSV formula-injection regression checks added.');
+
+
+const managementHub = fs.readFileSync('index.html', 'utf8');
+assert.ok(managementHub.includes('id="managementPanelStaff"'), 'Management hub must have a dedicated staff panel');
+assert.ok(managementHub.includes('id="managementPanelBranches"'), 'Management hub must have a dedicated branches panel');
+assert.ok(managementHub.includes('id="managementPanelLeads"'), 'Management hub must have a dedicated leads panel');
+assert.ok(managementHub.includes('id="managementPanelReports"'), 'Management hub must have a dedicated reports panel');
+assert.ok(managementHub.includes('id="managementPanelPermissions"'), 'Management hub must have a dedicated permissions panel');
+assert.ok((managementHub.match(/class="[^"]*management-module-tab[^"]*"/g) || []).length >= 5, 'All management module buttons must be wired as module tabs');
+assert.ok(!managementHub.includes('</div> style="padding:10px 12px;border:1px solid var(--card-border)'), 'Management hub must not contain stray style text in the module header');
+assert.ok(managementHub.includes('id="managementHubNotice" role="status" class="panel"'), 'Management notices must be separate from module panels');
+console.log('Management hub markup regression checks passed.');
