@@ -4056,13 +4056,23 @@
         }
     }
     window.showManagementModule=function(module){
+        const activeUser=getCurrentSessionUser();
+        // Staff can enter the Management & Reports center only for the Reports
+        // module when their saved role policy grants Reports · View/Export.
+        if(activeUser && activeUser.role==='staff'){
+            if(module!=='reports' || !hasStaffLeadPermission('Reports · View/Export')){
+                alert('Aapko is Management module ki permission nahi hai.');
+                return false;
+            }
+        }
         document.querySelectorAll('.management-module-panel').forEach(el=>{el.style.display='none';el.setAttribute('aria-hidden','true');});
-        // The actual module buttons use .btn-action; select them by their data attribute.
         document.querySelectorAll('[data-management-module]').forEach(el=>{
             const active=el.dataset.managementModule===module;
             el.style.outline=active?'3px solid rgba(255,255,255,.82)':'none';
             el.style.boxShadow=active?'0 8px 24px rgba(0,0,0,.22)':'none';
             el.setAttribute('aria-pressed',active?'true':'false');
+            // Staff report users should not see management/edit controls.
+            if(activeUser && activeUser.role==='staff') el.style.display=el.dataset.managementModule==='reports'?'':'none';
         });
         const panel=document.getElementById('managementPanel'+module.charAt(0).toUpperCase()+module.slice(1));
         if(!panel){console.error('Management panel missing:',module);return false;}
@@ -4345,11 +4355,15 @@
 
     window.openManagementHub = async function() {
         const activeUser=getCurrentSessionUser();
-        if(activeUser&&activeUser.role==='staff'){alert('Management & Reports sirf tenant administrator ke liye available hai.');return;}
+        const isStaffReportUser=!!(activeUser&&activeUser.role==='staff'&&hasStaffLeadPermission('Reports · View/Export'));
+        if(activeUser&&activeUser.role==='staff'&&!isStaffReportUser){
+            alert('Aapko Management & Reports ki permission nahi hai.');
+            return;
+        }
         const modal = document.getElementById('managementHubModal');
         if (modal) modal.style.display = 'flex';
         await loadManagementData();
-        window.showManagementModule('staff');
+        window.showManagementModule(isStaffReportUser?'reports':'staff');
     };
     window.closeManagementHub = function() {
         const modal = document.getElementById('managementHubModal');
