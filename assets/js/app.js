@@ -935,7 +935,9 @@
         const user = getCurrentSessionUser();
         if (user && user.role === 'superadmin' && !inspectingTenantId) return true;
         const tenant = resolveFeatureTenant();
-        if (!tenant) return true;
+        // Fail closed when a tenant record is missing or not loaded. A missing
+        // tenant must never silently grant access to every feature.
+        if (!tenant) return false;
         const tenantAllowed = getTenantAllowedFeatureKeys(tenant);
         if (user && user.role === 'staff') {
             const staffAllowed = Array.isArray(user.featureAccess) ? user.featureAccess : tenantAllowed;
