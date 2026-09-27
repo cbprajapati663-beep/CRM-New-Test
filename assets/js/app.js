@@ -2242,6 +2242,7 @@
     }
 
     window.exportFollowupsCSV = function () {
+        if (!isFeatureEnabled('followups')) { alert('Follow-up Export aapke plan mein enabled nahi hai.'); return; }
         const scopedLeads = getLeadScopedList();
         const activeLeads = scopedLeads.filter(l => l.followDate && l.status !== 'Disbursed' && l.status !== 'Rejected');
         const futureLimit = new Date();
@@ -2883,6 +2884,7 @@
     }
 
     window.exportAllClientsToCSV = function() {
+        if (!isFeatureEnabled('reports')) { alert('Reports / CSV Export aapke plan mein enabled nahi hai.'); return; }
         if (!leads || leads.length === 0) {
             alert("Export ke liye koi leads nahi hain!");
             return;
@@ -3636,6 +3638,7 @@
     };
 
     window.exportDocumentChecklist = function() {
+        if (!isFeatureEnabled('documents')) { alert('Document Tracker aapke plan mein enabled nahi hai.'); return; }
         const leadId = document.getElementById('docTrackerLead').value;
         const lead = getLeadScopedList().find(item => item.docId === leadId);
         if (!lead) { alert('Pehle customer select karein.'); return; }
@@ -3821,6 +3824,7 @@
         });
     }
     window.generateManagementReport=function(){
+        if (!isFeatureEnabled('reports')) { alert('Reports aapke plan mein enabled nahi hain.'); return; }
         const statusEl=document.getElementById('mhReportStatus');if(statusEl&&statusEl.options.length<=1){const statuses=[...new Set(getLeadScopedList().map(l=>String(l.status||'New')).filter(Boolean))].sort();statuses.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;statusEl.appendChild(o);});}
         managementReportRows=managementReportFiltered();
         const total=managementReportRows.length;const disb=managementReportRows.filter(l=>l.status==='Disbursed');const amount=disb.reduce((n,l)=>n+(Number(String(l.disbursedAmount||l.loanAmount||0).replace(/[^0-9.]/g,''))||0),0);
@@ -3833,10 +3837,12 @@
         const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
     }
     window.exportManagementReport=function(){
+        if (!isFeatureEnabled('reports')) { alert('Reports / CSV Export aapke plan mein enabled nahi hai.'); return; }
         const rows=[['Customer','Mobile','Status','Loan Amount','Disbursed Amount','Staff','Branch','Follow-up'],...managementReportFiltered().map(l=>[l.name||'',l.mobile||'',l.status||'',l.loanAmount||0,l.disbursedAmount||0,l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''])];
         downloadManagementCsv('management-report-'+new Date().toISOString().slice(0,10)+'.csv',rows);
     };
     window.exportManagementLeadList=function(){
+        if (!isFeatureEnabled('reports')) { alert('Reports / CSV Export aapke plan mein enabled nahi hai.'); return; }
         const query=String(document.getElementById('mhLeadSearch')?.value||'').trim().toLowerCase();
         const status=document.getElementById('mhLeadStatusFilter')?.value||'';
         const filtered=getLeadScopedList().filter(l=>(!status||String(l.status||'New')===status)&&(!query||[l.name,l.mobile,l.status,l.city].some(v=>String(v||'').toLowerCase().includes(query))));
