@@ -3792,7 +3792,11 @@
                     const snap=await staffAccountsCollection.doc(staff.id).get();
                     if(!snap.exists)return [staff.id,{}];
                     const account=snap.data()||{};
-                    return [staff.id,{loginId:account.loginId||'',staffAccountStatus:account.status||''}];
+                    return [staff.id,{
+                        loginId:account.loginId||'',
+                        staffAccountStatus:account.status||'',
+                        featureAccess:Array.isArray(account.featureAccess)?account.featureAccess:[]
+                    }];
                 }catch(error){
                     console.warn('Staff account lookup failed for',staff.id,error);
                     return [staff.id,{}];
