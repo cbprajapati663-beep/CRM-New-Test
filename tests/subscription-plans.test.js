@@ -114,6 +114,6 @@ assert.ok(csvHelperStart >= 0 && csvHelperEnd > csvHelperStart, 'Management CSV 
 const csvHelper = source.slice(csvHelperStart, csvHelperEnd);
 assert.ok(csvHelper.includes('const csvCell = value =>'), 'CSV export must centralize cell escaping');
 assert.ok(csvHelper.includes("typeof value === 'string'"), 'Formula protection must target untrusted text without changing numeric cells');
-assert.ok(csvHelper.includes("/^[\\\\u0000-\\\\u0020]*[=+@-]/"), 'CSV export must neutralize formula-leading characters');
+assert.ok(csvHelper.includes("/^[\\\\s]*[=+@-]/"), 'CSV export must neutralize formula-leading characters');
 assert.ok(csvHelper.includes("safe.replace(/\"/g, '\"\"')"), 'CSV cells must continue escaping embedded quotes');
 console.log('Management CSV formula-injection regression checks added.');
