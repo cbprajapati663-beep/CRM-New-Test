@@ -253,44 +253,54 @@
             console.error("Storage write error:", e);
         }
     
-    // User-initiated, tenant-scoped JSON backup. Credentials and tenant account records are intentionally excluded.
-    window.downloadCRMBackup = function() {
-        const user = getCurrentSessionUser();
-        if (!user) { alert('Backup ke liye pehle login karein.'); return; }
-        const scoped = getLeadScopedList();
-        if (!scoped.length) {
-            const proceed = confirm('Is scope mein koi lead nahi hai. Kya phir bhi empty backup download karna hai?');
-            if (!proceed) return;
-        }
-        const scopeName = inspectingTenantId || (user.role === 'superadmin' ? 'all-tenants' : user.tenantId) || 'crm';
-        const safeName = String(scopeName).replace(/[^a-z0-9_-]/gi, '_').slice(0, 70) || 'crm';
-        const payload = {
-            product: 'Heritage FinTech Core',
-            backupVersion: 1,
-            createdAt: new Date().toISOString(),
-            scope: scopeName,
-            leadCount: scoped.length,
-            leads: scoped,
-            localSettings: { dealers: getStoredDealers() }
-        };
-        const blob = new Blob([JSON.stringify(payload, (key, value) => {
-            if (value && typeof value.toDate === 'function') return value.toDate().toISOString();
-            return value;
-        }, 2)], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        const date = new Date().toISOString().slice(0, 10);
-        link.href = url;
-        link.download = 'heritage-crm-backup-' + safeName + '-' + date + '.json';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-        alert('✅ Backup download start ho gaya. Is JSON file ko secure jagah par rakhein; ismein customer ki confidential information ho sakti hai.');
-    };
-
     applyPortalPermissions();
     }
+
+    // User-initiated, tenant-scoped JSON backup. Credentials and tenant account records are intentionally excluded.
+    window.downloadCRMBackup = function() {
+        try {
+            const user = getCurrentSessionUser();
+            if (!user) { alert('Backup ke liye pehle login karein.'); return; }
+            if (typeof getLeadScopedList !== 'function') {
+                alert('Backup abhi ready nahi hai. Page refresh karke dobara try karein.');
+                return;
+            }
+            const scoped = getLeadScopedList();
+            if (!scoped.length) {
+                const proceed = confirm('Is scope mein koi lead nahi hai. Kya phir bhi empty backup download karna hai?');
+                if (!proceed) return;
+            }
+            const scopeName = inspectingTenantId || (user.role === 'superadmin' ? 'all-tenants' : user.tenantId) || 'crm';
+            const safeName = String(scopeName).replace(/[^a-z0-9_-]/gi, '_').slice(0, 70) || 'crm';
+            const payload = {
+                product: 'Heritage FinTech Core',
+                backupVersion: 1,
+                createdAt: new Date().toISOString(),
+                scope: scopeName,
+                leadCount: scoped.length,
+                leads: scoped,
+                localSettings: { dealers: getStoredDealers() }
+            };
+            const blob = new Blob([JSON.stringify(payload, (key, value) => {
+                if (value && typeof value.toDate === 'function') return value.toDate().toISOString();
+                return value;
+            }, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const date = new Date().toISOString().slice(0, 10);
+            link.href = url;
+            link.download = 'heritage-crm-backup-' + safeName + '-' + date + '.json';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 3000);
+            alert('✅ Backup download start ho gaya. JSON file ko secure jagah par rakhein; ismein customer ki confidential information ho sakti hai.');
+        } catch (error) {
+            console.error('CRM backup download failed:', error);
+            alert('Backup download nahi ho paya. Browser Downloads permission check karein aur dobara try karein.');
+        }
+    };
 
     async function handleUserLogin(e) {
         e.preventDefault();
