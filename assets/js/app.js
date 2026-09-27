@@ -3580,6 +3580,179 @@
         document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
     };
 
+
+    // Management & Reports Center — tenant-scoped management tools.
+    let managementStaff = [];
+    let managementBranches = [];
+    let managementEditingStaffId = '';
+    let managementEditingBranchId = '';
+    let managementReportRows = [];
+    const managementRoleNames = ['Administrator','Manager','Sales Executive','Viewer'];
+    const managementPermissionModules = ['Leads · View','Leads · Create/Edit','Leads · Delete','Staff · Manage','Branches · Manage','Reports · View/Export','Documents · Access','Payouts · Access'];
+    function managementTenantId() {
+        const u = getCurrentSessionUser();
+        return String(inspectingTenantId || (u && u.tenantId && u.role !== 'superadmin' ? u.tenantId : '') || '').trim();
+    }
+    function managementTenantRef() {
+        const id = managementTenantId();
+        if (!id) return null;
+        return tenantsCollection.doc(id);
+    }
+    function managementNotice(message, isError=false) {
+        const el=document.getElementById('managementHubNotice');
+        if(el){el.textContent=message;el.style.color=isError?'#fca5a5':'var(--text-muted)';el.style.borderColor=isError?'#ef4444':'var(--card-border)';}
+    }
+    function managementEscape(value){return escapeHtml(String(value??''));}
+    function managementSetOptions(id, rows, firstLabel) {
+        const el=document.getElementById(id); if(!el)return;
+        const previous=el.value;
+        el.innerHTML='';
+        if(firstLabel!==null){const op=document.createElement('option');op.value='';op.textContent=firstLabel;el.appendChild(op);}
+        rows.forEach(row=>{const op=document.createElement('option');op.value=row.value;op.textContent=row.label;el.appendChild(op);});
+        if(Array.from(el.options).some(o=>o.value===previous))el.value=previous;
+    }
+    async function loadManagementData() {
+        const ref=managementTenantRef();
+        if(!ref){managementNotice('Staff/branch management ke liye tenant login karein ya Admin se tenant view open karein.',true);return false;}
+        try{
+            const [staffSnap,branchSnap]=await Promise.all([ref.collection('staff').orderBy('name').get(),ref.collection('branches').orderBy('name').get()]);
+            managementStaff=staffSnap.docs.map(d=>({id:d.id,...d.data()}));
+            managementBranches=branchSnap.docs.map(d=>({id:d.id,...d.data()}));
+            const activeStaff=managementStaff.filter(x=>x.status!=='Inactive');
+            const activeBranches=managementBranches.filter(x=>x.status!=='Inactive');
+            managementSetOptions('mhStaffBranch',activeBranches.map(x=>({value:x.id,label:x.name})), 'Unassigned');
+            managementSetOptions('mhLeadStaff',activeStaff.map(x=>({value:x.id,label:x.name+' · '+(x.role||'Staff')})), 'Unassigned');
+            managementSetOptions('mhLeadBranch',activeBranches.map(x=>({value:x.id,label:x.name})), 'Unassigned');
+            managementSetOptions('mhReportStaff',activeStaff.map(x=>({value:x.id,label:x.name})), 'All staff');
+            managementSetOptions('mhReportBranch',activeBranches.map(x=>({value:x.id,label:x.name})), 'All branches');
+            renderManagementStaff();
+            renderManagementBranches();
+            renderManagementLeadOptions();
+            renderManagementPermissionTable();
+            return true;
+        }catch(error){
+            console.error('Management data load failed:',error);
+            managementNotice('Data load nahi hua. Firestore rules/connection check karein: '+(error.message||''),true);
+            return false;
+        }
+    }
+    window.showManagementModule=function(module){
+        document.querySelectorAll('.management-module-panel').forEach(el=>el.style.display='none');
+        const panel=document.getElementById('managementPanel'+module.charAt(0).toUpperCase()+module.slice(1));
+        if(panel)panel.style.display='block';
+        if(module==='reports')window.generateManagementReport();
+        if(module==='leads')renderManagementLeadOptions();
+        if(module==='permissions')renderManagementPermissionTable();
+    };
+    window.resetManagementStaffForm=function(){
+        managementEditingStaffId='';['mhStaffName','mhStaffPhone','mhStaffEmail'].forEach(id=>document.getElementById(id).value='');
+        document.getElementById('mhStaffRole').value='Sales Executive';document.getElementById('mhStaffBranch').value='';document.getElementById('mhStaffStatus').value='Active';
+    };
+    window.saveManagementStaff=async function(){
+        const ref=managementTenantRef();const name=String(document.getElementById('mhStaffName').value||'').trim();
+        if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Staff name required hai.');return;}
+        const branchId=document.getElementById('mhStaffBranch').value;
+        const branch=managementBranches.find(x=>x.id===branchId);
+        const payload={name,phone:String(document.getElementById('mhStaffPhone').value||'').trim(),email:String(document.getElementById('mhStaffEmail').value||'').trim(),role:document.getElementById('mhStaffRole').value,branchId:branchId||'',branchName:branch?branch.name:'',status:document.getElementById('mhStaffStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        try{
+            if(managementEditingStaffId)await ref.collection('staff').doc(managementEditingStaffId).set(payload,{merge:true});
+            else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('staff').add(payload);}
+            await loadManagementData();window.resetManagementStaffForm();managementNotice('Staff profile cloud mein save ho gaya.');
+        }catch(error){console.error(error);managementNotice('Staff save nahi hua: '+(error.message||''),true);}
+    };
+    function renderManagementStaff(){
+        const box=document.getElementById('mhStaffList');if(!box)return;
+        if(!managementStaff.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">Abhi staff profiles nahi hain. Upar form se add karein.</p>';return;}
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:620px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+managementStaff.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
+    }
+    window.editManagementStaff=function(id){
+        const x=managementStaff.find(y=>y.id===id);if(!x)return;managementEditingStaffId=id;
+        document.getElementById('mhStaffName').value=x.name||'';document.getElementById('mhStaffPhone').value=x.phone||'';document.getElementById('mhStaffEmail').value=x.email||'';document.getElementById('mhStaffRole').value=x.role||'Sales Executive';document.getElementById('mhStaffBranch').value=x.branchId||'';document.getElementById('mhStaffStatus').value=x.status||'Active';
+        document.getElementById('mhStaffName').focus();
+    };
+    window.toggleManagementStaff=async function(id){
+        const ref=managementTenantRef();const x=managementStaff.find(y=>y.id===id);if(!ref||!x)return;
+        try{await ref.collection('staff').doc(id).update({status:x.status==='Inactive'?'Active':'Inactive',updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadManagementData();managementNotice('Staff status update ho gaya.');}
+        catch(error){managementNotice('Status update nahi hua: '+(error.message||''),true);}
+    };
+    window.resetManagementBranchForm=function(){
+        managementEditingBranchId='';['mhBranchName','mhBranchCode','mhBranchPhone','mhBranchAddress'].forEach(id=>document.getElementById(id).value='');document.getElementById('mhBranchStatus').value='Active';
+    };
+    window.saveManagementBranch=async function(){
+        const ref=managementTenantRef();const name=String(document.getElementById('mhBranchName').value||'').trim();if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Branch name required hai.');return;}
+        const payload={name,code:String(document.getElementById('mhBranchCode').value||'').trim(),phone:String(document.getElementById('mhBranchPhone').value||'').trim(),address:String(document.getElementById('mhBranchAddress').value||'').trim(),status:document.getElementById('mhBranchStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        try{if(managementEditingBranchId)await ref.collection('branches').doc(managementEditingBranchId).set(payload,{merge:true});else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('branches').add(payload);}await loadManagementData();window.resetManagementBranchForm();managementNotice('Branch cloud mein save ho gayi.');}
+        catch(error){console.error(error);managementNotice('Branch save nahi hui: '+(error.message||''),true);}
+    };
+    function renderManagementBranches(){
+        const box=document.getElementById('mhBranchList');if(!box)return;
+        if(!managementBranches.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">Abhi branch records nahi hain. Upar form se add karein.</p>';return;}
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:570px;"><thead><tr><th align="left">Branch</th><th align="left">Address</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+managementBranches.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'<br><small>'+managementEscape(x.code||'')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.address||'—')+'</td><td>'+managementEscape(x.phone||'—')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementBranch(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementBranch(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
+    }
+    window.editManagementBranch=function(id){
+        const x=managementBranches.find(y=>y.id===id);if(!x)return;managementEditingBranchId=id;
+        document.getElementById('mhBranchName').value=x.name||'';document.getElementById('mhBranchCode').value=x.code||'';document.getElementById('mhBranchPhone').value=x.phone||'';document.getElementById('mhBranchAddress').value=x.address||'';document.getElementById('mhBranchStatus').value=x.status||'Active';document.getElementById('mhBranchName').focus();
+    };
+    window.toggleManagementBranch=async function(id){
+        const ref=managementTenantRef();const x=managementBranches.find(y=>y.id===id);if(!ref||!x)return;
+        try{await ref.collection('branches').doc(id).update({status:x.status==='Inactive'?'Active':'Inactive',updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadManagementData();managementNotice('Branch status update ho gaya.');}
+        catch(error){managementNotice('Branch status update nahi hua: '+(error.message||''),true);}
+    };
+    function renderManagementLeadOptions(){
+        const list=getLeadScopedList();managementSetOptions('mhLeadSelect',list.map(l=>({value:l.docId,label:(l.name||'Unnamed')+' · '+(l.mobile||'')+' · '+(l.status||'New')})),'Select customer / lead');
+        const selected=document.getElementById('mhLeadSelect').value;const lead=list.find(x=>x.docId===selected);
+        if(lead){document.getElementById('mhLeadStaff').value=lead.assignedStaffId||'';document.getElementById('mhLeadBranch').value=lead.branchId||'';}
+        const sum=document.getElementById('mhLeadSummary');if(sum)sum.textContent='Current scope: '+list.length+' lead(s). Customer select karne par existing assignment load hoga.';
+    }
+    document.getElementById('mhLeadSelect')?.addEventListener('change',renderManagementLeadOptions);
+    window.saveManagementLeadAssignment=async function(){
+        const id=document.getElementById('mhLeadSelect').value;const lead=leads.find(x=>x.docId===id);if(!id||!lead){alert('Pehle customer / lead select karein.');return;}
+        const staffId=document.getElementById('mhLeadStaff').value;const branchId=document.getElementById('mhLeadBranch').value;const staff=managementStaff.find(x=>x.id===staffId);const branch=managementBranches.find(x=>x.id===branchId);
+        try{await leadsCollection.doc(id).update({assignedStaffId:staffId||'',assignedStaffName:staff?staff.name:'',branchId:branchId||'',branchName:branch?branch.name:'',assignmentUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});const local=leads.find(x=>x.docId===id);if(local)Object.assign(local,{assignedStaffId:staffId||'',assignedStaffName:staff?staff.name:'',branchId:branchId||'',branchName:branch?branch.name:''});managementNotice('Lead assignment save ho gaya.');window.generateManagementReport();}
+        catch(error){console.error(error);managementNotice('Lead assignment save nahi hua: '+(error.message||''),true);}
+    };
+    function managementReportFiltered(){
+        const from=document.getElementById('mhReportFrom').value;const to=document.getElementById('mhReportTo').value;const status=document.getElementById('mhReportStatus').value;const staff=document.getElementById('mhReportStaff').value;const branch=document.getElementById('mhReportBranch').value;
+        return getLeadScopedList().filter(l=>{
+            const date=String(l.createdAt||l.createdDate||l.date||l.updatedAt||'').slice(0,10);
+            if(from&&date&&date<from)return false;if(to&&date&&date>to)return false;if(status&&String(l.status||'')!==status)return false;if(staff&&l.assignedStaffId!==staff)return false;if(branch&&l.branchId!==branch)return false;return true;
+        });
+    }
+    window.generateManagementReport=function(){
+        const statusEl=document.getElementById('mhReportStatus');if(statusEl&&statusEl.options.length<=1){const statuses=[...new Set(getLeadScopedList().map(l=>String(l.status||'New')).filter(Boolean))].sort();statuses.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;statusEl.appendChild(o);});}
+        managementReportRows=managementReportFiltered();
+        const total=managementReportRows.length;const disb=managementReportRows.filter(l=>l.status==='Disbursed');const amount=disb.reduce((n,l)=>n+(Number(String(l.disbursedAmount||l.loanAmount||0).replace(/[^0-9.]/g,''))||0),0);
+        const sum=document.getElementById('mhReportSummary');if(sum)sum.innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap;"><div class="metric-card"><div class="metric-title">Filtered Leads</div><div class="metric-value">'+total+'</div></div><div class="metric-card"><div class="metric-title">Disbursed Files</div><div class="metric-value">'+disb.length+'</div></div><div class="metric-card"><div class="metric-title">Disbursed Amount</div><div class="metric-value">'+formatINR(amount)+'</div></div></div>';
+        const box=document.getElementById('mhReportTable');if(!box)return;
+        box.innerHTML=total?'<table style="width:100%;border-collapse:collapse;min-width:720px;"><thead><tr>'+['Customer','Mobile','Status','Loan Amount','Assigned Staff','Branch','Follow-up'].map(x=>'<th align="left" style="padding:8px;border-bottom:1px solid var(--card-border);">'+x+'</th>').join('')+'</tr></thead><tbody>'+managementReportRows.slice(0,250).map(l=>'<tr>'+[l.name||'',l.mobile||'',l.status||'',formatINR(Number(l.loanAmount)||0),l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''].map(x=>'<td style="padding:8px;border-bottom:1px solid var(--card-border);">'+managementEscape(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'+(total>250?'<p>First 250 records shown; CSV mein all filtered records honge.</p>':''):'<p style="color:var(--text-muted);">Filter ke liye koi record nahi mila.</p>';
+    };
+    function downloadManagementCsv(filename,rows){
+        const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+        const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
+    }
+    window.exportManagementReport=function(){
+        const rows=[['Customer','Mobile','Status','Loan Amount','Disbursed Amount','Staff','Branch','Follow-up'],...managementReportFiltered().map(l=>[l.name||'',l.mobile||'',l.status||'',l.loanAmount||0,l.disbursedAmount||0,l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''])];
+        downloadManagementCsv('management-report-'+new Date().toISOString().slice(0,10)+'.csv',rows);
+    };
+    window.exportManagementLeadList=function(){
+        const rows=[['Customer','Mobile','Status','Loan Amount','Staff','Branch','Follow-up'],...getLeadScopedList().map(l=>[l.name||'',l.mobile||'',l.status||'',l.loanAmount||0,l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''])];
+        downloadManagementCsv('lead-management-'+new Date().toISOString().slice(0,10)+'.csv',rows);
+    };
+    function renderManagementPermissionTable(){
+        const body=document.getElementById('mhPermissionBody');if(!body)return;
+        const u=getCurrentSessionUser();const tenant=tenantsCache.find(t=>String(t.tenantId||'').toLowerCase()===managementTenantId().toLowerCase());
+        const saved=(tenant&&tenant.rolePermissions)||{};
+        body.innerHTML=managementPermissionModules.map((module,idx)=>'<tr><td style="padding:9px;border-bottom:1px solid var(--card-border);">'+managementEscape(module)+'</td>'+managementRoleNames.map(role=>{const defaults=role==='Administrator'||(role==='Manager'&&idx!==2&&idx!==7)||(role==='Sales Executive'&&[0,1,6].includes(idx))||role==='Viewer'&&idx===0;const checked=Object.prototype.hasOwnProperty.call(saved,role)&&Array.isArray(saved[role])?saved[role].includes(module):defaults;return '<td style="text-align:center;padding:9px;border-bottom:1px solid var(--card-border);"><input type="checkbox" data-mh-role="'+managementEscape(role)+'" data-mh-module="'+managementEscape(module)+'" '+(checked?'checked':'')+' style="width:18px;height:18px;"></td>';}).join('')+'</tr>').join('');
+        const note=document.getElementById('mhPermissionNote');if(note)note.textContent='Role policy config load ho gaya. Role checks app/server security ke saath enforce karna abhi zaroori hai.';
+    }
+    window.saveManagementPermissions=async function(){
+        const ref=managementTenantRef();if(!ref){managementNotice('Tenant select nahi hua.',true);return;}
+        const matrix={};managementRoleNames.forEach(role=>matrix[role]=[]);
+        document.querySelectorAll('#mhPermissionBody input[type="checkbox"]').forEach(el=>{if(el.checked)matrix[el.dataset.mhRole].push(el.dataset.mhModule);});
+        try{await ref.set({rolePermissions:matrix,rolePermissionsUpdatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});const tenant=tenantsCache.find(t=>String(t.tenantId||'').toLowerCase()===managementTenantId().toLowerCase());if(tenant)tenant.rolePermissions=matrix;managementNotice('Role permissions configuration save ho gayi.');}
+        catch(error){console.error(error);managementNotice('Permissions save nahi hui: '+(error.message||''),true);}
+    };
+
     window.openManagementHub = function() {
         const modal = document.getElementById('managementHubModal');
         if (modal) modal.style.display = 'flex';
