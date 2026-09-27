@@ -724,9 +724,38 @@
     const PLAN_FEATURES = {
         Starter: ['pipeline', 'followups', 'documents'],
         Professional: ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'documents', 'emiCalculator', 'affordability', 'reports'],
-        Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport'],
+        Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports'],
         Enterprise: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport']
     };
+    // -1 means unlimited. Custom tenants may override each limit in customLimits.
+    const PLAN_LIMITS = {
+        Starter: { staff: 3, branches: 1, leads: 500, storageGB: 1 },
+        Professional: { staff: 10, branches: 3, leads: 5000, storageGB: 10 },
+        Business: { staff: 25, branches: 10, leads: 25000, storageGB: 50 },
+        Enterprise: { staff: -1, branches: -1, leads: -1, storageGB: 500 },
+        Custom: { staff: 3, branches: 1, leads: 500, storageGB: 1 }
+    };
+    const PLAN_LEVELS = {
+        Starter: { reports: 'Basic', permissions: 'Standard', support: 'Email' },
+        Professional: { reports: 'Advanced', permissions: 'Role-based', support: 'Priority email' },
+        Business: { reports: 'Advanced + workflow', permissions: 'Detailed role-based', support: 'Priority' },
+        Enterprise: { reports: 'Advanced + custom', permissions: 'Granular + audit', support: 'Dedicated' },
+        Custom: { reports: 'Custom', permissions: 'Custom', support: 'Configured by admin' }
+    };
+    function getTenantPlanLimit(key) {
+        const tenant = resolveFeatureTenant();
+        if (!tenant) return -1;
+        const plan = String(tenant.subscriptionPlan || 'Starter');
+        const defaults = PLAN_LIMITS[plan] || PLAN_LIMITS.Starter;
+        const custom = tenant.customLimits && typeof tenant.customLimits === 'object' ? tenant.customLimits : {};
+        const raw = plan === 'Custom' && Object.prototype.hasOwnProperty.call(custom, key) ? custom[key] : defaults[key];
+        const value = Number(raw);
+        return Number.isFinite(value) ? Math.max(-1, Math.floor(value)) : (defaults[key] ?? -1);
+    }
+    function planLimitReached(key, currentCount) {
+        const limit = getTenantPlanLimit(key);
+        return limit >= 0 && Number(currentCount || 0) >= limit;
+    }
     const FEATURE_CATALOG = [
         ['pipeline', 'Lead / Customer Pipeline'],
         ['disbursed', 'Disbursed Files & Clearance Hub'],
@@ -987,6 +1016,11 @@
         document.getElementById('t_password').value = t.password || '';
         document.getElementById('t_monthlyRent').value = t.rentAmount || 0;
         document.getElementById('t_subscriptionPlan').value = t.subscriptionPlan || 'Starter';
+        const limits = t.customLimits || {};
+        document.getElementById('t_customStaffLimit').value = limits.staff ?? 3;
+        document.getElementById('t_customBranchLimit').value = limits.branches ?? 1;
+        document.getElementById('t_customLeadLimit').value = limits.leads ?? 500;
+        document.getElementById('t_customStorageLimit').value = limits.storageGB ?? 1;
         renderCustomFeatureAccess(t.featureAccess || []);
         document.getElementById('t_expiryDate').value = t.expiryDate || '';
         document.getElementById('t_status').value = t.status || 'Active';
@@ -1005,6 +1039,10 @@
         document.getElementById('t_password').value = '';
         document.getElementById('t_monthlyRent').value = '3000';
         document.getElementById('t_subscriptionPlan').value = 'Starter';
+        document.getElementById('t_customStaffLimit').value = 3;
+        document.getElementById('t_customBranchLimit').value = 1;
+        document.getElementById('t_customLeadLimit').value = 500;
+        document.getElementById('t_customStorageLimit').value = 1;
         renderCustomFeatureAccess([]);
         const d = new Date(); d.setFullYear(d.getFullYear() + 1);
         document.getElementById('t_expiryDate').value = d.toISOString().split('T')[0];
@@ -1028,6 +1066,12 @@
         const rent = Number(document.getElementById('t_monthlyRent').value) || 0;
         const subscriptionPlan = document.getElementById('t_subscriptionPlan').value || 'Starter';
         const featureAccess = subscriptionPlan === 'Custom' ? Array.from(document.querySelectorAll('#customFeatureAccessList input:checked')).map(el => el.value) : null;
+        const customLimits = subscriptionPlan === 'Custom' ? {
+            staff: Math.max(-1, Math.floor(Number(document.getElementById('t_customStaffLimit').value) || 0)),
+            branches: Math.max(-1, Math.floor(Number(document.getElementById('t_customBranchLimit').value) || 0)),
+            leads: Math.max(-1, Math.floor(Number(document.getElementById('t_customLeadLimit').value) || 0)),
+            storageGB: Math.max(0, Number(document.getElementById('t_customStorageLimit').value) || 0)
+        } : null;
         if (subscriptionPlan === 'Custom' && !featureAccess.length) { alert('Custom plan ke liye kam se kam ek feature select karein.'); return; }
         const exp = document.getElementById('t_expiryDate').value;
         const stat = document.getElementById('t_status').value;
@@ -1059,7 +1103,7 @@
                 password: pass,
                 rentAmount: rent,
                 subscriptionPlan: subscriptionPlan,
-                ...(subscriptionPlan === 'Custom' ? { featureAccess } : { featureAccess: firebase.firestore.FieldValue.delete() }),
+                ...(subscriptionPlan === 'Custom' ? { featureAccess, customLimits } : { featureAccess: firebase.firestore.FieldValue.delete(), customLimits: firebase.firestore.FieldValue.delete() }),
                 expiryDate: exp,
                 status: stat,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -3657,6 +3701,7 @@
     window.saveManagementStaff=async function(){
         const ref=managementTenantRef();const name=String(document.getElementById('mhStaffName').value||'').trim();
         if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Staff name required hai.');return;}
+        if(!managementEditingStaffId && planLimitReached('staff', managementStaff.filter(x=>x.status!=='Inactive').length)){managementNotice('Aapke subscription plan ki active staff limit poori ho gayi hai. Plan upgrade karein ya admin se limit badhwayein.',true);return;}
         const branchId=document.getElementById('mhStaffBranch').value;
         const branch=managementBranches.find(x=>x.id===branchId);
         const payload={name,phone:String(document.getElementById('mhStaffPhone').value||'').trim(),email:String(document.getElementById('mhStaffEmail').value||'').trim(),role:document.getElementById('mhStaffRole').value,branchId:branchId||'',branchName:branch?branch.name:'',status:document.getElementById('mhStaffStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
@@ -3688,6 +3733,7 @@
     };
     window.saveManagementBranch=async function(){
         const ref=managementTenantRef();const name=String(document.getElementById('mhBranchName').value||'').trim();if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Branch name required hai.');return;}
+        if(!managementEditingBranchId && planLimitReached('branches', managementBranches.filter(x=>x.status!=='Inactive').length)){managementNotice('Aapke subscription plan ki active branch limit poori ho gayi hai. Plan upgrade karein ya admin se limit badhwayein.',true);return;}
         const payload={name,code:String(document.getElementById('mhBranchCode').value||'').trim(),phone:String(document.getElementById('mhBranchPhone').value||'').trim(),address:String(document.getElementById('mhBranchAddress').value||'').trim(),status:document.getElementById('mhBranchStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{if(managementEditingBranchId)await ref.collection('branches').doc(managementEditingBranchId).set(payload,{merge:true});else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('branches').add(payload);}await loadManagementData();window.resetManagementBranchForm();managementNotice('Branch cloud mein save ho gayi.');}
         catch(error){console.error(error);managementNotice('Branch save nahi hui: '+(error.message||''),true);}
