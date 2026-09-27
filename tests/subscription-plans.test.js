@@ -107,3 +107,13 @@ assert.ok(dealerCutHandler.includes('!Number.isFinite(newCut) || newCut < 0'), '
 assert.ok(dealerCutHandler.includes('if (newCut > gross)'), 'Dealer cut must not exceed gross commission');
 assert.ok(dealerCutHandler.includes('const net = gross - newCut;'), 'Net commission must be calculated after validation');
 console.log('Dealer cut missing-record and amount-validation regression checks passed.');
+
+const csvHelperStart = source.indexOf('function downloadManagementCsv(');
+const csvHelperEnd = source.indexOf('window.exportManagementReport=', csvHelperStart);
+assert.ok(csvHelperStart >= 0 && csvHelperEnd > csvHelperStart, 'Management CSV export helper must exist');
+const csvHelper = source.slice(csvHelperStart, csvHelperEnd);
+assert.ok(csvHelper.includes('const csvCell = value =>'), 'CSV export must centralize cell escaping');
+assert.ok(csvHelper.includes("typeof value === 'string'"), 'Formula protection must target untrusted text without changing numeric cells');
+assert.ok(csvHelper.includes("/^[\\\\u0000-\\\\u0020]*[=+@-]/"), 'CSV export must neutralize formula-leading characters');
+assert.ok(csvHelper.includes("safe.replace(/\"/g, '\"\"')"), 'CSV cells must continue escaping embedded quotes');
+console.log('Management CSV formula-injection regression checks added.');
