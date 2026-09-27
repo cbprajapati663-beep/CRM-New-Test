@@ -98,3 +98,12 @@ assert.ok(loginPageSource.includes("user.status === 'Suspended'"), 'Suspended te
 assert.ok(loginPageSource.includes("button.disabled = true;") && loginPageSource.includes("button.disabled = false;"), 'Login submit button must be restored after the request');
 assert.ok(loginPageSource.includes("window.location.replace('../index.html')"), 'Successful tenant login must redirect to the CRM');
 console.log('Tenant login safe-error, suspended-account, and request-state regression checks passed.');
+const dealerCutStart = source.indexOf('window.handleSaveDealerCutFromLedger = async function');
+const dealerCutEnd = source.indexOf('function renderPayoutDeskTable()', dealerCutStart);
+assert.ok(dealerCutStart >= 0 && dealerCutEnd > dealerCutStart, 'Dealer cut save handler must exist');
+const dealerCutHandler = source.slice(dealerCutStart, dealerCutEnd);
+assert.ok(dealerCutHandler.includes("if (!l)"), 'Dealer cut save must handle a missing lead safely');
+assert.ok(dealerCutHandler.includes('!Number.isFinite(newCut) || newCut < 0'), 'Dealer cut must reject invalid or negative values');
+assert.ok(dealerCutHandler.includes('if (newCut > gross)'), 'Dealer cut must not exceed gross commission');
+assert.ok(dealerCutHandler.includes('const net = gross - newCut;'), 'Net commission must be calculated after validation');
+console.log('Dealer cut missing-record and amount-validation regression checks passed.');
