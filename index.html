@@ -813,9 +813,9 @@
                 <div id="customFeatureAccessWrap" style="display:none;margin-top:12px;padding:12px;border:1px solid #a855f7;border-radius:9px;">
                     <strong style="display:block;margin-bottom:8px;color:#c084fc;">🧩 Custom Plan — Feature Access & Limits</strong>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px;">
-                        <label style="font-size:.78rem;">Staff limit (-1 = unlimited)<input id="t_customStaffLimit" type="number" min="-1" value="3" style="width:100%;margin-top:4px;"></label>
-                        <label style="font-size:.78rem;">Branch limit<input id="t_customBranchLimit" type="number" min="-1" value="1" style="width:100%;margin-top:4px;"></label>
-                        <label style="font-size:.78rem;">Lead limit<input id="t_customLeadLimit" type="number" min="-1" value="500" style="width:100%;margin-top:4px;"></label>
+                        <label style="font-size:.78rem;">Staff limit (-1 = unlimited)<input id="t_customStaffLimit" type="number" min="-1" step="1" value="3" style="width:100%;margin-top:4px;"></label>
+                        <label style="font-size:.78rem;">Branch limit (-1 = unlimited)<input id="t_customBranchLimit" type="number" min="-1" step="1" value="1" style="width:100%;margin-top:4px;"></label>
+                        <label style="font-size:.78rem;">Lead limit (-1 = unlimited)<input id="t_customLeadLimit" type="number" min="-1" step="1" value="500" style="width:100%;margin-top:4px;"></label>
                         <label style="font-size:.78rem;">Storage (GB)<input id="t_customStorageLimit" type="number" min="0" value="1" style="width:100%;margin-top:4px;"></label>
                     </div>
                     <div id="customFeatureAccessList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px;"></div>
