@@ -3638,6 +3638,12 @@
     }
     window.showManagementModule=function(module){
         document.querySelectorAll('.management-module-panel').forEach(el=>el.style.display='none');
+        document.querySelectorAll('.management-module-tab').forEach(el=>{
+            const active=el.dataset.managementModule===module;
+            el.style.outline=active?'3px solid rgba(255,255,255,.82)':'none';
+            el.style.boxShadow=active?'0 8px 24px rgba(0,0,0,.22)':'none';
+            el.setAttribute('aria-pressed',active?'true':'false');
+        });
         const panel=document.getElementById('managementPanel'+module.charAt(0).toUpperCase()+module.slice(1));
         if(panel)panel.style.display='block';
         if(module==='reports')window.generateManagementReport();
@@ -3662,8 +3668,10 @@
     };
     function renderManagementStaff(){
         const box=document.getElementById('mhStaffList');if(!box)return;
-        if(!managementStaff.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">Abhi staff profiles nahi hain. Upar form se add karein.</p>';return;}
-        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:620px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+managementStaff.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
+        const query=String(document.getElementById('mhStaffSearch')?.value||'').trim().toLowerCase();
+        const rows=managementStaff.filter(x=>[x.name,x.phone,x.email,x.role,x.branchName,x.status].some(v=>String(v||'').toLowerCase().includes(query)));
+        if(!rows.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">'+(query?'Search ke liye staff record nahi mila.':'Abhi staff profiles nahi hain. Upar form se add karein.')+'</p>';return;}
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:620px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
     }
     window.editManagementStaff=function(id){
         const x=managementStaff.find(y=>y.id===id);if(!x)return;managementEditingStaffId=id;
@@ -3699,10 +3707,20 @@
         catch(error){managementNotice('Branch status update nahi hua: '+(error.message||''),true);}
     };
     function renderManagementLeadOptions(){
-        const list=getLeadScopedList();managementSetOptions('mhLeadSelect',list.map(l=>({value:l.docId,label:(l.name||'Unnamed')+' · '+(l.mobile||'')+' · '+(l.status||'New')})),'Select customer / lead');
-        const selected=document.getElementById('mhLeadSelect').value;const lead=list.find(x=>x.docId===selected);
+        const all=getLeadScopedList();
+        const statusFilter=document.getElementById('mhLeadStatusFilter');
+        if(statusFilter&&statusFilter.options.length<=1){
+            [...new Set(all.map(l=>String(l.status||'New')).filter(Boolean))].sort().forEach(v=>{const op=document.createElement('option');op.value=v;op.textContent=v;statusFilter.appendChild(op);});
+        }
+        const query=String(document.getElementById('mhLeadSearch')?.value||'').trim().toLowerCase();
+        const status=statusFilter?.value||'';
+        const list=all.filter(l=>(!status||String(l.status||'New')===status)&&(!query||[l.name,l.mobile,l.status,l.city].some(v=>String(v||'').toLowerCase().includes(query))));
+        const previous=document.getElementById('mhLeadSelect')?.value;
+        managementSetOptions('mhLeadSelect',list.map(l=>({value:l.docId,label:(l.name||'Unnamed')+' · '+(l.mobile||'')+' · '+(l.status||'New')})),'Select customer / lead');
+        const select=document.getElementById('mhLeadSelect');if(previous&&list.some(x=>x.docId===previous))select.value=previous;
+        const selected=select?.value;const lead=list.find(x=>x.docId===selected);
         if(lead){document.getElementById('mhLeadStaff').value=lead.assignedStaffId||'';document.getElementById('mhLeadBranch').value=lead.branchId||'';}
-        const sum=document.getElementById('mhLeadSummary');if(sum)sum.textContent='Current scope: '+list.length+' lead(s). Customer select karne par existing assignment load hoga.';
+        const sum=document.getElementById('mhLeadSummary');if(sum)sum.textContent='Showing '+list.length+' of '+all.length+' lead(s). Filtered lead list export karein.';
     }
     document.getElementById('mhLeadSelect')?.addEventListener('change',renderManagementLeadOptions);
     window.saveManagementLeadAssignment=async function(){
@@ -3746,7 +3764,10 @@
         downloadManagementCsv('management-report-'+new Date().toISOString().slice(0,10)+'.csv',rows);
     };
     window.exportManagementLeadList=function(){
-        const rows=[['Customer','Mobile','Status','Loan Amount','Staff','Branch','Follow-up'],...getLeadScopedList().map(l=>[l.name||'',l.mobile||'',l.status||'',l.loanAmount||0,l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''])];
+        const query=String(document.getElementById('mhLeadSearch')?.value||'').trim().toLowerCase();
+        const status=document.getElementById('mhLeadStatusFilter')?.value||'';
+        const filtered=getLeadScopedList().filter(l=>(!status||String(l.status||'New')===status)&&(!query||[l.name,l.mobile,l.status,l.city].some(v=>String(v||'').toLowerCase().includes(query))));
+        const rows=[['Customer','Mobile','Status','Loan Amount','Staff','Branch','Follow-up'],...filtered.map(l=>[l.name||'',l.mobile||'',l.status||'',l.loanAmount||0,l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''])];
         downloadManagementCsv('lead-management-'+new Date().toISOString().slice(0,10)+'.csv',rows);
     };
     function renderManagementPermissionTable(){
