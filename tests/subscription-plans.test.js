@@ -137,3 +137,46 @@ assert.ok(source.includes("Firebase Blaze billing required for Cloud Storage upl
 assert.ok(source.includes("showPaidDependencyComingSoon('Cloud Document Upload'"), 'Document upload must show the paid dependency message');
 console.log('Firebase Cloud Storage billing-gate regression checks passed.');
 
+const emiStart = source.indexOf('window.openEmiCalculator = function');
+const emiEnd = source.indexOf('window.openAffordabilityCalculator = function', emiStart);
+assert.ok(emiStart >= 0 && emiEnd > emiStart, 'EMI calculator implementation must exist');
+const emiSource = source.slice(emiStart, emiEnd);
+for (const marker of [
+  "isFeatureEnabled('emiCalculator')",
+  "amount <= 0",
+  "annualRate < 0 || annualRate > 100",
+  "months < 1 || months > 600",
+  "monthlyRate === 0",
+  "currency: 'INR'"
+]) {
+  assert.ok(emiSource.includes(marker), `EMI calculator validation/calculation marker missing: ${marker}`);
+}
+assert.ok(!/firebase\.|fetch\(|XMLHttpRequest|axios|stripe|razorpay/i.test(emiSource), 'EMI calculator must remain a local calculator without external paid-service calls');
+
+const affStart = source.indexOf('window.openAffordabilityCalculator = function');
+const affEnd = source.indexOf('window.generateDO = async function', affStart);
+assert.ok(affStart >= 0 && affEnd > affStart, 'Affordability calculator implementation must exist');
+const affSource = source.slice(affStart, affEnd);
+for (const marker of [
+  "isFeatureEnabled('affordability')",
+  "income <= 0",
+  "existingEmi < 0",
+  "principal <= 0",
+  "annualRate < 0 || annualRate > 100",
+  "months < 1 || months > 600",
+  "limitPercent <= 0 || limitPercent > 100",
+  "currency: 'INR'"
+]) {
+  assert.ok(affSource.includes(marker), `Affordability calculator validation/calculation marker missing: ${marker}`);
+}
+assert.ok(!/firebase\.|fetch\(|XMLHttpRequest|axios|stripe|razorpay/i.test(affSource), 'Affordability calculator must remain local without external paid-service calls');
+
+for (const id of [
+  'emiCalculatorModal','emiLoanAmount','emiInterestRate','emiTenureMonths',
+  'affordabilityModal','affMonthlyIncome','affExistingEmi','affLoanAmount',
+  'affInterestRate','affTenureMonths','affFoirLimit'
+]) {
+  assert.ok(managementHub.includes('id="' + id + '"'), `Calculator UI element missing: ${id}`);
+}
+console.log('EMI and affordability calculator regression checks passed.');
+
