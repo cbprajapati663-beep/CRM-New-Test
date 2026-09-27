@@ -3865,38 +3865,63 @@
         box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:820px;"><thead><tr><th align="left">Staff</th><th align="left">Role / Branch</th><th align="left">Contact</th><th>Login</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.role||'Staff')+'<br><small>'+managementEscape(x.branchName||'Unassigned')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.phone||'—')+'<br>'+managementEscape(x.email||'')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(x.loginId?'<strong>'+managementEscape(x.loginId)+'</strong><br><small style="color:#86efac;">Enabled</small>':'<small style="color:#fbbf24;">Not created</small>')+'</td><td style="padding:9px;border-top:1px solid var(--card-border);">'+(Array.isArray(x.featureAccess)?x.featureAccess.length:0)+' feature(s)</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementStaff(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementStaff(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
     }
     window.closeManagementStaffEdit=function(){
-        const modal=document.getElementById('mhStaffEditModal'),editor=document.getElementById('mhStaffEditor'),panel=document.getElementById('managementPanelStaff');
-        if(editor&&panel&&editor.parentElement===document.getElementById('mhStaffEditMount')){
-            panel.insertBefore(editor,modal||null);
-        }
+        const modal=document.getElementById('mhStaffEditModal');
         if(modal)modal.style.display='none';
         managementEditingStaffId='';
-        const title=document.getElementById('mhStaffEditorTitle');if(title)title.textContent='➕ Create Staff';
-        const saveBtn=document.querySelector('#mhStaffEditor button[onclick="saveManagementStaff()"]');if(saveBtn)saveBtn.textContent='➕ Save Staff Profile';
     };
-    window.editManagementStaff=function(id){
+        window.editManagementStaff=function(id){
         const x=managementStaff.find(y=>y.id===id);if(!x)return;
         managementEditingStaffId=id;
-        const modal=document.getElementById('mhStaffEditModal'),mount=document.getElementById('mhStaffEditMount'),editor=document.getElementById('mhStaffEditor');
+        const modal=document.getElementById('mhStaffEditModal');
+        const mount=document.getElementById('mhStaffEditMount');
+        const editor=document.getElementById('mhStaffEditor');
         if(!modal||!mount||!editor)return;
-        mount.appendChild(editor);
-        const title=document.getElementById('mhStaffEditorTitle');if(title)title.textContent='✏️ Edit Staff: '+(x.name||'Staff');
-        document.getElementById('mhStaffName').value=x.name||'';
-        document.getElementById('mhStaffPhone').value=x.phone||'';
-        document.getElementById('mhStaffEmail').value=x.email||'';
-        document.getElementById('mhStaffRole').value=x.role||'Sales Executive';
-        document.getElementById('mhStaffBranch').value=x.branchId||'';
-        document.getElementById('mhStaffStatus').value=x.status||'Active';
-        document.getElementById('mhStaffLoginId').value=x.loginId||'';
-        document.getElementById('mhStaffLoginPassword').value='';
-        const loginIdField=document.getElementById('mhStaffLoginId');
-        if(loginIdField){loginIdField.readOnly=false;loginIdField.disabled=false;}
-        const req=document.getElementById('mhStaffPasswordRequired');if(req)req.textContent='(leave blank to keep current)';
-        const passField=document.getElementById('mhStaffLoginPassword');
-        if(passField){passField.placeholder='New password (leave blank to keep current)';passField.required=false;}
+
+        // Keep the original create form in place. The edit modal uses a dedicated
+        // cloned form so moving DOM nodes can never make the login fields disappear.
+        let editForm=document.getElementById('mhStaffEditForm');
+        if(!editForm){
+            editForm=document.createElement('div');
+            editForm.id='mhStaffEditForm';
+            editForm.innerHTML=editor.innerHTML;
+            editForm.querySelectorAll('[id]').forEach(el=>{
+                if(el.id==='mhStaffEditorTitle') el.id='mhStaffEditTitle';
+                else el.id='mhStaffName' && (el.id='mhStaffEditName');
+            });
+            const idMap={
+                mhStaffName:'mhStaffEditName',mhStaffPhone:'mhStaffEditPhone',mhStaffEmail:'mhStaffEditEmail',
+                mhStaffRole:'mhStaffEditRole',mhStaffBranch:'mhStaffEditBranch',mhStaffStatus:'mhStaffEditStatus',
+                mhStaffLoginId:'mhStaffEditLoginId',mhStaffLoginPassword:'mhStaffEditPassword',
+                mhStaffPasswordRequired:'mhStaffEditPasswordRequired',mhStaffPlanSummary:'mhStaffEditPlanSummary',
+                mhStaffFeatureAccessList:'mhStaffEditFeatureAccessList',mhStaffAccessNote:'mhStaffEditAccessNote'
+            };
+            editForm.querySelectorAll('[id]').forEach(el=>{if(idMap[el.id])el.id=idMap[el.id];});
+            const title=editForm.querySelector('#mhStaffEditTitle');if(title)title.textContent='✏️ Edit Staff';
+            const save=editForm.querySelector('[onclick="saveManagementStaff()"]');
+            if(save){save.textContent='💾 Save Staff Changes';save.onclick=null;save.addEventListener('click',async()=>{syncStaffEditFormToMain();await window.saveManagementStaff();});}
+            const cancel=editForm.querySelector('[onclick="resetManagementStaffForm()"]');
+            if(cancel){cancel.textContent='Cancel / Close';cancel.onclick=null;cancel.addEventListener('click',()=>window.closeManagementStaffEdit());}
+            mount.appendChild(editForm);
+        }
+        const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??'';};
+        set('mhStaffEditName',x.name);set('mhStaffEditPhone',x.phone);set('mhStaffEditEmail',x.email);
+        set('mhStaffEditRole',x.role||'Sales Executive');set('mhStaffEditBranch',x.branchId);set('mhStaffEditStatus',x.status||'Active');
+        set('mhStaffEditLoginId',x.loginId);set('mhStaffEditPassword','');
+        const req=document.getElementById('mhStaffEditPasswordRequired');if(req)req.textContent='(blank = keep current password)';
+        const pass=document.getElementById('mhStaffEditPassword');if(pass)pass.placeholder='New password (leave blank to keep current)';
         renderManagementStaffFeatureAccess(x.featureAccess);
         modal.style.display='flex';
-        setTimeout(()=>document.getElementById('mhStaffName')?.focus(),0);
+        setTimeout(()=>document.getElementById('mhStaffEditLoginId')?.focus(),0);
+    };
+    function syncStaffEditFormToMain(){
+        const pairs=[
+            ['mhStaffEditName','mhStaffName'],['mhStaffEditPhone','mhStaffPhone'],['mhStaffEditEmail','mhStaffEmail'],
+            ['mhStaffEditRole','mhStaffRole'],['mhStaffEditBranch','mhStaffBranch'],['mhStaffEditStatus','mhStaffStatus'],
+            ['mhStaffEditLoginId','mhStaffLoginId'],['mhStaffEditPassword','mhStaffLoginPassword']
+        ];
+        pairs.forEach(([from,to])=>{const a=document.getElementById(from),b=document.getElementById(to);if(a&&b)b.value=a.value;});
+        const mainList=document.getElementById('mhStaffFeatureAccessList'),editList=document.getElementById('mhStaffEditFeatureAccessList');
+        if(mainList&&editList)mainList.innerHTML=editList.innerHTML;
     };
     window.toggleManagementStaff=async function(id){
         const ref=managementTenantRef();const x=managementStaff.find(y=>y.id===id);if(!ref||!x)return;
