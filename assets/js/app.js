@@ -258,6 +258,7 @@
 
     // User-initiated, tenant-scoped JSON backup. Credentials and tenant account records are intentionally excluded.
     window.downloadCRMBackup = function() {
+        if (!isFeatureEnabled('backupExport')) { alert('CRM Backup aapke plan mein enabled nahi hai.'); return; }
         try {
             const user = getCurrentSessionUser();
             if (!user) { alert('Backup ke liye pehle login karein.'); return; }
@@ -551,6 +552,7 @@
         if (el) el.style.display = 'none';
     }
     window.openPayoutSecurityModal = async function() {
+        if (!isFeatureEnabled('payoutDesk')) { alert('Payout Desk aapke plan mein enabled nahi hai.'); return; }
         const user = getCurrentSessionUser();
         if (!user) { alert('Pehle login karein.'); return; }
         const isAdmin = user.role === 'superadmin';
@@ -777,7 +779,8 @@
             ['[onclick*="openAffordabilityCalculator"]', 'affordability'],
             ['[onclick*="openDealerStatementModal"]', 'reports'],
             ['[onclick*="downloadCRMBackup"]', 'backupExport'],
-            ['[onclick*="exportToCSV"]', 'reports']
+            ['[onclick*="exportToCSV"]', 'reports'],
+            ['[onclick*="exportFollowupsCSV"]', 'followups']
         ];
         selectorMappings.forEach(([selector, feature]) => {
             document.querySelectorAll(selector).forEach(el => {
@@ -1657,6 +1660,7 @@
     });
 
     window.openDealerStatementModal = function() {
+        if (!isFeatureEnabled('reports')) { alert('Reports aapke plan mein enabled nahi hain.'); return; }
         const scopedLeads = getLeadScopedList();
         const selectedDealer = document.getElementById('dealerSelectFilter').value;
         const currentU = getCurrentSessionUser();
