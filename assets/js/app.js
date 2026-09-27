@@ -459,11 +459,7 @@
     window.switchView = function(viewKey) {
         const requiredFeature = ({pipeline:'pipeline',disbursedhub:'disbursed',dealers:'dealerLedger',payoutdesk:'payoutDesk',followups:'followups',datahealth:'dataHealth',workflow:'smartWorkflow'})[viewKey];
         if (requiredFeature && !isFeatureEnabled(requiredFeature)) {
-            if (PAID_FEATURES.has(requiredFeature) && !PAYMENT_FEATURES_ENABLED) {
-                showPaidFeatureComingSoon(requiredFeature);
-            } else {
-                alert('Ye feature aapke current subscription plan mein enabled nahi hai. Admin se access enable karwayein.');
-            }
+            alert('Ye feature aapke current subscription plan mein enabled nahi hai. Plan upgrade ya admin se access enable karwayein.');
             return;
         }
         if (viewKey === 'payoutdesk' && !isPayoutDeskUnlocked) {
@@ -724,17 +720,13 @@
         })();
     }
 
-    // Central subscription entitlements. Paid add-ons remain disabled until a real payment flow is enabled.
-    // Core CRM features continue to work normally; paid-only features are explicitly kept in Coming Soon state.
-    const PAYMENT_FEATURES_ENABLED = false;
-    const PAID_FEATURES = new Set(['disbursed', 'dealerLedger', 'payoutDesk', 'dataHealth', 'smartWorkflow', 'backupExport']);
+    // Central subscription entitlements. UI gating is for presentation; Firestore rules/server checks are still required for security.
     const PLAN_FEATURES = {
         Starter: ['pipeline', 'followups', 'documents'],
         Professional: ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'documents', 'emiCalculator', 'affordability', 'reports'],
         Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports'],
         Enterprise: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport']
     };
-    // -1 means unlimited. Custom tenants may override each limit in customLimits.
     const PLAN_LIMITS = {
         Starter: { staff: 3, branches: 1, leads: 500, storageGB: 1 },
         Professional: { staff: 10, branches: 3, leads: 5000, storageGB: 10 },
@@ -785,8 +777,6 @@
         return pool.find(t => String(t.tenantId || '').toLowerCase() === String(tenantId).toLowerCase()) || (user && String(user.tenantId || '').toLowerCase() === String(tenantId).toLowerCase() ? user : null);
     }
     function isFeatureEnabled(featureKey) {
-        // Do not let a plan value alone unlock a paid feature while payment is disabled.
-        if (PAID_FEATURES.has(featureKey) && !PAYMENT_FEATURES_ENABLED) return false;
         const user = getCurrentSessionUser();
         if (user && user.role === 'superadmin' && !inspectingTenantId) return true;
         const tenant = resolveFeatureTenant();
@@ -797,16 +787,8 @@
             : (PLAN_FEATURES[plan] || PLAN_FEATURES.Starter);
         return allowed.includes(featureKey);
     }
-    function showPaidFeatureComingSoon(featureKey) {
-        const labels = {
-            disbursed: 'Disbursed Files & Clearance Hub',
-            dealerLedger: 'Dealer / Broker Ledger',
-            payoutDesk: 'Secret DSA Payout Desk',
-            dataHealth: 'Data Health',
-            smartWorkflow: 'Smart Workflow',
-            backupExport: 'CRM Backup / Data Export'
-        };
-        alert((labels[featureKey] || 'This feature') + ' abhi Coming Soon hai. Payment/subscription system enable hone ke baad available hoga.');
+    function showPaidDependencyComingSoon(label, detail) {
+        alert((label || 'Feature') + ' abhi available nahi hai. ' + (detail || 'Required paid service enable hone ke baad ye feature work karega.'));
     }
     function applyPlanFeatureGates() {
         const mappings = {
@@ -3430,7 +3412,15 @@
             item.append(link,remove);wrap.appendChild(item);
         }); row.appendChild(wrap);
     }
+    // Firebase Cloud Storage requires the Blaze pay-as-you-go billing plan.
+    const CLOUD_STORAGE_BILLING_ENABLED = false;
     window.uploadChecklistFiles=async function(input,name,statusEl){
+         if (!CLOUD_STORAGE_BILLING_ENABLED) {
+             if (statusEl) { statusEl.textContent='🔒 Cloud Upload locked — Firebase Blaze billing enable karne ke baad hi cloud upload work karega.'; statusEl.style.color='#fbbf24'; }
+             if (input) input.value='';
+             showPaidDependencyComingSoon('Cloud Document Upload', 'Firebase Cloud Storage ke liye Blaze pay-as-you-go billing required hai.');
+             return;
+         }
         const files=Array.from(input.files||[]);
         const setStatus=(message,color)=>{if(statusEl){statusEl.textContent=message;statusEl.style.color=color||'var(--text-muted)';}};
         if(!files.length){setStatus('File select nahi hui.');return;}
