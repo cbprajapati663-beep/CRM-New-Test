@@ -1540,6 +1540,8 @@
             ? user.rolePermissions
             : (tenant.rolePermissions || {});
         const role = getCurrentStaffRoleName(user);
+        // Viewer is the read-only cross-branch reporting role.
+        if (role === 'Viewer' && permission === 'Reports · View/Export') return true;
         if (Array.isArray(matrix[role])) return matrix[role].includes(permission);
         const defaults = {
             'Leads · View': ['Administrator','Manager','Sales Executive','Viewer'].includes(role),
@@ -4356,7 +4358,7 @@
         const body=document.getElementById('mhPermissionBody');if(!body)return;
         const u=getCurrentSessionUser();const tenant=tenantsCache.find(t=>String(t.tenantId||'').toLowerCase()===managementTenantId().toLowerCase());
         const saved=(tenant&&tenant.rolePermissions)||{};
-        body.innerHTML=managementPermissionModules.map((module,idx)=>'<tr><td style="padding:9px;border-bottom:1px solid var(--card-border);">'+managementEscape(module)+'</td>'+managementRoleNames.map(role=>{const defaults=role==='Administrator'||(role==='Manager'&&idx!==2&&idx!==7)||(role==='Sales Executive'&&[0,1,6].includes(idx))||role==='Viewer'&&idx===0;const checked=Object.prototype.hasOwnProperty.call(saved,role)&&Array.isArray(saved[role])?saved[role].includes(module):defaults;return '<td style="text-align:center;padding:9px;border-bottom:1px solid var(--card-border);"><input type="checkbox" data-mh-role="'+managementEscape(role)+'" data-mh-module="'+managementEscape(module)+'" '+(checked?'checked':'')+' style="width:18px;height:18px;"></td>';}).join('')+'</tr>').join('');
+        body.innerHTML=managementPermissionModules.map((module,idx)=>'<tr><td style="padding:9px;border-bottom:1px solid var(--card-border);">'+managementEscape(module)+'</td>'+managementRoleNames.map(role=>{const defaults=role==='Administrator'||(role==='Manager'&&idx!==2&&idx!==7)||(role==='Sales Executive'&&[0,1,6].includes(idx))||role==='Viewer'&&[0,5].includes(idx);const checked=Object.prototype.hasOwnProperty.call(saved,role)&&Array.isArray(saved[role])?saved[role].includes(module):defaults;return '<td style="text-align:center;padding:9px;border-bottom:1px solid var(--card-border);"><input type="checkbox" data-mh-role="'+managementEscape(role)+'" data-mh-module="'+managementEscape(module)+'" '+(checked?'checked':'')+' style="width:18px;height:18px;"></td>';}).join('')+'</tr>').join('');
         const note=document.getElementById('mhPermissionNote');if(note)note.textContent='Role policy config load ho gaya. Role checks app/server security ke saath enforce karna abhi zaroori hai.';
     }
     window.saveManagementPermissions=async function(){
