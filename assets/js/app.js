@@ -3097,6 +3097,11 @@
             leadData.dealerCut = formCut;
         }
 
+        if (!editDocId && planLimitReached('leads', getLeadScopedList().length)) {
+            alert('Aapke subscription plan ki lead limit poori ho gayi hai. Plan upgrade karein ya admin se limit badhwayein.');
+            return;
+        }
+
         const saveBtn = document.getElementById('submitBtn');
         const oldSaveText = saveBtn ? saveBtn.textContent : '';
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
