@@ -83,3 +83,12 @@ for (const marker of ['escapeHtml(t.agencyName)', 'escapeHtml(t.tenantId)', 'esc
 assert.ok(adminCardsRenderer.includes("t.status === 'Active' ? 'badge-Active' : 'badge-Suspended'"), 'Tenant status badge classes must be selected from fixed class names');
 
 console.log('Admin tenant card safe-rendering regression checks passed.');
+
+const loginPage = fs.readFileSync('pages/login.html', 'utf8');
+const tenantLoginSource = fs.readFileSync('assets/js/login-page.js', 'utf8');
+const tenantIdInput = loginPage.match(/<input[^>]*id="loginUserId"[^>]*>/);
+assert.ok(tenantIdInput, 'Tenant login ID input must exist');
+assert.ok(!/\bvalue\s*=/.test(tenantIdInput[0]), 'Tenant ID must not be prefilled with a default account');
+assert.ok(tenantLoginSource.indexOf('delete user.password;') >= 0, 'Tenant password must be removed from the session object');
+assert.ok(tenantLoginSource.indexOf('delete user.password;') < tenantLoginSource.indexOf("localStorage.setItem('haf_active_session_user_v2'"), 'Password removal must happen before session persistence');
+console.log('Tenant login default-credential and session-password regression checks passed.');
