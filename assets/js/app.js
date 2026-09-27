@@ -1767,7 +1767,21 @@
         const liveMonthVal = document.getElementById('liveMonthFilter') ? document.getElementById('liveMonthFilter').value : '';
 
         const scopedLeads = getLeadScopedList();
+        const branchFilterEl = document.getElementById('dashboardBranchFilter');
+        const currentUser = getCurrentSessionUser();
+        const showBranchTools = !!(currentUser && currentUser.role === 'staff' && getCurrentStaffRoleName(currentUser) === 'Viewer');
+        if (branchFilterEl) {
+            branchFilterEl.style.display = showBranchTools ? '' : 'none';
+            const branchRows = scopedLeads.map(l => ({ id:String(l.branchId || l.branch || l.branchName || '').trim(), name:String(l.branchName || l.branch || l.branchId || '').trim() })).filter(b => b.id || b.name);
+            const branchMap = new Map(); branchRows.forEach(b => { const key=b.id || b.name; if (!branchMap.has(key)) branchMap.set(key,b.name || key); });
+            const selected = branchFilterEl.value;
+            branchFilterEl.innerHTML = '<option value="">All Branches</option>' + Array.from(branchMap.entries()).sort((a,b)=>a[1].localeCompare(b[1])).map(([id,name])=>'<option value="'+escapeHtml(id)+'">'+escapeHtml(name)+'</option>').join('');
+            if (branchMap.has(selected)) branchFilterEl.value = selected;
+        }
+        const csvButton = document.getElementById('btnViewerBranchCsv'); if (csvButton) csvButton.style.display = showBranchTools ? '' : 'none';
         let liveLeads = scopedLeads.filter(l => l.status !== 'Disbursed');
+        const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
+        if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         if (liveMonthVal) {
             liveLeads = liveLeads.filter(l => {
@@ -1797,7 +1811,7 @@
         tbody.innerHTML = '';
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:20px;">Koi active live lead match nahi hui.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:20px;">Koi active live lead match nahi hui.</td></tr>';
             return;
         }
 
@@ -1854,6 +1868,7 @@
                 <td><strong style="color:var(--primary);">${formatINR(Number(String(l.loanAmount).replace(/[^0-9.]/g, '')) || 0)}</strong></td>
                 <td>${approvedDisplay}</td>
                 <td><strong style="color:#c084fc;">${escapeHtml(l.dealerName || 'Direct Customer')}</strong><br><small style="color:#60a5fa;">${escapeHtml(l.bankNbfc || 'Pending')}</small></td>
+                <td><strong>${escapeHtml(l.branchName || l.branch || l.branchId || 'Unassigned')}</strong></td>
                 <td><span class="badge badge-${safeClassToken(l.status || 'New')}">${escapeHtml(l.status || 'New')}</span></td>
                 <td>${docStatusHtml}</td>
                 <td style="max-width: 155px; font-size:0.78rem; color:#f4b41a;">💬 ${escapeHtml(l.lastConv || '-')}</td>
@@ -1872,6 +1887,27 @@
         });
     }
 
+    window.exportViewerBranchCSV = function() {
+        const user = getCurrentSessionUser();
+        if (!user || user.role !== 'staff' || getCurrentStaffRoleName(user) !== 'Viewer') { alert('CSV export is available for Viewer dashboard only.'); return; }
+        const selectedBranch = document.getElementById('dashboardBranchFilter')?.value || '';
+        const query = (document.getElementById('searchQuery')?.value || '').trim().toLowerCase();
+        const status = document.getElementById('filterStatus')?.value || 'All';
+        const month = document.getElementById('liveMonthFilter')?.value || '';
+        const rows = getLeadScopedList().filter(l => {
+            if (l.status === 'Disbursed') return false;
+            const branchKey = String(l.branchId || l.branch || l.branchName || '').trim();
+            if (selectedBranch && branchKey !== selectedBranch && String(l.branchName || '').trim() !== selectedBranch) return false;
+            if (status !== 'All' && l.status !== status) return false;
+            if (month) { let date=String(l.leadDate || ''); if(!date && l.updatedAt && typeof l.updatedAt.toDate==='function') date=l.updatedAt.toDate().toISOString().slice(0,10); if(!date.startsWith(month)) return false; }
+            const hay=[l.name,l.mobile,l.dealerName,l.bankNbfc,l.city,l.vehRegNo,l.vehModel,l.doNo,l.applicationNo].join(' ').toLowerCase();
+            return !query || hay.includes(query);
+        });
+        const headers=['Customer','Mobile','Branch','Branch ID','Lead Date','Vehicle','Registration','Dealer/Partner','Bank/NBFC','Requested Loan','Approved Amount','Status','Remarks'];
+        const quote=v=>'"'+String(v ?? '').replace(/"/g,'""')+'"';
+        const csv=[headers,...rows.map(l=>[l.name,l.mobile,l.branchName || l.branch || l.branchId || 'Unassigned',l.branchId,l.leadDate,l.vehModel,l.vehRegNo,l.dealerName,l.bankNbfc,l.loanAmount,l.approvedAmount,l.status,l.lastConv])].map(row=>row.map(quote).join(',')).join('\r\n');
+        const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Viewer-Leads-'+(selectedBranch || 'All-Branches')+'-'+new Date().toISOString().slice(0,10)+'.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    };
     function renderDisbursedHubTable() {
         const scopedLeads = getLeadScopedList();
         let disbursedLeads = scopedLeads.filter(l => l.status === 'Disbursed');
