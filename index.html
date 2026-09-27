@@ -549,6 +549,44 @@
     </div>
 </div>
 
+<!-- MODAL: FULL LEAD EDIT — opened from the current section -->
+<div id="leadEditModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="leadEditModalTitle" style="z-index:1000002;">
+  <div class="modal-card" style="width:100%;max-width:900px;max-height:92vh;overflow:auto;text-align:left;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;">
+      <h3 id="leadEditModalTitle" style="color:var(--primary);margin:0;">✏️ Edit Lead</h3>
+      <button type="button" class="btn-quick" onclick="closeLeadEditModal()" aria-label="Close lead editor">✕</button>
+    </div>
+    <div id="leadEditFormHost"></div>
+  </div>
+</div>
+
+<!-- MODAL: FOLLOW-UP ONLY EDIT — stays in Follow-ups / Smart Workflow -->
+<div id="followupEditModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="followupEditTitle" style="z-index:1000003;">
+  <div class="modal-card" style="max-width:520px;text-align:left;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
+      <h3 id="followupEditTitle" style="color:var(--primary);margin:0;">🔔 Edit Follow-up</h3>
+      <button type="button" class="btn-quick" onclick="closeFollowupEditModal()" aria-label="Close follow-up editor">✕</button>
+    </div>
+    <p id="followupEditCustomer" style="color:var(--text-muted);font-size:.85rem;margin:0 0 16px;"></p>
+    <form onsubmit="handleSaveFollowupEdit(event)">
+      <input type="hidden" id="followupEditDocId">
+      <div class="form-group">
+        <label for="followupEditDate">Next Follow-up Date</label>
+        <input type="date" id="followupEditDate" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div class="form-group">
+        <label for="followupEditRemarks">Follow-up Notes / Latest Remarks</label>
+        <textarea id="followupEditRemarks" rows="4" placeholder="Call details, customer response, next action..." style="width:100%;box-sizing:border-box;"></textarea>
+      </div>
+      <div id="followupEditError" role="alert" style="display:none;color:var(--danger);font-size:.82rem;margin:10px 0;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+        <button type="submit" id="followupEditSaveBtn" class="btn-submit" style="flex:1;">Save Follow-up</button>
+        <button type="button" class="btn-submit" onclick="closeFollowupEditModal()" style="background:#334155;color:#fff;flex:1;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- MODAL: PASSWORD GATE FOR SECRET PAYOUTS -->
 <div id="passwordGateModal" class="modal-overlay">
     <div class="modal-card" style="max-width: 380px; text-align: center;">
@@ -1265,6 +1303,6 @@
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/app.js?v=saas-kpi-foundation-20260927-2"></script>
+<script src="assets/js/app.js?v=in-place-edit-modals-20260927-1"></script>
 </body>
 </html>
