@@ -147,6 +147,19 @@ const adminGate = source.slice(adminGateStart, adminGateEnd);
 for (const id of adminOperationalTabIds) {
   assert.ok(adminGate.includes("'" + id + "'"), 'Admin visibility helper must cover ' + id);
 }
+for (const id of [
+  'view-disbursedhub',
+  'view-dealers',
+  'view-payoutdesk',
+  'view-followups',
+  'view-datahealth',
+  'view-workflow'
+]) {
+  assert.ok(adminGate.includes("'" + id + "'"), 'Admin visibility helper must hide operational view ' + id);
+}
+for (const id of ['adminMetricOverdue','adminMetricDueToday','adminMetricNoFollowup','adminMetricDocsPending','cardCustomerHold']) {
+  assert.ok(adminGate.includes("'" + id + "'"), 'Admin visibility helper must hide operational metric ' + id);
+}
 const adminPortalBlockStart = source.indexOf("if (u.role === 'superadmin')");
 const adminPortalBlockEnd = source.indexOf('} else {', adminPortalBlockStart);
 assert.ok(adminPortalBlockStart >= 0 && adminPortalBlockEnd > adminPortalBlockStart, 'Superadmin portal branch must exist');
