@@ -3580,6 +3580,22 @@
         document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
     };
 
+    window.openManagementHub = function() {
+        const modal = document.getElementById('managementHubModal');
+        if (modal) modal.style.display = 'flex';
+    };
+    window.closeManagementHub = function() {
+        const modal = document.getElementById('managementHubModal');
+        if (modal) modal.style.display = 'none';
+    };
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') window.closeManagementHub();
+    });
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('managementHubModal');
+        if (modal && event.target === modal) window.closeManagementHub();
+    });
+
     applyPortalPermissions();
     refreshDealerDropdowns();
     handleStatusChange();
