@@ -804,17 +804,8 @@
             const el = document.getElementById(id);
             if (!el) return;
             const enabled = isFeatureEnabled(feature);
-            el.style.display = enabled ? '' : '';
-            if (!enabled && PAID_FEATURES.has(feature) && !PAYMENT_FEATURES_ENABLED) {
-                el.disabled = true;
-                el.setAttribute('aria-disabled', 'true');
-                el.dataset.paidComingSoon = 'true';
-                el.title = 'Coming Soon — payment/subscription system abhi enabled nahi hai';
-                const label = el.childNodes[0];
-                if (label && label.nodeType === Node.TEXT_NODE && !String(label.textContent).includes('Coming Soon')) {
-                    label.textContent = String(label.textContent).trimEnd() + ' (Coming Soon) ';
-                }
-            }
+            // Subscription entitlement is handled by isFeatureEnabled/switchView. Do not
+            // confuse plan access with an external paid-service dependency.
         });
         const selectorMappings = [
             ['[onclick*="openDocumentTracker"]', 'documents'],
@@ -829,12 +820,8 @@
             document.querySelectorAll(selector).forEach(el => {
                 const enabled = isFeatureEnabled(feature);
                 el.style.display = enabled ? '' : 'none';
-                if (!enabled && PAID_FEATURES.has(feature) && !PAYMENT_FEATURES_ENABLED) {
-                    el.disabled = true;
-                    el.setAttribute('aria-disabled', 'true');
-                    el.dataset.paidComingSoon = 'true';
-                    el.title = 'Coming Soon — payment/subscription system abhi enabled nahi hai';
-                }
+                // Subscription entitlement is handled by isFeatureEnabled/switchView.
+                // External paid-service gates are applied only at the feature that needs them.
             });
         });
         const exportBtn = document.getElementById('btnExportExcel');
