@@ -1,13 +1,13 @@
 # Firebase Authentication & Firestore Security Migration
 
 **Branch:** `security/auth-migration-plan-20260927`  
-**Status:** Design only — no production code, Firestore data, or deployed Rules changed.
+**Status:** Staging project created and configured by owner; migration remains design/preparation only. No production code, Firestore data, or deployed Rules changed.
 
 ## Current verified findings
 
 - The app initializes Firebase project `heritage-crm-f179a` and uses Firestore collections `leads`, `tenants`, and `staffAccounts`.
 - The owner-provided deployed Rules currently allow read/write until 2026-10-17. This permits broad client access before that date and must be treated as a critical exposure.
-- Firebase Console screenshot showed no Authentication sign-in provider enabled in that project.
+- Owner screenshots confirm a separate staging project `heritage-crm-staging`, a registered web app, Email/Password provider enabled, and a Cloud Firestore database created in Production mode (default-deny initial rules). This does not change the app's current Firebase config (`heritage-crm-f179a`) or prove staging integration.
 - Tenant login reads tenant documents and compares a password in browser code.
 - Admin login is a browser-side password check with a localStorage fallback.
 - Staff login verifies a password hash in browser code and then reads tenant data.
@@ -47,10 +47,10 @@ Current tenant/staff login uses a username-like Login ID, not necessarily an ema
 - Restrict project IAM to named least-privilege accounts; rotate exposed credentials as appropriate.
 
 ### Phase 1 — Staging environment
-- Create/confirm a non-production Firebase project with Auth and Firestore.
-- Copy only synthetic test records; never copy live customer PII into staging.
-- Add automated tests using the Firebase Emulator Suite or a dedicated test project.
-- Configure selected Auth provider only after the login identifier/recovery decision is approved.
+- **Completed by owner:** created non-production Firebase project `heritage-crm-staging`, registered a web app, enabled Email/Password, and created Firestore in Production mode.
+- Confirm no real customer, lead, staff, or payout data has been copied; create synthetic test records only.
+- Add automated tests using the Firebase Emulator Suite or this dedicated test project.
+- Staging app configuration has not yet been connected to the CRM code; current repository config still targets `heritage-crm-f179a`.
 
 ### Phase 2 — Trusted authentication and authorization
 - Implement tenant and staff sign-in using Firebase Auth.
