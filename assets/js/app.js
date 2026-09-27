@@ -455,33 +455,41 @@
             }
         } else {
             try {
+                if (u.role === 'staff') {
+                    const staffId = String(u.staffId || '').trim();
+                    if (!staffId) { document.getElementById('cmpError').style.display = 'block'; return; }
+                    const staffRef = staffAccountsCollection.doc(staffId);
+                    const staffSnap = await staffRef.get();
+                    if (!staffSnap.exists) { document.getElementById('cmpError').style.display = 'block'; return; }
+                    const account = staffSnap.data();
+                    const validCurrent = await verifyStaffPassword(oldP, account);
+                    if (!validCurrent) { document.getElementById('cmpError').style.display = 'block'; return; }
+                    const hashed = await makeStaffPasswordHash(newP);
+                    await staffRef.set({
+                        passwordHash: hashed.hash,
+                        salt: hashed.salt,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, {merge:true});
+                    alert("✓ Staff password successfully update ho gaya!");
+                    document.getElementById('changeMyPasswordModal').style.display = 'none';
+                    return;
+                }
                 const uid = u.tenantId.toLowerCase();
-                const snapshot = await tenantsCollection
-                    .where('tenantId', '==', uid)
-                    .limit(1)
-                    .get();
-
+                const snapshot = await tenantsCollection.where('tenantId', '==', uid).limit(1).get();
                 if (!snapshot.empty) {
                     const doc = snapshot.docs[0];
                     const target = doc.data();
-
                     if (target.password === oldP) {
-                        await doc.ref.update({
-                            password: newP,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-
+                        await doc.ref.update({password:newP,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
                         setCurrentSessionUser(u);
                         alert("✓ Aapka password successfully update ho gaya!");
                         document.getElementById('changeMyPasswordModal').style.display = 'none';
-                    } else {
-                        document.getElementById('cmpError').style.display = 'block';
-                    }
-                } else {
-                    document.getElementById('cmpError').style.display = 'block';
-                }
+                    } else document.getElementById('cmpError').style.display = 'block';
+                } else document.getElementById('cmpError').style.display = 'block';
             } catch (error) {
-                console.error("Change tenant password error:", error);
+                console.error("Change login password error:", error);
+                document.getElementById('cmpError').textContent = 'Password update nahi ho paya. Dobara try karein.';
+                document.getElementById('cmpError').style.display = 'block';
             }
         }
     };
@@ -893,6 +901,7 @@
         });
         const selectorMappings = [
             ['[onclick*="openDocumentTracker"]', 'documents'],
+            ['[onclick*="showDocumentsComingSoon"]', 'documents'],
             ['[onclick*="openEmiCalculator"]', 'emiCalculator'],
             ['[onclick*="openAffordabilityCalculator"]', 'affordability'],
             ['[onclick*="openDealerStatementModal"]', 'reports'],
@@ -1000,6 +1009,7 @@
             document.getElementById('tabSecretPayouts').style.display = 'flex';
             refreshDealerDropdowns();
             switchView('pipeline');
+            applyPlanFeatureGates();
         }
     }
 
