@@ -51,7 +51,7 @@
     </div>
     <div class="header-actions">
         <span id="activeUserBadge" style="background:#1e2433; border:1px solid var(--primary); padding:5px 10px; border-radius:6px; font-size:0.75rem; color:var(--primary); font-weight:700;">👤 Admin</span>
-        <button class="btn-action" style="background:#0f766e;color:#fff;font-weight:700;" onclick="downloadCRMBackup()">🛡️ Backup Data</button>
+        <button class="btn-action" style="background:#6b7280;color:#fff;font-weight:700;opacity:.78;" onclick="showPaidFeatureComingSoon('backupExport')" aria-disabled="true" title="Coming soon">🛡️ Backup Data <small style="font-size:.68em;">(Coming Soon)</small></button>
         <button class="btn-action" style="background:#7c3aed;color:#fff;font-weight:800;" onclick="openManagementHub()">🧭 Management & Reports</button>
         <button id="btnChangeMyPass" class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openChangeMyPasswordModal()">🔑 Change Password</button>
         <button class="btn-action" style="background:#6b7280;color:#fff;font-weight:700;opacity:.78;" onclick="showDocumentsComingSoon()" aria-disabled="true" title="Coming soon">📁 Documents <small style="font-size:.68em;">(Coming Soon)</small></button>
@@ -1501,7 +1501,7 @@
   }, true);
 })();
 </script>
-<script src="assets/js/app.js?v=management-hub-visible-20260927-6"></script>
+<script src="assets/js/app.js?v=paid-features-coming-soon-20260927-1"></script>
 <script>
 /* Management Hub emergency UI fallback: keeps navigation usable if a non-management
    startup error prevents app.js from registering its window handlers. */
