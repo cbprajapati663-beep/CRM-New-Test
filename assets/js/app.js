@@ -3784,7 +3784,22 @@
         if(!ref){managementNotice('Staff/branch management ke liye tenant login karein ya Admin se tenant view open karein.',true);return false;}
         try{
             const [staffSnap,branchSnap]=await Promise.all([ref.collection('staff').orderBy('name').get(),ref.collection('branches').orderBy('name').get()]);
-            managementStaff=staffSnap.docs.map(d=>({id:d.id,...d.data()}));
+            const staffRows=staffSnap.docs.map(d=>({id:d.id,...d.data()}));
+            // Login credentials live in the global staffAccounts collection. Merge the
+            // non-sensitive Login ID into the tenant staff rows so Edit always loads it.
+            const accountPairs=await Promise.all(staffRows.map(async staff=>{
+                try{
+                    const snap=await staffAccountsCollection.doc(staff.id).get();
+                    if(!snap.exists)return [staff.id,{}];
+                    const account=snap.data()||{};
+                    return [staff.id,{loginId:account.loginId||'',staffAccountStatus:account.status||''}];
+                }catch(error){
+                    console.warn('Staff account lookup failed for',staff.id,error);
+                    return [staff.id,{}];
+                }
+            }));
+            const accountMap=new Map(accountPairs);
+            managementStaff=staffRows.map(staff=>({...staff,...(accountMap.get(staff.id)||{})}));
             managementBranches=branchSnap.docs.map(d=>({id:d.id,...d.data()}));
             const activeStaff=managementStaff.filter(x=>x.status!=='Inactive');
             const activeBranches=managementBranches.filter(x=>x.status!=='Inactive');
