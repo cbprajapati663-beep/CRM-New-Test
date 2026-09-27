@@ -871,9 +871,31 @@
     ];
 
     function setAdminOperationalTabsVisible(visible) {
+        const operationalViewIds = [
+            'view-disbursedhub',
+            'view-dealers',
+            'view-payoutdesk',
+            'view-followups',
+            'view-datahealth',
+            'view-workflow'
+        ];
         ADMIN_OPERATIONAL_TAB_IDS.forEach(id => {
             const tab = document.getElementById(id);
-            if (tab) tab.style.display = visible ? '' : 'none';
+            if (tab) {
+                tab.style.display = visible ? '' : 'none';
+                tab.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            }
+        });
+        operationalViewIds.forEach(id => {
+            const view = document.getElementById(id);
+            if (view) {
+                view.style.display = visible ? '' : 'none';
+                view.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            }
+        });
+        ['adminMetricOverdue','adminMetricDueToday','adminMetricNoFollowup','adminMetricDocsPending','cardCustomerHold'].forEach(id => {
+            const card = document.getElementById(id);
+            if (card) card.style.display = visible ? '' : 'none';
         });
     }
 
