@@ -128,6 +128,32 @@ assert.ok(managementHub.includes('id="managementPanelPermissions"'), 'Management
 assert.ok((managementHub.match(/class="[^"]*management-module-tab[^"]*"/g) || []).length >= 5, 'All management module buttons must be wired as module tabs');
 assert.ok(!managementHub.includes('</div> style="padding:10px 12px;border:1px solid var(--card-border)'), 'Management hub must not contain stray style text in the module header');
 assert.ok(managementHub.includes('id="managementHubNotice" role="status" class="panel"'), 'Management notices must be separate from module panels');
+
+const adminOperationalTabIds = [
+  'tabDisbursed',
+  'tabDealers',
+  'tabSecretPayouts',
+  'tabFollowups',
+  'tabDataHealth',
+  'tabWorkflow'
+];
+for (const id of adminOperationalTabIds) {
+  assert.ok(managementHub.includes('id="' + id + '"'), 'Operational CRM tab must exist for tenant CRM compatibility: ' + id);
+}
+const adminGateStart = source.indexOf('const ADMIN_OPERATIONAL_TAB_IDS = [');
+const adminGateEnd = source.indexOf('function applyPortalPermissions()', adminGateStart);
+assert.ok(adminGateStart >= 0 && adminGateEnd > adminGateStart, 'Admin operational-tab visibility helper must exist');
+const adminGate = source.slice(adminGateStart, adminGateEnd);
+for (const id of adminOperationalTabIds) {
+  assert.ok(adminGate.includes("'" + id + "'"), 'Admin visibility helper must cover ' + id);
+}
+const adminPortalBlockStart = source.indexOf("if (u.role === 'superadmin')");
+const adminPortalBlockEnd = source.indexOf('} else {', adminPortalBlockStart);
+assert.ok(adminPortalBlockStart >= 0 && adminPortalBlockEnd > adminPortalBlockStart, 'Superadmin portal branch must exist');
+assert.ok(source.slice(adminPortalBlockStart, adminPortalBlockEnd).includes('setAdminOperationalTabsVisible(false)'), 'Superadmin portal must hide operational CRM tabs');
+const tenantBranchEnd = source.indexOf('        }', source.indexOf("setAdminOperationalTabsVisible(true);", adminPortalBlockEnd) + 1);
+assert.ok(source.slice(adminPortalBlockEnd, adminPortalBlockEnd + 1200).includes('setAdminOperationalTabsVisible(true)'), 'Tenant portal must restore operational CRM tabs');
+console.log('Admin dashboard operational-module visibility regression checks passed.');
 console.log('Management hub markup regression checks passed.');
 
 assert.ok(!source.includes('PAID_FEATURES'), 'Subscription plan gating must not depend on a global paid-feature set');
