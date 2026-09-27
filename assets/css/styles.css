@@ -1469,3 +1469,6 @@
 .user-master-card:hover { border-color: rgba(192,132,252,.72); box-shadow: 0 14px 34px rgba(0,0,0,.24); transform: translateY(-1px); }
 #saasTenantModal .modal-card { border-color: rgba(192,132,252,.65); background: linear-gradient(155deg, #111827 0%, #0b1220 100%); box-shadow: 0 24px 70px rgba(0,0,0,.45); }
 #t_subscriptionPlan { border-color: rgba(168,85,247,.55); }
+
+.saas-kpi-grid .metric-card { border-color: rgba(168,85,247,.25); background: linear-gradient(145deg, rgba(19,25,40,.98), rgba(11,16,28,.98)); }
+.saas-kpi-grid .metric-title { letter-spacing: .06em; }
