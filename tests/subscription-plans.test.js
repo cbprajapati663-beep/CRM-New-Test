@@ -35,3 +35,11 @@ for (const [label, marker] of customValidationChecks) {
 assert.ok(source.includes("customLimits = { ...parsedLimits, storageGB }"), "Custom plan limits must be saved together");
 
 console.log('Subscription plan configuration tests passed (5 plan limits, feature access, and custom validation safeguards).');
+
+const activityRenderer = source.slice(source.indexOf('window.loadLeadActivity = async function'), source.indexOf('window.loadLeadActivity = async function') + 5000);
+assert.ok(activityRenderer.includes('detail.textContent = details'), 'Activity details must be rendered as text, not HTML');
+assert.ok(activityRenderer.includes('type.textContent ='), 'Activity type must be rendered as text');
+assert.ok(!activityRenderer.includes('detail.innerHTML'), 'Activity details must not be injected as HTML');
+
+console.log('Activity timeline safe-rendering regression checks passed.');
+
