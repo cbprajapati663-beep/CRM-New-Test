@@ -30,6 +30,13 @@
 - Lead scoping and feature visibility are performed in browser code. They do not prevent direct Firestore queries.
 - Tenant and staff records currently contain fields used for login/authorization; exact schema and every write path still need a controlled inventory before rules can be finalized.
 
+## Additional implementation blockers confirmed by source inspection
+
+- `assets/js/login-page.js` initializes Firebase directly with production project `heritage-crm-f179a`, queries `tenants` by tenant ID, and compares a submitted password against a Firestore field in browser code. A staging config change alone would not make this flow secure.
+- `assets/js/app.js` also initializes the same production project directly and includes legacy browser-side admin/client login paths and localStorage session logic. The two entry points must be migrated consistently; changing only one would create split behavior.
+- The repository root currently has no `package.json`, `firebase.json`, or `firestore.rules` at the inspected branch paths. Therefore, no existing deploy/test command or rules deployment configuration could be verified from those paths.
+- Staging project ID and provider setup are confirmed, but its Firebase config has not been committed or wired into code. Keep it out of the production initialization path.
+
 ## Why production Rules cannot be safely written yet
 
 A correct ruleset needs a trusted mapping from Firebase Auth UID to a canonical tenant, role, and active state. The current browser-only login does not provide that mapping. Simply enabling Email/Password or adding `request.auth != null` would not solve tenant isolation and could lock out legitimate users while leaving authorization gaps.
@@ -54,7 +61,7 @@ A correct ruleset needs a trusted mapping from Firebase Auth UID to a canonical 
 
 ## Current status
 
-- Repository inspection: **completed for the login/session paths listed above**.
+- Repository inspection: **completed for the login/session paths listed above**, including both direct Firebase initialization points.
 - Production code migration: **not started**.
 - Rules draft: **blocked pending identity model and schema inventory**.
 - Staging: **project created; Email/Password enabled; web app registered; Firestore created in Production mode**. Staging config is not wired into the app, and test data/backup are not yet verified.
