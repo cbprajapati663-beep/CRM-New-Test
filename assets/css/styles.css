@@ -1644,3 +1644,24 @@ tbody tr:hover td { background: rgba(229,198,107,.055); }
 @media (prefers-reduced-motion: reduce) {
   .metric-card:hover, .header-actions .btn-action:hover { transform: none; }
 }
+
+/* Admin master console: operational CRM modules stay available to tenant CRM users but are never rendered on the master dashboard. */
+body.admin-operational-hidden #tabDisbursed,
+body.admin-operational-hidden #tabDealers,
+body.admin-operational-hidden #tabSecretPayouts,
+body.admin-operational-hidden #tabFollowups,
+body.admin-operational-hidden #tabDataHealth,
+body.admin-operational-hidden #tabWorkflow,
+body.admin-operational-hidden #view-disbursedhub,
+body.admin-operational-hidden #view-dealers,
+body.admin-operational-hidden #view-payoutdesk,
+body.admin-operational-hidden #view-followups,
+body.admin-operational-hidden #view-datahealth,
+body.admin-operational-hidden #view-workflow,
+body.admin-operational-hidden #adminMetricOverdue,
+body.admin-operational-hidden #adminMetricDueToday,
+body.admin-operational-hidden #adminMetricNoFollowup,
+body.admin-operational-hidden #adminMetricDocsPending,
+body.admin-operational-hidden #cardCustomerHold {
+    display: none !important;
+}
