@@ -306,105 +306,197 @@
 
     async function handleUserLogin(e) {
         e.preventDefault();
-        const pass = document.getElementById('loginPassword').value.trim();
 
+        const loginError = document.getElementById('loginError');
+        const btn = document.getElementById('authSubmitBtn');
+        const passEl = document.getElementById('loginPassword');
+        const pass = passEl ? passEl.value.trim() : '';
+
+        if (loginError) {
+            loginError.style.display = 'none';
+            loginError.textContent = 'Invalid credentials!';
+        }
+
+        // Master admin authentication is intentionally local and must never
+        // depend on Firestore availability.
         if (currentAuthMode === 'admin') {
-            if (pass === getAdminPassword()) {
-                document.getElementById('loginError').style.display = 'none';
-                document.getElementById('authOverlay').style.display = 'none';
-                setCurrentSessionUser({ tenantId: "admin", agencyName: "IT Master Company", role: "superadmin" });
-            } else {
-                document.getElementById('loginError').style.display = 'block';
-            }
-        } else {
-            const uid = document.getElementById('loginUserId').value.trim().toLowerCase();
-            const loginError = document.getElementById('loginError');
-
-            if (!uid || !pass) {
-                loginError.style.display = 'block';
+            if (!pass) {
+                if (loginError) {
+                    loginError.textContent = 'Password required.';
+                    loginError.style.display = 'block';
+                }
                 return;
             }
 
-            const btn = document.getElementById('authSubmitBtn');
-            const oldText = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = "Checking...";
-
             try {
-                const snapshot = await tenantsCollection
-                    .where('tenantId', '==', uid)
-                    .limit(1)
-                    .get();
-
-                if (!snapshot.empty) {
-                    const doc = snapshot.docs[0];
-                    const matched = { docId: doc.id, ...doc.data() };
-
-                    if (matched.password === pass) {
-                        const licenseDays = getLicenseDaysRemaining(matched);
-                        if (licenseDays !== null && licenseDays < 0 && matched.status !== 'Suspended') {
-                            try {
-                                await doc.ref.update({
-                                    status: 'Suspended',
-                                    suspensionReason: 'License expired',
-                                    suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-                                matched.status = 'Suspended';
-                            } catch (expiryError) {
-                                console.error('Login expiry suspension failed:', expiryError);
-                            }
-                        }
-                        if (matched.status === 'Suspended') {
-                            alert("⚠️ Aapka software rent subscription suspend / inactive hai. Kripya IT Provider se sampark karein.");
-                            return;
-                        }
-
-                        loginError.style.display = 'none';
-                        document.getElementById('authOverlay').style.display = 'none';
-                        setCurrentSessionUser(matched);
-                    } else {
-                        loginError.style.display = 'block';
-                    }
-                } else {
-                    const staffSnapshot = await staffAccountsCollection.where('loginId', '==', uid).limit(1).get();
-                    if (!staffSnapshot.empty) {
-                        const staffDoc = staffSnapshot.docs[0];
-                        const staffAccount = { docId: staffDoc.id, ...staffDoc.data() };
-                        const validPassword = await verifyStaffPassword(pass, staffAccount);
-                        if (validPassword && staffAccount.status !== 'Inactive') {
-                            const tenantSnapshot = await tenantsCollection.where('tenantId', '==', String(staffAccount.tenantId || '').toLowerCase()).limit(1).get();
-                            if (tenantSnapshot.empty) {
-                                loginError.style.display = 'block';
-                            } else {
-                                const tenantDoc = tenantSnapshot.docs[0];
-                                const tenant = { docId: tenantDoc.id, ...tenantDoc.data() };
-                                if (tenant.status === 'Suspended') {
-                                    alert("⚠️ Tenant subscription suspend / inactive hai. Kripya administrator se sampark karein.");
-                                    return;
-                                }
-                                const tenantAllowed = getTenantAllowedFeatureKeys(tenant);
-                                const staffAllowed = Array.isArray(staffAccount.featureAccess) ? staffAccount.featureAccess.filter(key => tenantAllowed.includes(key)) : tenantAllowed;
-                                const matchedStaff = {...staffAccount,tenantId:tenant.tenantId||staffAccount.tenantId,agencyName:tenant.agencyName,headOffice:tenant.headOffice,contactPhone:tenant.contactPhone,subscriptionPlan:tenant.subscriptionPlan||'Starter',tenantFeatureAccess:tenantAllowed,featureAccess:staffAllowed,role:'staff',staffId:staffAccount.staffId||staffDoc.id,staffLoginId:staffAccount.loginId};
-                                delete matchedStaff.passwordHash; delete matchedStaff.salt;
-                                loginError.style.display = 'none';
-                                document.getElementById('authOverlay').style.display = 'none';
-                                setCurrentSessionUser(matchedStaff);
-                            }
-                        } else {
-                            loginError.style.display = 'block';
-                        }
-                    } else {
-                        loginError.style.display = 'block';
-                    }
+                if (pass === getAdminPassword()) {
+                    if (loginError) loginError.style.display = 'none';
+                    const overlay = document.getElementById('authOverlay');
+                    if (overlay) overlay.style.display = 'none';
+                    setCurrentSessionUser({
+                        tenantId: 'admin',
+                        agencyName: 'IT Master Company',
+                        role: 'superadmin'
+                    });
+                    return;
                 }
             } catch (error) {
-                console.error("Client login error:", error);
-                loginError.textContent = "Login service error.";
+                console.error('Admin login error:', error);
+            }
+
+            if (loginError) {
+                loginError.textContent = 'Invalid admin password.';
                 loginError.style.display = 'block';
-            } finally {
+            }
+            return;
+        }
+
+        const uidEl = document.getElementById('loginUserId');
+        const uid = uidEl ? uidEl.value.trim().toLowerCase() : '';
+
+        if (!uid || !pass) {
+            if (loginError) {
+                loginError.textContent = 'Login ID and password required.';
+                loginError.style.display = 'block';
+            }
+            return;
+        }
+
+        const oldText = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+        }
+
+        const finishLogin = function(user) {
+            if (loginError) loginError.style.display = 'none';
+            const overlay = document.getElementById('authOverlay');
+            if (overlay) overlay.style.display = 'none';
+            setCurrentSessionUser(user);
+        };
+
+        try {
+            // Tenant login: read directly from Firestore so a stale tenantsCache
+            // can never prevent a valid login.
+            let snapshot = await tenantsCollection
+                .where('tenantId', '==', uid)
+                .limit(1)
+                .get();
+
+            if (!snapshot.empty) {
+                const doc = snapshot.docs[0];
+                const matched = { docId: doc.id, ...doc.data() };
+
+                if (matched.password !== pass) {
+                    throw new Error('INVALID_CREDENTIALS');
+                }
+
+                const licenseDays = getLicenseDaysRemaining(matched);
+                if (licenseDays !== null && licenseDays < 0 && matched.status !== 'Suspended') {
+                    try {
+                        await doc.ref.update({
+                            status: 'Suspended',
+                            suspensionReason: 'License expired',
+                            suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        matched.status = 'Suspended';
+                    } catch (expiryError) {
+                        console.error('Login expiry suspension failed:', expiryError);
+                    }
+                }
+
+                if (matched.status === 'Suspended') {
+                    throw new Error('TENANT_SUSPENDED');
+                }
+
+                finishLogin(matched);
+                return;
+            }
+
+            // Staff login: loginId is tenant-scoped and account must still exist.
+            snapshot = await staffAccountsCollection
+                .where('loginId', '==', uid)
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                throw new Error('INVALID_CREDENTIALS');
+            }
+
+            const staffDoc = snapshot.docs[0];
+            const staffAccount = { docId: staffDoc.id, ...staffDoc.data() };
+
+            if (staffAccount.status === 'Inactive' || staffAccount.deleted === true) {
+                throw new Error('ACCOUNT_DISABLED');
+            }
+
+            const validPassword = await verifyStaffPassword(pass, staffAccount);
+            if (!validPassword) {
+                throw new Error('INVALID_CREDENTIALS');
+            }
+
+            const tenantId = String(staffAccount.tenantId || '').trim().toLowerCase();
+            if (!tenantId) throw new Error('TENANT_NOT_FOUND');
+
+            const tenantSnapshot = await tenantsCollection
+                .where('tenantId', '==', tenantId)
+                .limit(1)
+                .get();
+
+            if (tenantSnapshot.empty) throw new Error('TENANT_NOT_FOUND');
+
+            const tenantDoc = tenantSnapshot.docs[0];
+            const tenant = { docId: tenantDoc.id, ...tenantDoc.data() };
+
+            if (tenant.status === 'Suspended') throw new Error('TENANT_SUSPENDED');
+
+            const tenantAllowed = getTenantAllowedFeatureKeys(tenant);
+            const staffAllowed = Array.isArray(staffAccount.featureAccess)
+                ? staffAccount.featureAccess.filter(key => tenantAllowed.includes(key))
+                : tenantAllowed;
+
+            const matchedStaff = {
+                ...staffAccount,
+                tenantId: tenant.tenantId || staffAccount.tenantId,
+                agencyName: tenant.agencyName,
+                headOffice: tenant.headOffice,
+                contactPhone: tenant.contactPhone,
+                subscriptionPlan: tenant.subscriptionPlan || 'Starter',
+                tenantFeatureAccess: tenantAllowed,
+                featureAccess: staffAllowed,
+                role: 'staff',
+                staffId: staffAccount.staffId || staffDoc.id,
+                staffLoginId: staffAccount.loginId
+            };
+
+            delete matchedStaff.passwordHash;
+            delete matchedStaff.salt;
+            delete matchedStaff.password;
+
+            finishLogin(matchedStaff);
+        } catch (error) {
+            console.error('Login error:', error);
+
+            if (loginError) {
+                const code = error && error.message;
+                if (code === 'INVALID_CREDENTIALS') {
+                    loginError.textContent = 'Invalid Login ID or password.';
+                } else if (code === 'ACCOUNT_DISABLED') {
+                    loginError.textContent = 'This staff account is inactive or deleted.';
+                } else if (code === 'TENANT_SUSPENDED') {
+                    loginError.textContent = 'This workspace is suspended. Please contact administrator.';
+                } else if (code === 'TENANT_NOT_FOUND') {
+                    loginError.textContent = 'Staff workspace was not found.';
+                } else {
+                    loginError.textContent = 'Login service error. Check Firebase connection/rules and try again.';
+                }
+                loginError.style.display = 'block';
+            }
+        } finally {
+            if (btn) {
                 btn.disabled = false;
-                btn.textContent = oldText;
+                btn.textContent = oldText || (currentAuthMode === 'admin' ? 'Unlock IT Master Console' : 'Launch Portal');
             }
         }
     }
