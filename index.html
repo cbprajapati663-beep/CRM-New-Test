@@ -1461,5 +1461,34 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="assets/js/app.js?v=management-hub-visible-20260927-3"></script>
+<script>
+/* Management Hub emergency UI fallback: keeps navigation usable if a non-management
+   startup error prevents app.js from registering its window handlers. */
+(function () {
+    if (typeof window.showManagementModule !== 'function') {
+        window.showManagementModule = function (module) {
+            document.querySelectorAll('.management-module-panel').forEach(function (el) {
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('.management-module-tab').forEach(function (el) {
+                var active = el.dataset.managementModule === module;
+                el.style.outline = active ? '3px solid rgba(255,255,255,.82)' : 'none';
+                el.style.boxShadow = active ? '0 8px 24px rgba(0,0,0,.22)' : 'none';
+                el.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            var name = 'managementPanel' + module.charAt(0).toUpperCase() + module.slice(1);
+            var panel = document.getElementById(name);
+            if (panel) panel.style.display = 'block';
+        };
+    }
+    if (typeof window.openManagementHub !== 'function') {
+        window.openManagementHub = function () {
+            var modal = document.getElementById('managementHubModal');
+            if (modal) modal.style.display = 'flex';
+            window.showManagementModule('staff');
+        };
+    }
+})();
+</script>
 </body>
 </html>
