@@ -130,3 +130,8 @@ assert.ok(!managementHub.includes('</div> style="padding:10px 12px;border:1px so
 assert.ok(managementHub.includes('id="managementHubNotice" role="status" class="panel"'), 'Management notices must be separate from module panels');
 console.log('Management hub markup regression checks passed.');
 
+assert.ok(source.includes('const CLOUD_STORAGE_BILLING_ENABLED = false;'), 'Cloud Storage upload must remain locked until billing is enabled');
+assert.ok(source.includes("Firebase Blaze billing required for Cloud Storage upload."), 'Document upload control must explain the billing requirement');
+assert.ok(source.includes("showPaidDependencyComingSoon('Cloud Document Upload'"), 'Document upload must show the paid dependency message');
+console.log('Firebase Cloud Storage billing-gate regression checks passed.');
+
