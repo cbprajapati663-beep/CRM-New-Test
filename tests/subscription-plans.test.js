@@ -70,6 +70,6 @@ const disbursedRenderer = source.slice(disbursedStart, disbursedEnd);
 for (const marker of ['escapeHtml(l.name', 'escapeHtml(l.holdReason', 'escapeHtml(l.holdRemarks', 'escapeJsString(l.docId)']) {
   assert.ok(disbursedRenderer.includes(marker), `Disbursed renderer must safely handle ${marker}`);
 }
-assert.ok(disbursedRenderer.includes('safeClassToken(l.status'), 'Disbursed status must be sanitized before CSS class interpolation');
+assert.ok(disbursedRenderer.includes("l.holdStatus === 'Hold Kept' ? 'badge-Suspended' : 'badge-Active'"), 'Disbursed hold badge classes must come from fixed class names');
 
 console.log('Live lead and disbursed table safe-rendering regression checks passed.');
