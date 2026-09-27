@@ -3731,7 +3731,9 @@
     window.saveManagementStaff=async function(){
         const ref=managementTenantRef();const name=String(document.getElementById('mhStaffName').value||'').trim();
         if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Staff name required hai.');return;}
-        if(!managementEditingStaffId && planLimitReached('staff', managementStaff.filter(x=>x.status!=='Inactive').length)){managementNotice('Aapke subscription plan ki active staff limit poori ho gayi hai. Plan upgrade karein ya admin se limit badhwayein.',true);return;}
+        const existingStaff=managementEditingStaffId?managementStaff.find(x=>x.id===managementEditingStaffId):null;
+        const activatingStaff=String(document.getElementById('mhStaffStatus').value||'Active')!=='Inactive'&&(!existingStaff||existingStaff.status==='Inactive');
+        if(activatingStaff && planLimitReached('staff', managementStaff.filter(x=>x.status!=='Inactive').length)){managementNotice('Aapke subscription plan ki active staff limit poori ho gayi hai. Plan upgrade karein ya admin se limit badhwayein.',true);return;}
         const branchId=document.getElementById('mhStaffBranch').value;
         const branch=managementBranches.find(x=>x.id===branchId);
         const payload={name,phone:String(document.getElementById('mhStaffPhone').value||'').trim(),email:String(document.getElementById('mhStaffEmail').value||'').trim(),role:document.getElementById('mhStaffRole').value,branchId:branchId||'',branchName:branch?branch.name:'',status:document.getElementById('mhStaffStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
@@ -3755,6 +3757,7 @@
     };
     window.toggleManagementStaff=async function(id){
         const ref=managementTenantRef();const x=managementStaff.find(y=>y.id===id);if(!ref||!x)return;
+        if(x.status==='Inactive' && planLimitReached('staff', managementStaff.filter(item=>item.status!=='Inactive').length)){managementNotice('Active staff limit poori ho gayi hai. Plan upgrade ya limit increase karein.',true);return;}
         try{await ref.collection('staff').doc(id).update({status:x.status==='Inactive'?'Active':'Inactive',updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadManagementData();managementNotice('Staff status update ho gaya.');}
         catch(error){managementNotice('Status update nahi hua: '+(error.message||''),true);}
     };
@@ -3763,7 +3766,9 @@
     };
     window.saveManagementBranch=async function(){
         const ref=managementTenantRef();const name=String(document.getElementById('mhBranchName').value||'').trim();if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Branch name required hai.');return;}
-        if(!managementEditingBranchId && planLimitReached('branches', managementBranches.filter(x=>x.status!=='Inactive').length)){managementNotice('Aapke subscription plan ki active branch limit poori ho gayi hai. Plan upgrade karein ya admin se limit badhwayein.',true);return;}
+        const existingBranch=managementEditingBranchId?managementBranches.find(x=>x.id===managementEditingBranchId):null;
+        const activatingBranch=String(document.getElementById('mhBranchStatus').value||'Active')!=='Inactive'&&(!existingBranch||existingBranch.status==='Inactive');
+        if(activatingBranch && planLimitReached('branches', managementBranches.filter(x=>x.status!=='Inactive').length)){managementNotice('Aapke subscription plan ki active branch limit poori ho gayi hai. Plan upgrade karein ya admin se limit badhwayein.',true);return;}
         const payload={name,code:String(document.getElementById('mhBranchCode').value||'').trim(),phone:String(document.getElementById('mhBranchPhone').value||'').trim(),address:String(document.getElementById('mhBranchAddress').value||'').trim(),status:document.getElementById('mhBranchStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{if(managementEditingBranchId)await ref.collection('branches').doc(managementEditingBranchId).set(payload,{merge:true});else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('branches').add(payload);}await loadManagementData();window.resetManagementBranchForm();managementNotice('Branch cloud mein save ho gayi.');}
         catch(error){console.error(error);managementNotice('Branch save nahi hui: '+(error.message||''),true);}
@@ -3779,6 +3784,7 @@
     };
     window.toggleManagementBranch=async function(id){
         const ref=managementTenantRef();const x=managementBranches.find(y=>y.id===id);if(!ref||!x)return;
+        if(x.status==='Inactive' && planLimitReached('branches', managementBranches.filter(item=>item.status!=='Inactive').length)){managementNotice('Active branch limit poori ho gayi hai. Plan upgrade ya limit increase karein.',true);return;}
         try{await ref.collection('branches').doc(id).update({status:x.status==='Inactive'?'Active':'Inactive',updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadManagementData();managementNotice('Branch status update ho gaya.');}
         catch(error){managementNotice('Branch status update nahi hua: '+(error.message||''),true);}
     };
