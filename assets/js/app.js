@@ -861,6 +861,22 @@
         });
         window.handleSubscriptionPlanChange();
     }
+    const ADMIN_OPERATIONAL_TAB_IDS = [
+        'tabDisbursed',
+        'tabDealers',
+        'tabSecretPayouts',
+        'tabFollowups',
+        'tabDataHealth',
+        'tabWorkflow'
+    ];
+
+    function setAdminOperationalTabsVisible(visible) {
+        ADMIN_OPERATIONAL_TAB_IDS.forEach(id => {
+            const tab = document.getElementById(id);
+            if (tab) tab.style.display = visible ? '' : 'none';
+        });
+    }
+
     function applyPortalPermissions() {
         const u = getCurrentSessionUser();
         if (!u) {
@@ -872,6 +888,7 @@
         applyPlanFeatureGates();
 
         if (inspectingTenantId) {
+            setAdminOperationalTabsVisible(true);
             document.getElementById('activeUserBadge').textContent = `👁️ Viewing: ${inspectingTenantId}`;
             document.getElementById('headerTenantBrand').textContent = `🚗 ${inspectingTenantId.toUpperCase()} CRM`;
             document.getElementById('btnExitUserView').style.display = 'inline-block';
@@ -893,6 +910,7 @@
         document.getElementById('btnExitUserView').style.display = 'none';
 
         if (u.role === 'superadmin') {
+            setAdminOperationalTabsVisible(false);
             document.getElementById('crmNavTabsBar').style.display = 'none';
             document.getElementById('activeUserBadge').textContent = `👑 IT Master Admin`;
             document.getElementById('headerTenantBrand').textContent = `⚡ Heritage FinTech Core`;
@@ -907,6 +925,7 @@
             document.getElementById('clientPipelineTablePanel').style.display = 'none';
             renderAdminMasterUserCards();
         } else {
+            setAdminOperationalTabsVisible(true);
             document.getElementById('crmNavTabsBar').style.display = 'flex';
             document.getElementById('activeUserBadge').textContent = `👤 ${u.agencyName}`;
             document.getElementById('headerTenantBrand').textContent = `🚗 ${u.agencyName} CRM`;
