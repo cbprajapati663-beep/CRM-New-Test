@@ -1059,10 +1059,10 @@
             document.getElementById('btnExportExcel').style.display = 'none';
             
             document.getElementById('crmNavTabsBar').style.display = 'flex';
-            document.getElementById('colAddLeadForm').style.display = isFeatureEnabled('pipeline') ? 'block' : 'none';
+            document.getElementById('colAddLeadForm').style.display = isFeatureEnabled('pipeline') && hasStaffLeadPermission('Leads · Create/Edit') ? 'block' : 'none';
             document.querySelector('.crm-container').classList.remove('admin-mode');
             document.getElementById('adminUserMasterDeck').style.display = 'none';
-            document.getElementById('clientPipelineTablePanel').style.display = isFeatureEnabled('pipeline') ? 'block' : 'none';
+            document.getElementById('clientPipelineTablePanel').style.display = isFeatureEnabled('pipeline') && hasStaffLeadPermission('Leads · View') ? 'block' : 'none';
             document.getElementById('cardCustomerHold').style.display = isFeatureEnabled('followups') ? 'block' : 'none';
             document.getElementById('tabSecretPayouts').style.display = isFeatureEnabled('payoutDesk') ? 'flex' : 'none';
             refreshDealerDropdowns();
@@ -1097,10 +1097,10 @@
             document.getElementById('btnChangeMyPass').style.display = 'inline-block';
             document.getElementById('btnExportExcel').style.display = 'none'; 
 
-            document.getElementById('colAddLeadForm').style.display = 'block';
+            document.getElementById('colAddLeadForm').style.display = hasStaffLeadPermission('Leads · Create/Edit') ? 'block' : 'none';
             document.querySelector('.crm-container').classList.remove('admin-mode');
             document.getElementById('adminUserMasterDeck').style.display = 'none';
-            document.getElementById('clientPipelineTablePanel').style.display = 'block';
+            document.getElementById('clientPipelineTablePanel').style.display = hasStaffLeadPermission('Leads · View') ? 'block' : 'none';
             document.getElementById('cardCustomerHold').style.display = 'block';
             document.getElementById('tabSecretPayouts').style.display = 'flex';
             refreshDealerDropdowns();
