@@ -829,6 +829,13 @@
         document.querySelectorAll('#customFeatureAccessList input[type="checkbox"]').forEach(el => { el.checked = defaults.has(el.value); });
         const summary = document.getElementById('customFeatureAccessSummary');
         if (summary) summary.textContent = plan === 'Custom' ? 'Custom plan: sirf checked features user ko milenge.' : 'Is plan ke default features apply honge; Custom select karne par alag access set kar sakte hain.';
+        const planSummary = document.getElementById('subscriptionPlanSummary');
+        if (planSummary) {
+            const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.Starter;
+            const levels = PLAN_LEVELS[plan] || PLAN_LEVELS.Starter;
+            const fmt = value => Number(value) < 0 ? 'Unlimited' : Number(value).toLocaleString('en-IN');
+            planSummary.innerHTML = '<strong>' + plan + ' plan</strong><br>Staff: ' + fmt(limits.staff) + ' · Branches: ' + fmt(limits.branches) + ' · Leads: ' + fmt(limits.leads) + ' · Storage: ' + fmt(limits.storageGB) + ' GB<br>Reports: ' + levels.reports + ' · Permissions: ' + levels.permissions + ' · Support: ' + levels.support;
+        }
     };
     function renderCustomFeatureAccess(selected) {
         const list = document.getElementById('customFeatureAccessList');
