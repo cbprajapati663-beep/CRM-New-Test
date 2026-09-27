@@ -450,6 +450,7 @@
                     <input type="month" id="payoutMonthFilter" onchange="renderPayoutDeskTable()" style="width:150px; padding:5px 8px;">
                 </div>
                 <button class="btn-action" onclick="document.getElementById('payoutMonthFilter').value=''; renderPayoutDeskTable();">All Months</button>
+                <button class="btn-action" onclick="openPayoutSecurityModal()">🔑 Password Settings</button>
                 <button class="btn-action" onclick="lockPayoutDesk()">🔒 Lock Desk</button>
             </div>
         </div>
@@ -589,19 +590,87 @@
 
 <!-- MODAL: PASSWORD GATE FOR SECRET PAYOUTS -->
 <div id="passwordGateModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 380px; text-align: center;">
+    <div class="modal-card" style="max-width: 400px; text-align: center;">
         <h3 style="color: var(--primary); margin-bottom: 8px;">🔒 Secure Payout Desk</h3>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px;">Enter 4-digit Master PIN to unlock private commissions:</p>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Apna individual payout password ya admin ka universal password enter karein.</p>
         <form onsubmit="handlePinSubmit(event)">
             <div class="form-group" style="text-align: left;">
-                <label>Security PIN</label>
-                <input type="password" id="secretPinInput" placeholder="Enter PIN" maxlength="4" style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;" required>
+                <label>Payout Password</label>
+                <input type="password" id="secretPinInput" placeholder="Enter payout password" maxlength="128" autocomplete="current-password" style="text-align: center; font-size: 1.05rem;" required>
             </div>
-            <div id="pinErrorMsg" style="color: var(--danger); font-size: 0.75rem; margin-bottom: 10px; display: none;">Invalid PIN!</div>
+            <div id="pinErrorMsg" role="alert" style="color: var(--danger); font-size: 0.78rem; margin-bottom: 10px; display: none;">Invalid payout password.</div>
             <button type="submit" class="btn-submit">Unlock Desk</button>
+            <button type="button" class="btn-submit" style="background:#7c3aed;color:#fff;margin-top:6px;" onclick="openPayoutSecurityModal()">🔑 Set / Change Password</button>
             <button type="button" class="btn-submit" style="background: #334155; color: #fff; margin-top: 6px;" onclick="closePasswordGate()">Cancel</button>
         </form>
     </div>
+</div>
+
+<!-- MODAL: PAYOUT PASSWORD MANAGEMENT -->
+<div id="payoutSecurityModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="payoutSecurityTitle">
+  <div class="modal-card" style="max-width:560px;max-height:92vh;overflow:auto;text-align:left;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+      <h3 id="payoutSecurityTitle" style="color:var(--primary);margin:0;">🔐 Payout Password Settings</h3>
+      <button type="button" class="btn-quick" onclick="document.getElementById('payoutSecurityModal').style.display='none'">✕</button>
+    </div>
+    <form onsubmit="handleSaveOwnPayoutPassword(event)">
+      <h4 style="margin:8px 0;color:#38bdf8;">👤 My Individual Payout Password</h4>
+      <div id="payoutOwnCurrentWrap" class="form-group">
+        <label>Current Password</label>
+        <input type="password" id="payoutOwnCurrentPass" autocomplete="current-password" placeholder="Current password">
+      </div>
+      <div class="form-group">
+        <label>New Password (minimum 8 characters, letter + number)</label>
+        <input type="password" id="payoutOwnNewPass" autocomplete="new-password" minlength="8" required>
+      </div>
+      <div class="form-group">
+        <label>Confirm New Password</label>
+        <input type="password" id="payoutOwnConfirmPass" autocomplete="new-password" minlength="8" required>
+      </div>
+      <div id="payoutOwnPassError" role="alert" style="display:none;color:var(--danger);font-size:.8rem;margin:8px 0;"></div>
+      <button type="submit" class="btn-submit" style="background:#0284c7;color:#fff;">Save My Password</button>
+    </form>
+
+    <div id="payoutAdminSecuritySection" style="display:none;border-top:1px solid var(--card-border);margin-top:20px;padding-top:16px;">
+      <form onsubmit="handleSavePayoutMasterPassword(event)">
+        <h4 style="margin:0 0 10px;color:#fbbf24;">👑 Admin Universal Password</h4>
+        <p style="font-size:.78rem;color:var(--text-muted);">Universal password se kisi bhi tenant ka payout desk unlock ho sakta hai. Isse secure aur private rakhein.</p>
+        <div id="payoutMasterCurrentWrap" class="form-group">
+          <label>Current Universal Password</label>
+          <input type="password" id="payoutMasterCurrentPass" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label>New Universal Password</label>
+          <input type="password" id="payoutMasterNewPass" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div class="form-group">
+          <label>Confirm Universal Password</label>
+          <input type="password" id="payoutMasterConfirmPass" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div id="payoutMasterPassError" role="alert" style="display:none;color:var(--danger);font-size:.8rem;margin:8px 0;"></div>
+        <button type="submit" class="btn-submit" style="background:#b45309;color:#fff;">Set / Change Universal Password</button>
+      </form>
+
+      <form onsubmit="handleAdminResetPayoutPassword(event)" style="border-top:1px solid var(--card-border);margin-top:18px;padding-top:16px;">
+        <h4 style="margin:0 0 10px;color:#c084fc;">🛠️ Change Any User's Payout Password</h4>
+        <div class="form-group">
+          <label>Select User / Tenant</label>
+          <select id="payoutAdminTargetTenant" required style="width:100%;box-sizing:border-box;"><option value="">Select user / tenant</option></select>
+        </div>
+        <div class="form-group">
+          <label>New User Password</label>
+          <input type="password" id="payoutAdminResetPass" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div class="form-group">
+          <label>Confirm New User Password</label>
+          <input type="password" id="payoutAdminResetConfirm" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div id="payoutAdminResetError" role="alert" style="display:none;color:var(--danger);font-size:.8rem;margin:8px 0;"></div>
+        <button type="submit" class="btn-submit" style="background:#7c3aed;color:#fff;">Admin: Reset Selected User Password</button>
+      </form>
+    </div>
+    <button type="button" class="btn-submit" style="background:#334155;color:#fff;margin-top:10px;" onclick="document.getElementById('payoutSecurityModal').style.display='none'">Close</button>
+  </div>
 </div>
 
 <!-- MODAL: CLIENT CHANGE OWN PASSWORD -->
