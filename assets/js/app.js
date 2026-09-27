@@ -900,6 +900,9 @@
             if (el) el.style.display = isFeatureEnabled(feature) ? '' : 'none';
         });
         const selectorMappings = [
+            ['#colAddLeadForm', 'pipeline'],
+            ['#clientPipelineTablePanel', 'pipeline'],
+            ['#cardCustomerHold', 'followups'],
             ['[onclick*="openDocumentTracker"]', 'documents'],
             ['[onclick*="showDocumentsComingSoon"]', 'documents'],
             ['[onclick*="openEmiCalculator"]', 'emiCalculator'],
@@ -963,12 +966,12 @@
             document.getElementById('btnExportExcel').style.display = 'none';
             
             document.getElementById('crmNavTabsBar').style.display = 'flex';
-            document.getElementById('colAddLeadForm').style.display = 'block';
+            document.getElementById('colAddLeadForm').style.display = isFeatureEnabled('pipeline') ? 'block' : 'none';
             document.querySelector('.crm-container').classList.remove('admin-mode');
             document.getElementById('adminUserMasterDeck').style.display = 'none';
-            document.getElementById('clientPipelineTablePanel').style.display = 'block';
-            document.getElementById('cardCustomerHold').style.display = 'block';
-            document.getElementById('tabSecretPayouts').style.display = 'flex';
+            document.getElementById('clientPipelineTablePanel').style.display = isFeatureEnabled('pipeline') ? 'block' : 'none';
+            document.getElementById('cardCustomerHold').style.display = isFeatureEnabled('followups') ? 'block' : 'none';
+            document.getElementById('tabSecretPayouts').style.display = isFeatureEnabled('payoutDesk') ? 'flex' : 'none';
             refreshDealerDropdowns();
             switchView('pipeline');
             return;
