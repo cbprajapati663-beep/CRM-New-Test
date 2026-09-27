@@ -457,6 +457,12 @@
     };
 
     window.switchView = function(viewKey) {
+        const activeUser = getCurrentSessionUser();
+        const adminDashboardView = ADMIN_OPERATIONAL_VIEW_IDS.includes('view-' + viewKey);
+        if (adminDashboardView && activeUser && activeUser.role === 'superadmin' && !inspectingTenantId) {
+            setAdminOperationalDashboardHidden(true);
+            return;
+        }
         const requiredFeature = ({pipeline:'pipeline',disbursedhub:'disbursed',dealers:'dealerLedger',payoutdesk:'payoutDesk',followups:'followups',datahealth:'dataHealth',workflow:'smartWorkflow'})[viewKey];
         if (requiredFeature && !isFeatureEnabled(requiredFeature)) {
             alert('Ye feature aapke current subscription plan mein enabled nahi hai. Plan upgrade ya admin se access enable karwayein.');
@@ -759,6 +765,60 @@
             : (PLAN_FEATURES[plan] || PLAN_FEATURES.Starter);
         return allowed.includes(featureKey);
     }
+    // IT Master Admin dashboard-only visibility guard.
+    // These operational CRM modules remain fully available to tenant CRM users
+    // and when the Master Admin explicitly inspects a tenant.
+    const ADMIN_OPERATIONAL_TAB_IDS = [
+        'tabDisbursed',
+        'tabDealers',
+        'tabSecretPayouts',
+        'tabFollowups',
+        'tabDataHealth',
+        'tabWorkflow'
+    ];
+    const ADMIN_OPERATIONAL_VIEW_IDS = [
+        'view-disbursedhub',
+        'view-dealers',
+        'view-payoutdesk',
+        'view-followups',
+        'view-datahealth',
+        'view-workflow'
+    ];
+    const ADMIN_OPERATIONAL_METRIC_IDS = [
+        'adminMetricOverdue',
+        'adminMetricDueToday',
+        'adminMetricNoFollowup',
+        'adminMetricDocsPending',
+        'cardCustomerHold'
+    ];
+
+    function setAdminOperationalDashboardHidden(hidden) {
+        const root = document.documentElement;
+        const body = document.body;
+        [root, body].forEach(node => {
+            if (node) node.classList.toggle('admin-operational-hidden', !!hidden);
+        });
+
+        const allIds = [
+            ...ADMIN_OPERATIONAL_TAB_IDS,
+            ...ADMIN_OPERATIONAL_VIEW_IDS,
+            ...ADMIN_OPERATIONAL_METRIC_IDS
+        ];
+        allIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.toggleAttribute('hidden', !!hidden);
+            if (hidden) {
+                el.style.setProperty('display', 'none', 'important');
+                el.setAttribute('aria-hidden', 'true');
+            } else {
+                el.style.removeProperty('display');
+                el.removeAttribute('hidden');
+                el.setAttribute('aria-hidden', 'false');
+            }
+        });
+    }
+
     function applyPlanFeatureGates() {
         const mappings = {
             tabPipeline:'pipeline', 'view-pipeline':'pipeline',
@@ -828,6 +888,7 @@
         applyPlanFeatureGates();
 
         if (inspectingTenantId) {
+            setAdminOperationalDashboardHidden(false);
             document.getElementById('activeUserBadge').textContent = `👁️ Viewing: ${inspectingTenantId}`;
             document.getElementById('headerTenantBrand').textContent = `🚗 ${inspectingTenantId.toUpperCase()} CRM`;
             document.getElementById('btnExitUserView').style.display = 'inline-block';
@@ -849,6 +910,7 @@
         document.getElementById('btnExitUserView').style.display = 'none';
 
         if (u.role === 'superadmin') {
+            setAdminOperationalDashboardHidden(true);
             document.getElementById('crmNavTabsBar').style.display = 'none';
             document.getElementById('activeUserBadge').textContent = `👑 IT Master Admin`;
             document.getElementById('headerTenantBrand').textContent = `⚡ Heritage FinTech Core`;
@@ -863,6 +925,7 @@
             document.getElementById('clientPipelineTablePanel').style.display = 'none';
             renderAdminMasterUserCards();
         } else {
+            setAdminOperationalDashboardHidden(false);
             document.getElementById('crmNavTabsBar').style.display = 'flex';
             document.getElementById('activeUserBadge').textContent = `👤 ${u.agencyName}`;
             document.getElementById('headerTenantBrand').textContent = `🚗 ${u.agencyName} CRM`;
