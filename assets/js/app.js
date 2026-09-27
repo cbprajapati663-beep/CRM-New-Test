@@ -459,7 +459,11 @@
     window.switchView = function(viewKey) {
         const requiredFeature = ({pipeline:'pipeline',disbursedhub:'disbursed',dealers:'dealerLedger',payoutdesk:'payoutDesk',followups:'followups',datahealth:'dataHealth',workflow:'smartWorkflow'})[viewKey];
         if (requiredFeature && !isFeatureEnabled(requiredFeature)) {
-            alert('Ye feature aapke current subscription plan mein enabled nahi hai. Plan upgrade ya admin se access enable karwayein.');
+            if (PAID_FEATURES.has(requiredFeature) && !PAYMENT_FEATURES_ENABLED) {
+                showPaidFeatureComingSoon(requiredFeature);
+            } else {
+                alert('Ye feature aapke current subscription plan mein enabled nahi hai. Admin se access enable karwayein.');
+            }
             return;
         }
         if (viewKey === 'payoutdesk' && !isPayoutDeskUnlocked) {
