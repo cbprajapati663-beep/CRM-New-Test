@@ -80,3 +80,6 @@ jobs:
           }
           console.log('Subscription plan safeguard markers OK.');
           NODE
+
+      - name: Run subscription plan configuration tests
+        run: node tests/subscription-plans.test.js
