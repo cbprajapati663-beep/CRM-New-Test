@@ -3996,8 +3996,14 @@
         const confirmed=confirm('Staff "'+(x.name||'Staff')+'" ko permanently delete karna hai?\\n\\nDelete ke baad staff ka CRM profile aur login account dono remove ho jayenge, aur wo login nahi kar payega.');
         if(!confirmed)return;
         try{
+            // Remove every login account linked to this staff first. This guarantees
+            // the deleted staff cannot authenticate even if the profile delete fails.
+            const accountRefs=new Map();
+            accountRefs.set(id,staffAccountsCollection.doc(id));
+            const linkedSnap=await staffAccountsCollection.where('staffId','==',id).get();
+            linkedSnap.forEach(doc=>accountRefs.set(doc.id,doc.ref));
+            await Promise.all(Array.from(accountRefs.values()).map(accountRef=>accountRef.delete()));
             await ref.collection('staff').doc(id).delete();
-            await staffAccountsCollection.doc(id).delete();
             if(managementEditingStaffId===id)window.closeManagementStaffEdit();
             await loadManagementData();
             window.resetManagementStaffForm();
