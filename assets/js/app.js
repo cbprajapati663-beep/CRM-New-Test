@@ -3711,11 +3711,22 @@
         try{await leadsCollection.doc(id).update({assignedStaffId:staffId||'',assignedStaffName:staff?staff.name:'',branchId:branchId||'',branchName:branch?branch.name:'',assignmentUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});const local=leads.find(x=>x.docId===id);if(local)Object.assign(local,{assignedStaffId:staffId||'',assignedStaffName:staff?staff.name:'',branchId:branchId||'',branchName:branch?branch.name:''});managementNotice('Lead assignment save ho gaya.');window.generateManagementReport();}
         catch(error){console.error(error);managementNotice('Lead assignment save nahi hua: '+(error.message||''),true);}
     };
+    function managementDateKey(value){
+        try{
+            if(value&&typeof value.toDate==='function')return value.toDate().toISOString().slice(0,10);
+            if(value&&typeof value.seconds==='number')return new Date(value.seconds*1000).toISOString().slice(0,10);
+            const raw=String(value||'').trim();
+            const match=raw.match(/^\\d{4}-\\d{2}-\\d{2}/);
+            if(match)return match[0];
+            const date=new Date(raw);
+            return raw&&!Number.isNaN(date.getTime())?date.toISOString().slice(0,10):'';
+        }catch(e){return '';}
+    }
     function managementReportFiltered(){
         const from=document.getElementById('mhReportFrom').value;const to=document.getElementById('mhReportTo').value;const status=document.getElementById('mhReportStatus').value;const staff=document.getElementById('mhReportStaff').value;const branch=document.getElementById('mhReportBranch').value;
         return getLeadScopedList().filter(l=>{
-            const date=String(l.createdAt||l.createdDate||l.date||l.updatedAt||'').slice(0,10);
-            if(from&&date&&date<from)return false;if(to&&date&&date>to)return false;if(status&&String(l.status||'')!==status)return false;if(staff&&l.assignedStaffId!==staff)return false;if(branch&&l.branchId!==branch)return false;return true;
+            const date=managementDateKey(l.createdAt||l.createdDate||l.date||l.updatedAt||'');
+            if(from&&(!date||date<from))return false;if(to&&(!date||date>to))return false;if(status&&String(l.status||'')!==status)return false;if(staff&&l.assignedStaffId!==staff)return false;if(branch&&l.branchId!==branch)return false;return true;
         });
     }
     window.generateManagementReport=function(){
@@ -3753,9 +3764,11 @@
         catch(error){console.error(error);managementNotice('Permissions save nahi hui: '+(error.message||''),true);}
     };
 
-    window.openManagementHub = function() {
+    window.openManagementHub = async function() {
         const modal = document.getElementById('managementHubModal');
         if (modal) modal.style.display = 'flex';
+        await loadManagementData();
+        window.showManagementModule('staff');
     };
     window.closeManagementHub = function() {
         const modal = document.getElementById('managementHubModal');
