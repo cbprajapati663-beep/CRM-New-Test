@@ -3365,6 +3365,21 @@
         if(files.some(file=>file.size>15*1024*1024)){setStatus('❌ Har file 15 MB ya usse chhoti honi chahiye.','#f87171');input.value='';return;}
         const sessionUser=getCurrentSessionUser(),tenantId=sessionUser&&sessionUser.tenantId;
         if(!tenantId){setStatus('❌ Secure tenant session nahi mila. Logout karke dobara login karein.','#f87171');input.value='';return;}
+        if(!isFeatureEnabled('documents')){setStatus('❌ Document Tracker aapke plan mein enabled nahi hai.','#f87171');input.value='';return;}
+        const storageLimitGB=getTenantPlanLimit('storageGB');
+        if(storageLimitGB>=0){
+            const tenantLeads=getLeadScopedList();
+            const usedBytes=tenantLeads.reduce((total,item)=>total+(Array.isArray(item.documents)?item.documents:[]).reduce((docTotal,doc)=>docTotal+(Array.isArray(doc.attachments)?doc.attachments:[]).reduce((fileTotal,file)=>fileTotal+Math.max(0,Number(file.size)||0),0),0),0);
+            const incomingBytes=files.reduce((total,file)=>total+Math.max(0,Number(file.size)||0),0);
+            const maxBytes=storageLimitGB*1024*1024*1024;
+            if(usedBytes+incomingBytes>maxBytes){
+                const usedGB=(usedBytes/1024/1024/1024).toFixed(2);
+                setStatus('❌ Storage limit poori ho jayegi. Used: '+usedGB+' GB / Limit: '+storageLimitGB+' GB. Plan upgrade ya admin se limit badhwayein.','#f87171');
+                alert('Subscription storage limit exceed ho rahi hai. Used '+usedGB+' GB / '+storageLimitGB+' GB. Files upload nahi hui.');
+                input.value='';
+                return;
+            }
+        }
         const uploaded=[],storageRefs=[];
         const uploadButton=input.parentElement&&input.parentElement.querySelector('button');
         const formatBytes=value=>value<1024*1024?Math.max(1,Math.round(value/1024))+' KB':(value/1024/1024).toFixed(1)+' MB';
