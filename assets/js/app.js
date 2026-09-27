@@ -4284,15 +4284,29 @@
             return raw&&!Number.isNaN(date.getTime())?date.toISOString().slice(0,10):'';
         }catch(e){return '';}
     }
+    function getManagementReportBaseRows(){
+        const u=getCurrentSessionUser();
+        // Reports permission is intentionally broader than normal staff lead scope:
+        // a Viewer with Reports · View/Export can inspect the complete tenant report
+        // across all branches, while the rest of the CRM remains access-scoped.
+        if(u && u.role==='staff' && hasStaffLeadPermission('Reports · View/Export')){
+            const tenantId=String(u.tenantId||'').toLowerCase();
+            return leads.filter(l=>{
+                const c=String(l.tenantId||l.createdBy||'').toLowerCase();
+                return c===tenantId || (tenantId.includes('heritage') && (!c || c==='admin'));
+            });
+        }
+        return getLeadScopedList();
+    }
     function managementReportFiltered(){
         const from=document.getElementById('mhReportFrom').value;const to=document.getElementById('mhReportTo').value;const status=document.getElementById('mhReportStatus').value;const staff=document.getElementById('mhReportStaff').value;const branch=document.getElementById('mhReportBranch').value;
-        return getLeadScopedList().filter(l=>{
+        return getManagementReportBaseRows().filter(l=>{
             const date=managementDateKey(l.createdAt||l.createdDate||l.date||l.updatedAt||'');
             if(from&&(!date||date<from))return false;if(to&&(!date||date>to))return false;if(status&&String(l.status||'')!==status)return false;if(staff&&l.assignedStaffId!==staff)return false;if(branch&&l.branchId!==branch)return false;return true;
         });
     }
     window.generateManagementReport=function(){
-        const statusEl=document.getElementById('mhReportStatus');if(statusEl&&statusEl.options.length<=1){const statuses=[...new Set(getLeadScopedList().map(l=>String(l.status||'New')).filter(Boolean))].sort();statuses.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;statusEl.appendChild(o);});}
+        const statusEl=document.getElementById('mhReportStatus');if(statusEl&&statusEl.options.length<=1){const statuses=[...new Set(getManagementReportBaseRows().map(l=>String(l.status||'New')).filter(Boolean))].sort();statuses.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;statusEl.appendChild(o);});}
         managementReportRows=managementReportFiltered();
         const total=managementReportRows.length;const disb=managementReportRows.filter(l=>l.status==='Disbursed');const amount=disb.reduce((n,l)=>n+(Number(String(l.disbursedAmount||l.loanAmount||0).replace(/[^0-9.]/g,''))||0),0);
         const sum=document.getElementById('mhReportSummary');if(sum)sum.innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap;"><div class="metric-card"><div class="metric-title">Filtered Leads</div><div class="metric-value">'+total+'</div></div><div class="metric-card"><div class="metric-title">Disbursed Files</div><div class="metric-value">'+disb.length+'</div></div><div class="metric-card"><div class="metric-title">Disbursed Amount</div><div class="metric-value">'+formatINR(amount)+'</div></div></div>';
