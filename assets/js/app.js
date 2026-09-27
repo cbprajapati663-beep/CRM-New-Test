@@ -1791,7 +1791,7 @@
                     <span style="color:var(--text-muted); font-size:0.75rem;">${escapeHtml(l.city || 'Mehsana')}</span>
                     <div style="font-size:.68rem;color:var(--text-muted);margin-top:4px;line-height:1.5;">
                       <div>Created by: ${escapeHtml(l.createdByUser || l.createdByUserName || l.createdBy || '—')}</div>
-                      <div>Created: ${escapeHtml(formatActivityTime(l.createdAt) || l.leadDate || '—')}</div>
+                      <div>Created: ${escapeHtml(l.createdAt ? formatActivityTime(l.createdAt) : (l.leadDate || '—'))}</div>
                       <div>Last edited: ${escapeHtml(formatActivityTime(l.updatedAt) || '—')} ${l.updatedByUserName ? '· '+escapeHtml(l.updatedByUserName) : ''}</div>
                     </div>
                     <div class="quick-actions">
