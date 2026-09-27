@@ -3913,9 +3913,18 @@
 
     window.openManagementHub = async function() {
         const modal = document.getElementById('managementHubModal');
-        if (modal) modal.style.display = 'flex';
-        await loadManagementData();
-        window.showManagementModule('staff');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        // Show a usable panel immediately; Firestore loading must not block module navigation.
+        if (typeof window.showManagementModule === 'function') {
+            window.showManagementModule('staff');
+        }
+        try {
+            await loadManagementData();
+        } catch (error) {
+            console.error('Management hub data load failed:', error);
+            managementNotice('Data load nahi hua, lekin Management modules available hain. ' + (error.message || ''), true);
+        }
     };
     window.closeManagementHub = function() {
         const modal = document.getElementById('managementHubModal');
