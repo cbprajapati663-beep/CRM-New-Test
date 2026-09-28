@@ -44,3 +44,19 @@ test('sign-out failure is distinguished from authentication failure', () => {
   assert.match(page, /automatic sign-out failed/i);
   assert.match(page, /revoke the staging test session/i);
 });
+
+test('sign-in clears the password after both successful and failed attempts', () => {
+  assert.match(page, /finally\s*\{\s*password\.value\s*=\s*'';/);
+  assert.match(page, /catch\s*\(error\)\s*\{[\s\S]*?Sign-in failed:/);
+});
+
+test('sign-in and reset controls are disabled while requests are pending', () => {
+  assert.match(page, /function setBusy\(busy\)\s*\{\s*signInButton\.disabled=busy;resetButton\.disabled=busy;/);
+  assert.match(page, /form\.addEventListener\('submit',[\s\S]*?setBusy\(true\)/);
+  assert.match(page, /resetButton\.addEventListener\('click',[\s\S]*?setBusy\(true\)/);
+});
+
+test('password reset requires an entered email and trims whitespace', () => {
+  assert.match(page, /if\(!email\.value\.trim\(\)\)\{show\('Enter the staging test email first\.'/);
+  assert.match(page, /sendPasswordResetEmail\(email\.value\.trim\(\)\)/);
+});
