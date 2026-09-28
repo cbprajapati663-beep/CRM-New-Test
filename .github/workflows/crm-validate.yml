@@ -54,8 +54,14 @@ jobs:
       - name: Syntax check staging Firebase bootstrap
         run: node --check assets/js/staging/firebase-bootstrap.js
 
+      - name: Syntax check staging config template
+        run: node --check assets/js/staging/firebase-config.example.js
+
       - name: Run staging bootstrap guard tests
         run: node --test tests/staging/firebase-bootstrap.test.cjs
 
       - name: Run staging auth page isolation tests
         run: node --test tests/staging/auth-smoke-page.test.cjs
+
+      - name: Run staging config template guard tests
+        run: node --test tests/staging/config-template.test.cjs
