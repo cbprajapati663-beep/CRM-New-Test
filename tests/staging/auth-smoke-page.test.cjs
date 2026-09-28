@@ -20,6 +20,12 @@ test('staging auth smoke page does not load production CRM application', () => {
   assert.doesNotMatch(page, /assets\/js\/app\.js/);
   assert.doesNotMatch(page, /assets\/js\/login-page\.js/);
   assert.doesNotMatch(page, /firebase-firestore-compat\.js/);
+  assert.doesNotMatch(page, /heritage-crm-f179a/);
+});
+
+test('staging auth smoke page does not persist CRM or browser sessions', () => {
+  assert.doesNotMatch(page, /localStorage|sessionStorage/);
+  assert.doesNotMatch(page, /firestore\s*\(/i);
 });
 
 test('staging auth smoke page provides sign-in and password reset actions', () => {
