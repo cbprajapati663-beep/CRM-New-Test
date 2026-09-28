@@ -6,21 +6,24 @@
 
 ## Current baseline (2026-09-28)
 
-- Branch comparison previously reported 65 commits ahead and 8 behind; the branch is diverged.
-- PR #5 is draft, open, and unmerged.
-- The branch contains expanded staging auth smoke-page tests. Preserve those assertions when reconciling the same path from `main`.
-- The authorization matrix draft exists in the migration branch; compare its contents with the version on `main` before deciding which version to retain.
-- CI, real staging sign-in, and tenant-isolation verification are not confirmed for the current head.
+- Latest checked branch head: `dec73b9a53074765a41f7be2f49ae1bb5a0b4a30`.
+- Latest checked `main` head: `f9e93faab6f62ad1bb85973c3f1675496fea7d5f`.
+- Merge base: `e5cfaae0f0a61a98f2593767c39076eaca973853`.
+- Compare result: **66 commits ahead / 8 behind; branches are diverged**.
+- PR #5 is draft, open, unmerged, and GitHub currently reports it as not mergeable.
+- The migration branch contains expanded staging auth smoke-page tests. Preserve those assertions when reconciling the same path from `main`.
+- The authorization matrix draft exists in the migration branch; verify the main-branch copy before changing either version.
+- CI for the exact current head, real staging sign-in, and tenant-isolation verification are not confirmed.
 
 ## Safe reconciliation sequence
 
 1. Refresh both `main` and the migration branch refs; record their exact SHAs and compare the current merge base.
-2. Review every main-only commit and changed path. Do not blindly merge or force-push.
-3. For `docs/AUTHORIZATION_MATRIX_DRAFT.md`, compare both versions and preserve any distinct useful content without duplicating the document.
+2. Review all main-only commits and changed paths. Do not blindly merge or force-push.
+3. For `docs/AUTHORIZATION_MATRIX_DRAFT.md`, compare both versions and preserve useful content without duplicating the document.
 4. For `tests/staging/auth-smoke-page.test.cjs`, retain the migration branch's expanded isolation, password-handling, and fail-closed assertions; incorporate any valid main-branch coverage.
-5. Review all remaining overlapping files and ensure production entry points/configuration remain untouched.
-6. Run repository validation and staging guard tests on the reconciled branch; inspect the exact commit's workflow results.
-7. Recheck branch divergence, PR mergeability, changed files, and CI status. Keep the PR draft until staging auth and tenant-isolation evidence is recorded.
+5. Review every remaining overlapping file and ensure production entry points/configuration remain untouched.
+6. Run repository validation and staging guard tests on the reconciled branch; inspect workflow results tied to the exact commit.
+7. Recheck divergence, PR mergeability, changed files, and CI status. Keep the PR draft until staging auth and tenant-isolation evidence is recorded.
 
 ## Hard safety gates
 
