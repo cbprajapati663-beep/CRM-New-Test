@@ -24,4 +24,19 @@ for (const marker of [
   assert.ok(app.includes(marker), 'Missing plan-limit guard marker: ' + marker);
 }
 
-console.log('Plan limit config and guard-marker tests passed.');
+
+const limitFnMatch = app.match(/function getTenantPlanLimit\(tenant, resource\) \{[\s\S]*?\n    \}/);
+assert.ok(limitFnMatch, 'getTenantPlanLimit implementation must exist');
+const limitContext = { TENANT_PLAN_LIMITS: limits };
+vm.runInNewContext(limitFnMatch[0], limitContext);
+const getLimit = limitContext.getTenantPlanLimit;
+assert.equal(getLimit({ subscriptionPlan: 'Starter' }, 'staff'), 3);
+assert.equal(getLimit({ subscriptionPlan: 'Starter' }, 'branches'), 1);
+assert.equal(getLimit({ subscriptionPlan: 'Starter' }, 'leads'), 500);
+assert.equal(getLimit({ subscriptionPlan: 'Professional' }, 'staff'), 10);
+assert.equal(getLimit({ subscriptionPlan: 'Business' }, 'branches'), 10);
+assert.equal(getLimit({ subscriptionPlan: 'Custom', staffLimit: 7 }, 'staff'), 7);
+assert.equal(getLimit({ subscriptionPlan: 'Enterprise', leadLimit: '1200' }, 'leads'), 1200);
+assert.equal(getLimit({ subscriptionPlan: 'Unknown' }, 'branches'), 1, 'Unknown plan should safely fall back to Starter caps');
+
+console.log('Plan limit config, custom cap, fallback, and guard-marker tests passed.');
