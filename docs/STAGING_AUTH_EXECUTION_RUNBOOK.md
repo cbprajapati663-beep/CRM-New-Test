@@ -22,9 +22,9 @@ Use the staging smoke page only after the local config is set:
 
 1. Open `pages/staging-auth-smoke.html` through the repository's local development server.
 2. Sign in with a dedicated staging-only test account.
-3. Confirm the page reports the authenticated user's UID (not a password or token).
-4. Sign out and confirm the session is cleared.
-5. Try a wrong password and confirm the page displays a safe error without exposing secrets.
+3. Confirm the page reports successful authentication for the dedicated staging test account; do not record passwords or tokens.
+4. Confirm the page automatically signs out and reports that the staging session was cleared.
+5. Try a wrong password and confirm the page displays an error without exposing credentials or tokens.
 6. Record each outcome in `docs/STAGING_AUTH_TEST_RECORD_TEMPLATE.md`.
 
 A successful sign-in proves only that Firebase Auth works; it does **not** prove tenant isolation or secure CRM access.
