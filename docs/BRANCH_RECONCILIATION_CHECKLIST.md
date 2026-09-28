@@ -56,3 +56,22 @@
 - Workflow lookup and combined commit status for the exact branch head returned no runs/status checks. CI is still unverified.
 - No branch merge, force update, production deployment, Firebase config/rules change, or live-data change was performed.
 - Next action: inspect the 8 main-only commits and their changed paths, then prepare a deliberate reconciliation commit only after file-level conflicts and security-sensitive overlaps are understood.
+
+
+## Main-only commit review and selective fix port (2026-09-28)
+
+Reviewed the 8 commits unique to `main` since merge base `e5cfaae0f0a61a98f2593767c39076eaca973853`:
+
+- `e5e2d13278` — authorization matrix draft (same blob already present on migration branch).
+- `b5eb00642c` — initial staging auth smoke-page test (migration branch has a larger hardened version; retain branch version).
+- `ad74cce6cd` and `d25bf61951` — staging config add/syntax fix. The live config file is not copied; branch keeps the config gitignored/local-only.
+- `2560259400`, `684d0a492f`, `ec453da744` — dashboard visibility fixes.
+- `f9e93faab6` — payout badge escaping/safe CSS token fix.
+
+Selective port committed to the migration branch:
+- Hardened view visibility in `assets/js/app.js` using important display state, `hidden`, `aria-hidden`, and plan-feature gating.
+- Updated feature-gate visibility so inactive operational views stay hidden.
+- Sanitized payout badge CSS token and escaped payout status text.
+- Commit: `b54df256c2645f90aeff0df8c665ee769436c6ed`.
+
+**Validation limitation:** The GitHub file update succeeded, but no local test runner was available here. Syntax, browser behavior, and CI remain unverified. Do not treat this as a tested or merged change.
