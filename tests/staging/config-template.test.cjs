@@ -39,3 +39,24 @@ test('production entry point does not load staging-only assets', () => {
   assert.doesNotMatch(productionEntry, /assets\/js\/staging\/firebase-bootstrap\.js/);
   assert.doesNotMatch(productionEntry, /pages\/staging-auth-smoke\.html/);
 });
+
+const authorizationPlan = fs.readFileSync(
+  path.join(root, 'docs/STAGING_AUTHORIZATION_TEST_PLAN.md'),
+  'utf8'
+);
+
+test('staging authorization plan covers cross-tenant and privilege boundaries', () => {
+  for (const scenario of [
+    'TEN-02',
+    'TEN-03',
+    'TEN-04',
+    'STAFF-03',
+    'FILE-02',
+    'MAP-01'
+  ]) {
+    assert.ok(authorizationPlan.includes(scenario), 'Missing scenario: ' + scenario);
+  }
+  assert.match(authorizationPlan, /client-side route hiding.*not authorization/i);
+  assert.match(authorizationPlan, /No authorization tests have been executed/);
+  assert.match(authorizationPlan, /Do not approve production cutover until/);
+});
