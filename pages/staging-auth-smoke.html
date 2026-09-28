@@ -64,13 +64,25 @@
   }
   form.addEventListener('submit',async function(event){
     event.preventDefault();setBusy(true);
+    let signedIn=false;
     try{
       const credential=await auth.signInWithEmailAndPassword(email.value.trim(),password.value);
+      signedIn=true;
       show('Staging authentication succeeded for '+credential.user.email+'. This is an auth-only check; no CRM tenant session was created.');
-      await auth.signOut();
-      show('Staging authentication succeeded; signed out safely. No CRM data was accessed.');
-    }catch(error){show('Sign-in failed: '+(error&&error.message?error.message:'Unknown authentication error'));}
-    finally{password.value='';setBusy(false);}
+    }catch(error){
+      show('Sign-in failed: '+(error&&error.message?error.message:'Unknown authentication error'));
+    }finally{
+      password.value='';
+      if(signedIn){
+        try{
+          await auth.signOut();
+          show('Staging authentication succeeded; signed out safely. No CRM data was accessed.');
+        }catch(signOutError){
+          show('Sign-in succeeded, but automatic sign-out failed. Close this page and revoke the staging test session in Firebase Authentication before continuing.');
+        }
+      }
+      setBusy(false);
+    }
   });
   resetButton.addEventListener('click',async function(){
     if(!email.value.trim()){show('Enter the staging test email first.');return;}
