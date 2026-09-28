@@ -1009,9 +1009,35 @@
             tabDataHealth:'dataHealth', 'view-datahealth':'dataHealth',
             tabWorkflow:'smartWorkflow', 'view-workflow':'smartWorkflow'
         };
+        const viewTabIds = {
+            'view-pipeline': 'tabPipeline',
+            'view-disbursedhub': 'tabDisbursed',
+            'view-dealers': 'tabDealers',
+            'view-payoutdesk': 'tabSecretPayouts',
+            'view-followups': 'tabFollowups',
+            'view-datahealth': 'tabDataHealth',
+            'view-workflow': 'tabWorkflow'
+        };
+        const viewDisplayValues = {
+            'view-pipeline': 'grid',
+            'view-disbursedhub': 'block',
+            'view-dealers': 'block',
+            'view-payoutdesk': 'block',
+            'view-followups': 'block',
+            'view-datahealth': 'block',
+            'view-workflow': 'block'
+        };
         Object.entries(mappings).forEach(([id, feature]) => {
             const el = document.getElementById(id);
-            if (el) el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+            if (!el) return;
+            const enabled = isFeatureEnabled(feature);
+            if (viewTabIds[id]) {
+                const activeTab = document.getElementById(viewTabIds[id]);
+                const isActiveView = !!(activeTab && activeTab.classList.contains('active'));
+                el.style.display = enabled && isActiveView ? viewDisplayValues[id] : 'none';
+            } else {
+                el.style.display = enabled ? '' : 'none';
+            }
         });
         const selectorMappings = [
             ['#colAddLeadForm', 'pipeline'],
