@@ -75,3 +75,13 @@ Selective port committed to the migration branch:
 - Commit: `b54df256c2645f90aeff0df8c665ee769436c6ed`.
 
 **Validation limitation:** The GitHub file update succeeded, but no local test runner was available here. Syntax, browser behavior, and CI remain unverified. Do not treat this as a tested or merged change.
+
+
+## Fresh process checkpoint (2026-09-28, 17:35 IST)
+
+- Fresh PR metadata reports head `7ff2ea4533182e761e8bdd1f156451b308e734b9`, base `main`, state open, draft, unmerged, and `mergeable: false`.
+- Fresh comparison reports `main` at `f9e93faab6f62ad1bb85973c3f1675496fea7d5f`, merge base `e5cfaae0f0a61a98f2593767c39076eaca973853`, with **71 commits ahead / 8 behind** (diverged). This supersedes the older 68-ahead checkpoint above.
+- The current head workflow lookup returned an empty list of PR workflow runs. This is an absence of CI evidence, not a passing result.
+- The PR description's older head/count fields are stale; use the live PR metadata and comparison above as the current baseline.
+- No reconciliation merge, force-push, production deployment, or Firebase production configuration/data/rules change was performed.
+- Next safe step remains path-by-path conflict and overlap review followed by validation on an exact reconciled commit. Do not merge while GitHub reports the PR as not mergeable or staging tenant-isolation evidence is missing.
