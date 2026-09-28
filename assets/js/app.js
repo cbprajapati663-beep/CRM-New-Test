@@ -637,13 +637,29 @@
         );
         if (targetBtn) targetBtn.classList.add('active');
 
-        document.getElementById('view-pipeline').style.display = (viewKey === 'pipeline') ? 'grid' : 'none';
-        document.getElementById('view-disbursedhub').style.display = (viewKey === 'disbursedhub') ? 'block' : 'none';
-        document.getElementById('view-dealers').style.display = (viewKey === 'dealers') ? 'block' : 'none';
-        document.getElementById('view-payoutdesk').style.display = (viewKey === 'payoutdesk') ? 'block' : 'none';
-        document.getElementById('view-followups').style.display = (viewKey === 'followups') ? 'block' : 'none';
-        document.getElementById('view-datahealth').style.display = (viewKey === 'datahealth') ? 'block' : 'none';
-        document.getElementById('view-workflow').style.display = (viewKey === 'workflow') ? 'block' : 'none';
+        const viewDisplayByKey = {
+            pipeline: ['view-pipeline', 'grid'],
+            disbursedhub: ['view-disbursedhub', 'block'],
+            dealers: ['view-dealers', 'block'],
+            payoutdesk: ['view-payoutdesk', 'block'],
+            followups: ['view-followups', 'block'],
+            datahealth: ['view-datahealth', 'block'],
+            workflow: ['view-workflow', 'block']
+        };
+        // Use !important so stale/admin visibility styles cannot expose inactive views.
+        Object.entries(viewDisplayByKey).forEach(([key, [id, display]]) => {
+            const view = document.getElementById(id);
+            if (!view) return;
+            const requiredFeature = ({
+                pipeline: 'pipeline', disbursedhub: 'disbursed', dealers: 'dealerLedger',
+                payoutdesk: 'payoutDesk', followups: 'followups', datahealth: 'dataHealth',
+                workflow: 'smartWorkflow'
+            })[key];
+            const visible = key === viewKey && isFeatureEnabled(requiredFeature);
+            view.style.setProperty('display', visible ? display : 'none', 'important');
+            view.toggleAttribute('hidden', !visible);
+            view.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        });
 
         if (viewKey === 'pipeline') renderViews();
         if (viewKey === 'disbursedhub') renderDisbursedHubTable();
