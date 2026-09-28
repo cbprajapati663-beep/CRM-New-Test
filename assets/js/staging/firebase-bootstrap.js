@@ -44,9 +44,16 @@
 
   function getStagingFirebase() {
     const app = initializeStagingFirebase();
+    if (typeof app.auth !== 'function') {
+      fail('Firebase Auth SDK is missing or unavailable for the staging app. Load firebase-auth-compat.js before requesting services.');
+    }
+    const auth = app.auth();
+    if (!auth || typeof auth.signInWithEmailAndPassword !== 'function') {
+      fail('Firebase Auth service is unavailable. Verify that firebase-auth-compat.js loaded correctly.');
+    }
     return Object.freeze({
       app: app,
-      auth: app.auth(),
+      auth: auth,
       db: typeof app.firestore === 'function' ? app.firestore() : null,
       storage: typeof app.storage === 'function' ? app.storage() : null,
       projectId: EXPECTED_PROJECT_ID
