@@ -637,13 +637,28 @@
         );
         if (targetBtn) targetBtn.classList.add('active');
 
-        document.getElementById('view-pipeline').style.display = (viewKey === 'pipeline') ? 'grid' : 'none';
-        document.getElementById('view-disbursedhub').style.display = (viewKey === 'disbursedhub') ? 'block' : 'none';
-        document.getElementById('view-dealers').style.display = (viewKey === 'dealers') ? 'block' : 'none';
-        document.getElementById('view-payoutdesk').style.display = (viewKey === 'payoutdesk') ? 'block' : 'none';
-        document.getElementById('view-followups').style.display = (viewKey === 'followups') ? 'block' : 'none';
-        document.getElementById('view-datahealth').style.display = (viewKey === 'datahealth') ? 'block' : 'none';
-        document.getElementById('view-workflow').style.display = (viewKey === 'workflow') ? 'block' : 'none';
+        const viewDisplayByKey = {
+            pipeline: ['view-pipeline', 'grid'],
+            disbursedhub: ['view-disbursedhub', 'block'],
+            dealers: ['view-dealers', 'block'],
+            payoutdesk: ['view-payoutdesk', 'block'],
+            followups: ['view-followups', 'block'],
+            datahealth: ['view-datahealth', 'block'],
+            workflow: ['view-workflow', 'block']
+        };
+        Object.entries(viewDisplayByKey).forEach(([key, [id, display]]) => {
+            const view = document.getElementById(id);
+            if (!view) return;
+            const requiredFeature = ({
+                pipeline: 'pipeline', disbursedhub: 'disbursed', dealers: 'dealerLedger',
+                payoutdesk: 'payoutDesk', followups: 'followups', datahealth: 'dataHealth',
+                workflow: 'smartWorkflow'
+            })[key];
+            const visible = key === viewKey && isFeatureEnabled(requiredFeature);
+            view.style.setProperty('display', visible ? display : 'none', 'important');
+            view.toggleAttribute('hidden', !visible);
+            view.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        });
 
         if (viewKey === 'pipeline') renderViews();
         if (viewKey === 'disbursedhub') renderDisbursedHubTable();
@@ -1009,9 +1024,35 @@
             tabDataHealth:'dataHealth', 'view-datahealth':'dataHealth',
             tabWorkflow:'smartWorkflow', 'view-workflow':'smartWorkflow'
         };
+        const viewTabIds = {
+            'view-pipeline': 'tabPipeline',
+            'view-disbursedhub': 'tabDisbursed',
+            'view-dealers': 'tabDealers',
+            'view-payoutdesk': 'tabSecretPayouts',
+            'view-followups': 'tabFollowups',
+            'view-datahealth': 'tabDataHealth',
+            'view-workflow': 'tabWorkflow'
+        };
+        const viewDisplayValues = {
+            'view-pipeline': 'grid',
+            'view-disbursedhub': 'block',
+            'view-dealers': 'block',
+            'view-payoutdesk': 'block',
+            'view-followups': 'block',
+            'view-datahealth': 'block',
+            'view-workflow': 'block'
+        };
         Object.entries(mappings).forEach(([id, feature]) => {
             const el = document.getElementById(id);
-            if (el) el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+            if (!el) return;
+            const enabled = isFeatureEnabled(feature);
+            if (viewTabIds[id]) {
+                const activeTab = document.getElementById(viewTabIds[id]);
+                const isActiveView = !!(activeTab && activeTab.classList.contains('active'));
+                el.style.display = enabled && isActiveView ? viewDisplayValues[id] : 'none';
+            } else {
+                el.style.display = enabled ? '' : 'none';
+            }
         });
         const selectorMappings = [
             ['#colAddLeadForm', 'pipeline'],
@@ -2198,7 +2239,7 @@
 
             const net = Math.max(0, gross - cut);
             const pStatus = l.payoutStatus || 'Pending';
-            const payoutBadge = 'payout-' + pStatus.replace(/\s+/g, '');
+            const payoutBadge = 'payout-' + safeClassToken(pStatus.replace(/\s+/g, ''));
 
             totalGross += gross;
             totalCuts += cut;
@@ -2215,7 +2256,7 @@
                 <td>${formatINR(gross)}</td>
                 <td style="color:var(--danger);">${formatINR(cut)}</td>
                 <td><strong style="color:var(--success); font-size:0.95rem;">${formatINR(net)}</strong></td>
-                <td><span class="badge ${payoutBadge}">${pStatus}</span></td>
+                <td><span class="badge ${payoutBadge}">${escapeHtml(pStatus)}</span></td>
                 <td>
                     <button class="btn-quick btn-edit" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; cursor:pointer;" onclick="openPayoutModal('${escapeJsString(l.docId)}')">💰 Edit</button>
                 </td>
