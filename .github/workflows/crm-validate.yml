@@ -50,3 +50,9 @@ jobs:
 
       - name: Syntax check tenant login JavaScript
         run: node --check assets/js/login-page.js
+
+      - name: Syntax check staging Firebase bootstrap
+        run: node --check assets/js/staging/firebase-bootstrap.js
+
+      - name: Run staging bootstrap guard tests
+        run: node --test tests/staging/firebase-bootstrap.test.cjs
