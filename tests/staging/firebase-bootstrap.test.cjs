@@ -9,7 +9,7 @@ const vm = require('node:vm');
 const sourcePath = path.join(__dirname, '../../assets/js/staging/firebase-bootstrap.js');
 const source = fs.readFileSync(sourcePath, 'utf8');
 
-function createHarness(config, includeDataSdk = true, includeAuthSdk = true) {
+function createHarness(config, includeDataSdk = true, includeAuthSdk = true, validAuth = true) {
   const apps = [];
   let initializeCalls = 0;
   const firebase = {
@@ -19,7 +19,7 @@ function createHarness(config, includeDataSdk = true, includeAuthSdk = true) {
       const app = {
         name,
         options,
-        ...(includeAuthSdk ? { auth: () => ({ service: 'auth', signInWithEmailAndPassword() {} }) } : {}),
+        ...(includeAuthSdk ? { auth: () => (validAuth ? { service: 'auth', signInWithEmailAndPassword() {} } : {}) } : {}),
         ...(includeDataSdk ? { firestore: () => ({ service: 'firestore' }), storage: () => ({ service: 'storage' }) } : {})
       };
       apps.push(app);
@@ -85,11 +85,6 @@ test('fails with a clear message when Firebase Auth SDK is missing', () => {
 });
 
 test('fails when Auth service does not expose email/password sign-in', () => {
-  const h = createHarness({ projectId: 'heritage-crm-staging' });
-  h.apps.push({
-    name: 'haf-staging',
-    options: { projectId: 'heritage-crm-staging' },
-    auth: () => ({})
-  });
+  const h = createHarness({ projectId: 'heritage-crm-staging' }, true, true, false);
   assert.throws(() => h.window.HAFStagingFirebase.getServices(), /Auth service is unavailable/);
 });
