@@ -38,3 +38,9 @@ test('page explicitly prevents CRM-session assumptions', () => {
   assert.match(page, /no CRM tenant session was created/i);
   assert.match(page, /No CRM data was accessed/i);
 });
+
+test('sign-out failure is distinguished from authentication failure', () => {
+  assert.match(page, /if\s*\(signedIn\)/);
+  assert.match(page, /automatic sign-out failed/i);
+  assert.match(page, /revoke the staging test session/i);
+});
