@@ -1,5 +1,5 @@
 window.HAF_STAGING_FIREBASE_CONFIG = {
-  apiKey: ""AIzaSyDrw9FghZyjPHIlOStK0ixSmjFMIUg6rvg",
+  apiKey: "AIzaSyDrw9FghZyjPHIlOStK0ixSmjFMIUg6rvg",
   authDomain: "heritage-crm-staging.firebaseapp.com",
   projectId: "heritage-crm-staging",
   storageBucket: "heritage-crm-staging.firebasestorage.app",
