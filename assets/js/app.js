@@ -2198,7 +2198,7 @@
 
             const net = Math.max(0, gross - cut);
             const pStatus = l.payoutStatus || 'Pending';
-            const payoutBadge = 'payout-' + pStatus.replace(/\s+/g, '');
+            const payoutBadge = 'payout-' + safeClassToken(pStatus.replace(/\s+/g, ''));
 
             totalGross += gross;
             totalCuts += cut;
@@ -2215,7 +2215,7 @@
                 <td>${formatINR(gross)}</td>
                 <td style="color:var(--danger);">${formatINR(cut)}</td>
                 <td><strong style="color:var(--success); font-size:0.95rem;">${formatINR(net)}</strong></td>
-                <td><span class="badge ${payoutBadge}">${pStatus}</span></td>
+                <td><span class="badge ${payoutBadge}">${escapeHtml(pStatus)}</span></td>
                 <td>
                     <button class="btn-quick btn-edit" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; cursor:pointer;" onclick="openPayoutModal('${escapeJsString(l.docId)}')">💰 Edit</button>
                 </td>
