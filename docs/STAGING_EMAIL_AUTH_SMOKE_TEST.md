@@ -6,21 +6,10 @@ This is an isolated **authentication-only** test page. It loads Firebase compat 
 
 ## Before opening the page
 1. In the staging Firebase console, enable Email/Password Authentication and create a dedicated test user.
-2. Supply the staging web-app config through a deployment/local-only script at `assets/js/staging/firebase-config.js`. That script must set `window.HAF_STAGING_FIREBASE_CONFIG` to the web config for project ID `heritage-crm-staging`.
-3. Do not use production Firebase configuration. The bootstrap checks the project ID and refuses any other project.
-4. Serve the repository over HTTP(S), not by opening the file directly. Keep the config file out of source control if you prefer not to commit it.
-
-Example local-only config file (replace values with the staging app's own values):
-```js
-window.HAF_STAGING_FIREBASE_CONFIG = {
-  apiKey: "STAGING_WEB_API_KEY",
-  authDomain: "heritage-crm-staging.firebaseapp.com",
-  projectId: "heritage-crm-staging",
-  storageBucket: "STAGING_BUCKET_FROM_FIREBASE_CONSOLE",
-  messagingSenderId: "STAGING_SENDER_ID",
-  appId: "STAGING_WEB_APP_ID"
-};
-```
+2. Copy `assets/js/staging/firebase-config.example.js` to `assets/js/staging/firebase-config.js`.
+3. Replace the placeholder values using the web-app config from Firebase project `heritage-crm-staging`. The project ID must remain exactly `heritage-crm-staging`.
+4. The real `firebase-config.js` is ignored by Git via `.gitignore`; keep it local or inject it through your deployment process. Do not use production Firebase config.
+5. Serve the repository over HTTP(S), not by opening the file directly, then open `pages/staging-auth-smoke.html`.
 
 The Firebase web API key is not a server secret, but it must belong to staging. Never put service-account credentials or private keys in browser code.
 
