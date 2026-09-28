@@ -6,12 +6,12 @@
 
 ## Latest checked baseline (2026-09-28)
 
-- Migration branch head before this checklist update: `f3cf04e853d48162475dc5677ac9c98875ee460f`.
+- Migration branch head at latest review: `9ea5d49806aea5a736ab18328a107a3c0459a221`.
 - `main` head: `f9e93faab6f62ad1bb85973c3f1675496fea7d5f`.
 - Merge base: `e5cfaae0f0a61a98f2593767c39076eaca973853`.
-- Compare result: **67 commits ahead / 8 behind; branches are diverged**.
+- Compare result: **68 commits ahead / 8 behind; branches are diverged**.
 - PR #5 is draft, open, unmerged, and GitHub reports it as not mergeable.
-- Current-head workflow lookup returned no PR workflow runs and combined status returned no status checks. This is **not a passing CI result**.
+- Latest-head workflow lookup returned no PR workflow runs and combined status returned no status checks. This is **not a passing CI result**.
 
 ## Conflict/path review performed
 
@@ -47,3 +47,12 @@
 - [ ] CI results tied to exact reconciled head
 - [ ] Staging sign-in and cross-tenant denial tests documented
 - [ ] PR remains unmerged pending explicit release approval
+
+
+## Latest progress checkpoint (2026-09-28, refreshed)
+
+- Re-fetched PR #5: head is `9ea5d49806aea5a736ab18328a107a3c0459a221`; PR remains open, draft, unmerged, and reported not mergeable.
+- Refreshed comparison: `main` is `f9e93faab6f62ad1bb85973c3f1675496fea7d5f`; migration branch is 68 commits ahead and 8 behind; merge base remains `e5cfaae0f0a61a98f2593767c39076eaca973853`.
+- Workflow lookup and combined commit status for the exact branch head returned no runs/status checks. CI is still unverified.
+- No branch merge, force update, production deployment, Firebase config/rules change, or live-data change was performed.
+- Next action: inspect the 8 main-only commits and their changed paths, then prepare a deliberate reconciliation commit only after file-level conflicts and security-sensitive overlaps are understood.
