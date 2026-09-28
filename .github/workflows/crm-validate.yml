@@ -28,11 +28,20 @@ jobs:
             'printSelectedDocument'
           ];
           const missingHtml = requiredHtml.filter(x => !html.includes(x));
-          const requiredApp = ['generateDO'];
+          const requiredApp = ['generateDO', 'TENANT_PLAN_LIMITS', 'getTenantPlanLimit', 'showPlanLimitReached'];
           const missingApp = requiredApp.filter(x => !app.includes(x));
-          if (missingHtml.length || missingApp.length) {
+          const planLimitChecks = [
+            [/Starter:\\s*\\{\\s*staff:\\s*3,\\s*branches:\\s*1,\\s*leads:\\s*500\\s*\\}/, 'Starter caps (3 staff / 1 branch / 500 leads)'],
+            [/Professional:\\s*\\{\\s*staff:\\s*10,\\s*branches:\\s*3,\\s*leads:\\s*5000\\s*\\}/, 'Professional caps (10 / 3 / 5000)'],
+            [/Business:\\s*\\{\\s*staff:\\s*25,\\s*branches:\\s*10,\\s*leads:\\s*25000\\s*\\}/, 'Business caps (25 / 10 / 25000)'],
+            [/getTenantLeadCount\\(/, 'tenant-scoped lead count'],
+            [/activeCount >= limit/, 'active staff/branch cap checks']
+          ];
+          const missingPlanChecks = planLimitChecks.filter(([pattern]) => !pattern.test(app)).map(([, label]) => label);
+          if (missingHtml.length || missingApp.length || missingPlanChecks.length) {
             if (missingHtml.length) console.error('Missing required HTML markers:', missingHtml.join(', '));
             if (missingApp.length) console.error('Missing required app.js markers:', missingApp.join(', '));
+            if (missingPlanChecks.length) console.error('Missing plan-limit checks:', missingPlanChecks.join(', '));
             process.exit(1);
           }
           const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
