@@ -30,5 +30,5 @@ test('staging auth smoke page provides sign-in and password reset actions', () =
 
 test('page explicitly prevents CRM-session assumptions', () => {
   assert.match(page, /no CRM tenant session was created/i);
-  assert.match(page, /does not access CRM data/i);
+  assert.match(page, /No CRM data was accessed/i);
 });
