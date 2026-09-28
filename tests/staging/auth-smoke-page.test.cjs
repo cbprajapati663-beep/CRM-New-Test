@@ -69,3 +69,18 @@ test('password reset requires an entered email and trims whitespace', () => {
   assert.match(page, /if\(!email\.value\.trim\(\)\)\{show\('Enter the staging test email first\.'/);
   assert.match(page, /sendPasswordResetEmail\(email\.value\.trim\(\)\)/);
 });
+
+test('status messages are rendered as text, not HTML', () => {
+  assert.match(page, /function show\(message\)\{status\.textContent=message;\}/);
+  assert.doesNotMatch(page, /status\.innerHTML\s*=/);
+});
+
+test('password is not included in status messages or reset requests', () => {
+  assert.doesNotMatch(page, /show\([^\n]*password\.value/);
+  assert.match(page, /sendPasswordResetEmail\(email\.value\.trim\(\)\)/);
+  assert.match(page, /password\.value='';/);
+});
+
+test('setup failure disables authentication controls and prevents sign-in', () => {
+  assert.match(page, /catch\(error\)\{[\s\S]*?Setup blocked:[\s\S]*?setBusy\(true\);\s*return;/);
+});
