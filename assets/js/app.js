@@ -3383,9 +3383,11 @@
         if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko lead create/edit karne ki permission nahi hai.'); return; }
         if (editDocId && !getLeadScopedList().some(item => item.docId === editDocId)) { alert('Ye lead aapke access mein nahi hai.'); return; }
         const currentStatus = document.getElementById('status').value;
-        if (!editDocId) {
+        const limitSessionUser = getCurrentSessionUser();
+        if (!editDocId && !(limitSessionUser && limitSessionUser.role === 'superadmin' && !inspectingTenantId)) {
             const leadLimit = getTenantPlanLimit(resolveFeatureTenant(), 'leads');
-            const leadCount = getTenantLeadCount((getCurrentSessionUser() && getCurrentSessionUser().tenantId) || inspectingTenantId || 'heritage auto finance');
+            const limitTenantId = (limitSessionUser && limitSessionUser.tenantId) || inspectingTenantId || 'heritage auto finance';
+            const leadCount = getTenantLeadCount(limitTenantId);
             if (leadCount >= leadLimit) { showPlanLimitReached('leads', leadCount, leadLimit); return; }
         }
         const requestedLoan = Number(document.getElementById('loanAmount').value) || 0;
@@ -4380,7 +4382,13 @@
     };
     window.toggleManagementStaff=async function(id){
         const ref=managementTenantRef();const x=managementStaff.find(y=>y.id===id);if(!ref||!x)return;
-        try{const next=x.status==='Inactive'?'Active':'Inactive';await ref.collection('staff').doc(id).update({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await staffAccountsCollection.doc(id).set({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});await loadManagementData();managementNotice('Staff status + login status update ho gaya.');}
+        const next=x.status==='Inactive'?'Active':'Inactive';
+        if(next==='Active'){
+            const limit=getTenantPlanLimit(getManagementTenantRecord(),'staff');
+            const activeCount=managementStaff.filter(row=>row.status!=='Inactive').length;
+            if(activeCount>=limit){showPlanLimitReached('staff',activeCount,limit);return;}
+        }
+        try{await ref.collection('staff').doc(id).update({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await staffAccountsCollection.doc(id).set({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});await loadManagementData();managementNotice('Staff status + login status update ho gaya.');}
         catch(error){managementNotice('Status update nahi hua: '+(error.message||''),true);}
     };
     window.resetManagementBranchForm=function(){
@@ -4411,7 +4419,13 @@
     };
     window.toggleManagementBranch=async function(id){
         const ref=managementTenantRef();const x=managementBranches.find(y=>y.id===id);if(!ref||!x)return;
-        try{await ref.collection('branches').doc(id).update({status:x.status==='Inactive'?'Active':'Inactive',updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadManagementData();managementNotice('Branch status update ho gaya.');}
+        const next=x.status==='Inactive'?'Active':'Inactive';
+        if(next==='Active'){
+            const limit=getTenantPlanLimit(getManagementTenantRecord(),'branches');
+            const activeCount=managementBranches.filter(row=>row.status!=='Inactive').length;
+            if(activeCount>=limit){showPlanLimitReached('branches',activeCount,limit);return;}
+        }
+        try{await ref.collection('branches').doc(id).update({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await loadManagementData();managementNotice('Branch status update ho gaya.');}
         catch(error){managementNotice('Branch status update nahi hua: '+(error.message||''),true);}
     };
     function renderManagementLeadOptions(){
