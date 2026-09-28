@@ -107,3 +107,13 @@ The migration branch's `assets/js/app.js` contains the selective dashboard-visib
 - Latest PR head after this checklist update: `8b3d0110d330e6567deecc8e3543585a3bcba39e`; PR remains open, draft, unmerged, and not mergeable.
 - Current compare remains diverged: 72 commits ahead / 8 behind, with merge base `e5cfaae0f0a61a98f2593767c39076eaca973853` and main at `f9e93faab6f62ad1bb85973c3f1675496fea7d5f`.
 - CI/test status remains unverified. The next step is to inspect full changed-file overlap and plan a safe reconciliation strategy; do not merge or cut over without conflict resolution and staging security evidence.
+
+
+## Process checkpoint (2026-09-28, 17:44 IST)
+
+- Fresh comparison of `main` against `security/auth-migration-plan-20260927`: **73 commits ahead / 8 behind**, status `diverged`; merge base `e5cfaae0f0a61a98f2593767c39076eaca973853`; current `main` SHA `f9e93faab6f62ad1bb85973c3f1675496fea7d5f`.
+- PR #5 remains a staging/auth migration draft. The latest known branch checkpoint before this note was `a712595af9b884fdc6ed43b4344e4b3b3d0b7686`; this comparison alone does not establish current PR mergeability or CI success.
+- Re-read the migration/implementation gate, staging execution gate, staging validation checklist, and validation workflow. The workflow is configured to check CRM structure, JavaScript syntax, and three staging guard-test suites; none of those tests were executed in this review.
+- Remaining safety blockers are unchanged: verified staging Auth login, trusted UID-to-tenant/role mapping, Firestore/Storage tenant isolation tests, CRM regression evidence, and verified backup/rollback evidence.
+- No code/runtime test, branch merge, force-push, production deployment, or Firebase production configuration/rules/data change was performed.
+- Next action: obtain the exact current PR head and CI result, then reconcile the 8 behind commits through a controlled merge/conflict-resolution workflow. Keep the PR draft and production untouched until validation and owner approval.
