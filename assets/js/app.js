@@ -3383,6 +3383,11 @@
         if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko lead create/edit karne ki permission nahi hai.'); return; }
         if (editDocId && !getLeadScopedList().some(item => item.docId === editDocId)) { alert('Ye lead aapke access mein nahi hai.'); return; }
         const currentStatus = document.getElementById('status').value;
+        if (!editDocId) {
+            const leadLimit = getTenantPlanLimit(resolveFeatureTenant(), 'leads');
+            const leadCount = getTenantLeadCount((getCurrentSessionUser() && getCurrentSessionUser().tenantId) || inspectingTenantId || 'heritage auto finance');
+            if (leadCount >= leadLimit) { showPlanLimitReached('leads', leadCount, leadLimit); return; }
+        }
         const requestedLoan = Number(document.getElementById('loanAmount').value) || 0;
         let approvedLoan = Number(document.getElementById('approvedAmount').value) || requestedLoan;
         let disbursedLoan = Number(document.getElementById('disbursedAmount').value) || approvedLoan;
@@ -4011,6 +4016,46 @@
     let managementEditingBranchId = '';
     let managementTenantRecordCache = null;
     let managementReportRows = [];
+
+    // Subscription caps from the Plan Comparison table. Counts are tenant-scoped.
+    // Enterprise/Custom limits may be overridden on the tenant record (staffLimit,
+    // branchLimit, leadLimit); absent custom values are treated as uncapped.
+    const TENANT_PLAN_LIMITS = {
+        Starter: { staff: 3, branches: 1, leads: 500 },
+        Professional: { staff: 10, branches: 3, leads: 5000 },
+        Business: { staff: 25, branches: 10, leads: 25000 },
+        Enterprise: { staff: Infinity, branches: Infinity, leads: Infinity },
+        Custom: { staff: Infinity, branches: Infinity, leads: Infinity }
+    };
+    function getTenantPlanLimit(tenant, resource) {
+        const field = resource === 'branches' ? 'branchLimit' : resource === 'staff' ? 'staffLimit' : 'leadLimit';
+        const plan = String(tenant?.subscriptionPlan || 'Starter');
+        const raw = tenant && tenant[field];
+        if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+            const parsed = Number(raw);
+            if (Number.isFinite(parsed) && parsed >= 0) return Math.floor(parsed);
+        }
+        return (TENANT_PLAN_LIMITS[plan] || TENANT_PLAN_LIMITS.Starter)[resource];
+    }
+    function getTenantLeadCount(tenantId) {
+        const id = String(tenantId || '').trim().toLowerCase();
+        if (!id) return 0;
+        return leads.filter(lead => {
+            const owner = String(lead.tenantId || lead.createdBy || '').trim().toLowerCase();
+            return owner === id || (id.includes('heritage') && (!owner || owner === 'admin'));
+        }).length;
+    }
+    function formatPlanLimit(limit) {
+        return Number.isFinite(limit) ? limit.toLocaleString('en-IN') : 'Custom';
+    }
+    function showPlanLimitReached(resource, current, limit) {
+        const labels = { staff: 'staff accounts', branches: 'branches', leads: 'leads' };
+        const message = 'Plan limit reached: aapke plan mein maximum ' + formatPlanLimit(limit) +
+            ' ' + (labels[resource] || resource) + ' allowed hain. Abhi ' +
+            Number(current).toLocaleString('en-IN') + ' use ho rahe hain. Plan upgrade/custom limit ke liye Admin se contact karein.';
+        managementNotice(message, true);
+        alert(message);
+    }
     const managementRoleNames = ['Administrator','Manager','Sales Executive','Viewer'];
     const managementPermissionModules = ['Leads · View','Leads · Create/Edit','Leads · Delete','Staff · Manage','Branches · Manage','Reports · View/Export','Documents · Access','Payouts · Access'];
     function managementTenantId() {
@@ -4195,6 +4240,13 @@
         if(!loginId||!/^[-a-z0-9._@]+$/i.test(loginId)){alert('Staff Login ID required hai.');return;}
         if(!managementEditingStaffId&&!staffPasswordIsStrong(loginPassword)){alert('Naya password kam se kam 8 characters ka ho aur letter + number contain kare.');return;}
         if(managementEditingStaffId&&loginPassword&&!staffPasswordIsStrong(loginPassword)){alert('Password kam se kam 8 characters ka ho aur letter + number contain kare.');return;}
+        const nextStaffStatus = String(document.getElementById('mhStaffStatus').value || 'Active');
+        const existingStaff = managementEditingStaffId ? managementStaff.find(x => x.id === managementEditingStaffId) : null;
+        if (nextStaffStatus !== 'Inactive' && (!existingStaff || existingStaff.status === 'Inactive')) {
+            const limit = getTenantPlanLimit(tenant, 'staff');
+            const activeCount = managementStaff.filter(x => x.status !== 'Inactive').length;
+            if (activeCount >= limit) { showPlanLimitReached('staff', activeCount, limit); return; }
+        }
         const duplicateSnap=await staffAccountsCollection.where('loginId','==',loginId).limit(5).get(),duplicate=duplicateSnap.docs.find(d=>d.id!==managementEditingStaffId);
         if(duplicate){alert('Ye Staff Login ID already use ho rahi hai. Dusri ID choose karein.');return;}
         const branchId=document.getElementById('mhStaffBranch').value,branch=managementBranches.find(x=>x.id===branchId);
@@ -4336,6 +4388,14 @@
     };
     window.saveManagementBranch=async function(){
         const ref=managementTenantRef();const name=String(document.getElementById('mhBranchName').value||'').trim();if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Branch name required hai.');return;}
+        const tenant = getManagementTenantRecord();
+        const nextBranchStatus = String(document.getElementById('mhBranchStatus').value || 'Active');
+        const existingBranch = managementEditingBranchId ? managementBranches.find(x => x.id === managementEditingBranchId) : null;
+        if (nextBranchStatus !== 'Inactive' && (!existingBranch || existingBranch.status === 'Inactive')) {
+            const limit = getTenantPlanLimit(tenant, 'branches');
+            const activeCount = managementBranches.filter(x => x.status !== 'Inactive').length;
+            if (activeCount >= limit) { showPlanLimitReached('branches', activeCount, limit); return; }
+        }
         const payload={name,code:String(document.getElementById('mhBranchCode').value||'').trim(),phone:String(document.getElementById('mhBranchPhone').value||'').trim(),address:String(document.getElementById('mhBranchAddress').value||'').trim(),status:document.getElementById('mhBranchStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{if(managementEditingBranchId)await ref.collection('branches').doc(managementEditingBranchId).set(payload,{merge:true});else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('branches').add(payload);}await loadManagementData();window.resetManagementBranchForm();managementNotice('Branch cloud mein save ho gayi.');}
         catch(error){console.error(error);managementNotice('Branch save nahi hui: '+(error.message||''),true);}
