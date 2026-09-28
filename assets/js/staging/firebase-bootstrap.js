@@ -47,7 +47,7 @@
     return Object.freeze({
       app: app,
       auth: app.auth(),
-      db: app.firestore(),
+      db: typeof app.firestore === 'function' ? app.firestore() : null,
       storage: typeof app.storage === 'function' ? app.storage() : null,
       projectId: EXPECTED_PROJECT_ID
     });
