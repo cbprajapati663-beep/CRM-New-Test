@@ -88,3 +88,23 @@ test('fails when Auth service does not expose email/password sign-in', () => {
   const h = createHarness({ projectId: 'heritage-crm-staging' }, true, true, false);
   assert.throws(() => h.window.HAFStagingFirebase.getServices(), /Auth service is unavailable/);
 });
+
+test('rejects non-object staging config before initialization', () => {
+  for (const config of [null, 'heritage-crm-staging', 42]) {
+    const h = createHarness(config);
+    assert.throws(() => h.window.HAFStagingFirebase.initialize(), /config is missing/);
+    assert.equal(h.initializeCalls, 0);
+  }
+});
+
+test('fails closed when the Firebase SDK is missing', () => {
+  const window = { HAF_STAGING_FIREBASE_CONFIG: { projectId: 'heritage-crm-staging' } };
+  vm.runInNewContext(source, { window });
+  assert.throws(() => window.HAFStagingFirebase.initialize(), /Firebase compat SDK is missing/);
+});
+
+test('returns an immutable services container', () => {
+  const h = createHarness({ projectId: 'heritage-crm-staging' });
+  const services = h.window.HAFStagingFirebase.getServices();
+  assert.equal(Object.isFrozen(services), true);
+});
