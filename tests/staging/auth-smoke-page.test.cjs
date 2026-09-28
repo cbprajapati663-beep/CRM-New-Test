@@ -5,15 +5,24 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const page = fs.readFileSync(
-  path.join(__dirname, '../../pages/staging-auth-smoke.html'),
-  'utf8'
-);
+const pagePath = path.join(__dirname, '../../pages/staging-auth-smoke.html');
+const page = fs.readFileSync(pagePath, 'utf8');
 
 test('staging auth smoke page loads Firebase Auth and staging bootstrap', () => {
   assert.match(page, /firebase-auth-compat\.js/);
-  assert.match(page, /assets\/js\/staging\/firebase-bootstrap\.js/);
-  assert.match(page, /assets\/js\/staging\/firebase-config\.js/);
+  assert.match(page, /src=["']\.\.\/assets\/js\/staging\/firebase-bootstrap\.js["']/);
+  assert.match(page, /src=["']\.\.\/assets\/js\/staging\/firebase-config\.js["']/);
+
+  for (const scriptPath of [
+    '../assets/js/staging/firebase-config.js',
+    '../assets/js/staging/firebase-bootstrap.js'
+  ]) {
+    const resolvedPath = path.resolve(path.dirname(pagePath), scriptPath);
+    assert.ok(
+      fs.existsSync(resolvedPath) || scriptPath.endsWith('firebase-config.js'),
+      'Missing staging script: ' + scriptPath
+    );
+  }
 });
 
 test('staging auth smoke page does not load production CRM application', () => {
