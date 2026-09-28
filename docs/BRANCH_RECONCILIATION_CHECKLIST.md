@@ -85,3 +85,25 @@ Selective port committed to the migration branch:
 - The PR description's older head/count fields are stale; use the live PR metadata and comparison above as the current baseline.
 - No reconciliation merge, force-push, production deployment, or Firebase production configuration/data/rules change was performed.
 - Next safe step remains path-by-path conflict and overlap review followed by validation on an exact reconciled commit. Do not merge while GitHub reports the PR as not mergeable or staging tenant-isolation evidence is missing.
+
+
+## Main-only commit content review (freshly inspected)
+
+Reviewed the actual patches for the eight main-only commits listed in the earlier review:
+
+- `e5e2d13278` adds the authorization matrix. The branch already contains the same document content; no duplicate copy needed.
+- `b5eb00642c` adds an initial smoke-page test. Keep the branch's expanded/hardened test version rather than replacing it with the shorter initial test.
+- `ad74cce6cd` and `d25bf61951` add/fix a staging Firebase config file. Do not port the config file or its values into the migration branch; keep the staging config outside version control and use the placeholder template only.
+- `2560259400` changes dashboard initialization order so feature gates apply before selecting the default view.
+- `684d0a492f` makes feature-gated views remain hidden unless their navigation tab is active.
+- `ec453da744` enforces one active dashboard view with important visibility, `hidden`, and `aria-hidden` handling.
+- `f9e93faab6` sanitizes payout badge CSS classes and escapes payout status text.
+
+The migration branch's `assets/js/app.js` contains the selective dashboard-visibility and payout-rendering changes described above. This was a source inspection only; it is not a browser/runtime test. The staging config commit contents were reviewed but not copied.
+
+## Process checkpoint (2026-09-28, 17:37 IST)
+
+- The main-only patch review is complete for the eight identified commits. No blind merge or force-push was performed.
+- Latest PR head after this checklist update: `8b3d0110d330e6567deecc8e3543585a3bcba39e`; PR remains open, draft, unmerged, and not mergeable.
+- Current compare remains diverged: 72 commits ahead / 8 behind, with merge base `e5cfaae0f0a61a98f2593767c39076eaca973853` and main at `f9e93faab6f62ad1bb85973c3f1675496fea7d5f`.
+- CI/test status remains unverified. The next step is to inspect full changed-file overlap and plan a safe reconciliation strategy; do not merge or cut over without conflict resolution and staging security evidence.
