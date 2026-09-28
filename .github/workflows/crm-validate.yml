@@ -57,6 +57,9 @@ jobs:
           console.log('HTML structure OK. Inline script blocks:', scripts.length);
           NODE
 
+      - name: Test subscription plan limits
+        run: node tests/plan-limits.test.js
+
       - name: Syntax check inline JavaScript
         run: node --check /tmp/crm-inline.js
 
