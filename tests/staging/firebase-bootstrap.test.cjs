@@ -9,7 +9,7 @@ const vm = require('node:vm');
 const sourcePath = path.join(__dirname, '../../assets/js/staging/firebase-bootstrap.js');
 const source = fs.readFileSync(sourcePath, 'utf8');
 
-function createHarness(config) {
+function createHarness(config, includeDataSdk = true) {
   const apps = [];
   let initializeCalls = 0;
   const firebase = {
@@ -20,8 +20,7 @@ function createHarness(config) {
         name,
         options,
         auth: () => ({ service: 'auth' }),
-        firestore: () => ({ service: 'firestore' }),
-        storage: () => ({ service: 'storage' })
+        ...(includeDataSdk ? { firestore: () => ({ service: 'firestore' }), storage: () => ({ service: 'storage' }) } : {})
       };
       apps.push(app);
       return app;
@@ -69,4 +68,13 @@ test('refuses an existing named app bound to another project', () => {
   h.apps.push({ name: 'haf-staging', options: { projectId: 'production-project' } });
   assert.throws(() => h.window.HAFStagingFirebase.initialize(), /Existing staging app/);
   assert.equal(h.initializeCalls, 0);
+});
+
+test('supports auth-only staging page when Firestore and Storage SDKs are absent', () => {
+  const h = createHarness({ projectId: 'heritage-crm-staging' }, false);
+  const services = h.window.HAFStagingFirebase.getServices();
+  assert.equal(services.auth.service, 'auth');
+  assert.equal(services.db, null);
+  assert.equal(services.storage, null);
+  assert.equal(services.projectId, 'heritage-crm-staging');
 });
