@@ -1,0 +1,2 @@
+# Local-only Firebase staging configuration (contains project-specific web config)
+/assets/js/staging/firebase-config.js
