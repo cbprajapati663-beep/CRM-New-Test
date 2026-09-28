@@ -1125,8 +1125,10 @@
             document.getElementById('cardCustomerHold').style.display = 'block';
             document.getElementById('tabSecretPayouts').style.display = 'flex';
             refreshDealerDropdowns();
-            switchView('pipeline');
+            // Apply feature visibility first, then select the default view so enabled
+            // modules remain hidden until their own navigation tab is opened.
             applyPlanFeatureGates();
+            switchView('pipeline');
         }
     }
 
