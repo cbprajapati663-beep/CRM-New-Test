@@ -60,3 +60,24 @@ test('staging authorization plan covers cross-tenant and privilege boundaries', 
   assert.match(authorizationPlan, /No authorization tests have been executed/);
   assert.match(authorizationPlan, /Do not approve production cutover until/);
 });
+
+const cutoverChecklist = fs.readFileSync(
+  path.join(root, 'docs/AUTH_MIGRATION_CUTOVER_ROLLBACK_CHECKLIST.md'),
+  'utf8'
+);
+
+test('migration cutover checklist requires explicit gates and rollback readiness', () => {
+  for (const gate of [
+    'Identity mapping reviewed',
+    'Firestore authorization verified',
+    'Storage authorization verified',
+    'Cross-tenant denial tests passed',
+    'Backup restore rehearsal passed',
+    'Rollback rehearsal passed'
+  ]) {
+    assert.ok(cutoverChecklist.includes(gate), 'Missing cutover gate: ' + gate);
+  }
+  assert.match(cutoverChecklist, /Final decision:\*\* NO-GO/);
+  assert.match(cutoverChecklist, /Do not cut over/);
+  assert.match(cutoverChecklist, /No production migration, deployment, or data change is authorized/);
+});
