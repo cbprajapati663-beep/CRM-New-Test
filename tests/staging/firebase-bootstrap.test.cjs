@@ -44,8 +44,21 @@ test('rejects a non-staging project before initialization', () => {
   assert.equal(h.initializeCalls, 0);
 });
 
+test('rejects missing or placeholder required config fields before initialization', () => {
+  for (const config of [
+    { projectId: 'heritage-crm-staging', authDomain: 'x', appId: 'x' },
+    { projectId: 'heritage-crm-staging', apiKey: 'REPLACE_WITH_KEY', authDomain: 'x', appId: 'x' },
+    { projectId: 'heritage-crm-staging', apiKey: 'x', authDomain: '', appId: 'x' },
+    { projectId: 'heritage-crm-staging', apiKey: 'x', authDomain: 'x', appId: '  ' }
+  ]) {
+    const h = createHarness(config);
+    assert.throws(() => h.window.HAFStagingFirebase.initialize(), /config field/);
+    assert.equal(h.initializeCalls, 0);
+  }
+});
+
 test('initializes only the named staging app and exposes services', () => {
-  const h = createHarness({ projectId: 'heritage-crm-staging' });
+  const h = createHarness({ projectId: 'heritage-crm-staging', apiKey: 'test-key', authDomain: 'heritage-crm-staging.firebaseapp.com', appId: 'test-app-id' });
   const services = h.window.HAFStagingFirebase.getServices();
   assert.equal(services.projectId, 'heritage-crm-staging');
   assert.equal(services.app.name, 'haf-staging');
@@ -71,7 +84,7 @@ test('refuses an existing named app bound to another project', () => {
 });
 
 test('supports auth-only staging page when Firestore and Storage SDKs are absent', () => {
-  const h = createHarness({ projectId: 'heritage-crm-staging' }, false);
+  const h = createHarness({ projectId: 'heritage-crm-staging', apiKey: 'test-key', authDomain: 'heritage-crm-staging.firebaseapp.com', appId: 'test-app-id' }, false);
   const services = h.window.HAFStagingFirebase.getServices();
   assert.equal(services.auth.service, 'auth');
   assert.equal(services.db, null);
@@ -80,12 +93,12 @@ test('supports auth-only staging page when Firestore and Storage SDKs are absent
 });
 
 test('fails with a clear message when Firebase Auth SDK is missing', () => {
-  const h = createHarness({ projectId: 'heritage-crm-staging' }, false, false);
+  const h = createHarness({ projectId: 'heritage-crm-staging', apiKey: 'test-key', authDomain: 'heritage-crm-staging.firebaseapp.com', appId: 'test-app-id' }, false, false);
   assert.throws(() => h.window.HAFStagingFirebase.getServices(), /Auth SDK is missing/);
 });
 
 test('fails when Auth service does not expose email/password sign-in', () => {
-  const h = createHarness({ projectId: 'heritage-crm-staging' }, true, true, false);
+  const h = createHarness({ projectId: 'heritage-crm-staging', apiKey: 'test-key', authDomain: 'heritage-crm-staging.firebaseapp.com', appId: 'test-app-id' }, true, true, false);
   assert.throws(() => h.window.HAFStagingFirebase.getServices(), /Auth service is unavailable/);
 });
 
