@@ -28,11 +28,26 @@ jobs:
             'printSelectedDocument'
           ];
           const missingHtml = requiredHtml.filter(x => !html.includes(x));
-          const requiredApp = ['generateDO'];
+          const requiredApp = ['generateDO', 'TENANT_PLAN_LIMITS', 'getTenantPlanLimit', 'showPlanLimitReached'];
           const missingApp = requiredApp.filter(x => !app.includes(x));
-          if (missingHtml.length || missingApp.length) {
+          const planLimitChecks = [
+            [/Starter:\s*\{\s*staff:\s*3,\s*branches:\s*1,\s*leads:\s*500\s*\}/, 'Starter caps (3 staff / 1 branch / 500 leads)'],
+            [/Professional:\s*\{\s*staff:\s*10,\s*branches:\s*3,\s*leads:\s*5000\s*\}/, 'Professional caps (10 / 3 / 5000)'],
+            [/Business:\s*\{\s*staff:\s*25,\s*branches:\s*10,\s*leads:\s*25000\s*\}/, 'Business caps (25 / 10 / 25000)'],
+            [/getTenantLeadCount\(/, 'tenant-scoped lead count'],
+            [/activeCount >= limit/, 'active staff/branch cap checks'],
+            [/leadCount >= leadLimit/, 'lead cap check'],
+            [/nextStaffStatus !== 'Inactive'/, 'staff activation cap guard'],
+            [/nextBranchStatus !== 'Inactive'/, 'branch activation cap guard'],
+            [/staffLimit/, 'custom staff limit field'],
+            [/branchLimit/, 'custom branch limit field'],
+            [/leadLimit/, 'custom lead limit field']
+          ];
+          const missingPlanChecks = planLimitChecks.filter(([pattern]) => !pattern.test(app)).map(([, label]) => label);
+          if (missingHtml.length || missingApp.length || missingPlanChecks.length) {
             if (missingHtml.length) console.error('Missing required HTML markers:', missingHtml.join(', '));
             if (missingApp.length) console.error('Missing required app.js markers:', missingApp.join(', '));
+            if (missingPlanChecks.length) console.error('Missing plan-limit checks:', missingPlanChecks.join(', '));
             process.exit(1);
           }
           const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
@@ -41,6 +56,12 @@ jobs:
           fs.writeFileSync('/tmp/crm-inline.js', scripts.join('\n'));
           console.log('HTML structure OK. Inline script blocks:', scripts.length);
           NODE
+
+      - name: Test subscription plan limits
+        run: node tests/plan-limits.test.js
+
+      - name: Test staging config safety guards
+        run: node tests/staging-config.test.js
 
       - name: Syntax check inline JavaScript
         run: node --check /tmp/crm-inline.js

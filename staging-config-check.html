@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Heritage CRM — Staging Config Check</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0b1728;color:#e5edf8}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;box-sizing:border-box}
+    main{width:min(620px,100%);background:#14243a;border:1px solid #35506f;border-radius:18px;padding:24px;box-sizing:border-box}
+    h1{margin:0 0 8px;font-size:1.5rem}p{color:#b7c8dc;line-height:1.55}
+    .pill{display:inline-block;padding:6px 11px;border-radius:999px;font-size:.8rem;font-weight:800;background:#14532d;color:#bbf7d0}
+    dl{display:grid;grid-template-columns:140px 1fr;gap:10px;margin:20px 0}
+    dt{color:#9fb3cb}dd{margin:0;overflow-wrap:anywhere;font-weight:650}
+    .warning{border-left:4px solid #f59e0b;background:#422006;padding:12px 14px;border-radius:8px;color:#fde68a}
+    code{overflow-wrap:anywhere}
+  </style>
+</head>
+<body>
+  <main>
+    <span class="pill">STAGING ONLY · FREE-TIER CHECK</span>
+    <h1>Heritage CRM — Staging Configuration</h1>
+    <p>This isolated page verifies the Firebase client configuration only. It does not load CRM data, read or write Firestore, create accounts, or enable paid services.</p>
+    <dl>
+      <dt>Expected project</dt><dd><code>heritage-crm-staging</code></dd>
+      <dt>Configured project</dt><dd id="project">Checking…</dd>
+      <dt>Config guard</dt><dd id="guard">Checking…</dd>
+      <dt>Authentication SDK</dt><dd id="auth">Not checked</dd>
+    </dl>
+    <p class="warning">This page is not the full CRM and does not establish tenant security. Do not use it for customer data or treat it as a login page.</p>
+  </main>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    (function () {
+      const expectedProjectId = 'heritage-crm-staging';
+      const config = {
+        apiKey: 'AIzaSyDrw9FghZyjPHIlOStK0ixSmjFMIUg6rvg',
+        authDomain: 'heritage-crm-staging.firebaseapp.com',
+        projectId: 'heritage-crm-staging',
+        storageBucket: 'heritage-crm-staging.firebasestorage.app',
+        messagingSenderId: '396389940454',
+        appId: '1:396389940454:web:9bdb36500c65d6daac8f27'
+      };
+      const projectEl = document.getElementById('project');
+      const guardEl = document.getElementById('guard');
+      const authEl = document.getElementById('auth');
+      projectEl.textContent = config.projectId;
+      if (config.projectId !== expectedProjectId || config.projectId === 'heritage-crm-f179a') {
+        guardEl.textContent = 'BLOCKED — project ID mismatch';
+        guardEl.style.color = '#fca5a5';
+        return;
+      }
+      guardEl.textContent = 'PASS — staging project ID matches';
+      guardEl.style.color = '#86efac';
+      try {
+        const app = firebase.initializeApp(config, 'heritage-crm-staging-config-check');
+        const auth = app.auth();
+        authEl.textContent = auth ? 'Loaded; no sign-in performed' : 'Unavailable';
+      } catch (error) {
+        authEl.textContent = 'SDK/config initialization failed';
+        guardEl.textContent = 'ERROR — initialization failed';
+        guardEl.style.color = '#fca5a5';
+      }
+    })();
+  </script>
+</body>
+</html>
