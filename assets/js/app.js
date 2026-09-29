@@ -4341,8 +4341,10 @@
         modal.addEventListener('click',event=>{if(event.target===modal)window.closeManagementBranchEdit();});
         // Keep the editor inside Management & Reports so it cannot appear as a
         // free-floating dialog over the Dashboard when the hub is hidden.
+        const branchPanel=document.getElementById('managementPanelBranches');
         const hub=document.getElementById('managementHubModal');
-        (hub||document.body).appendChild(modal);
+        // Mount the editor within the Branches panel so it is never a dashboard-level dialog.
+        (branchPanel||hub||document.body).appendChild(modal);
         return modal;
     }
     window.closeManagementBranchEdit=function(){
@@ -4402,8 +4404,10 @@
         const x=managementBranches.find(y=>y.id===id);if(!x)return;
         // The branch editor belongs to the Branches module, not the Dashboard.
         const hub=document.getElementById('managementHubModal');
-        if(hub)hub.style.display='flex';
+        if(hub){hub.style.display='flex';hub.style.zIndex='1001000';}
         if(typeof window.showManagementModule==='function')window.showManagementModule('branches');
+        const branchPanel=document.getElementById('managementPanelBranches');
+        if(branchPanel){branchPanel.style.display='block';branchPanel.setAttribute('aria-hidden','false');}
         managementEditingBranchId=id;
         ensureManagementBranchEditModal();
         document.getElementById('mhBranchEditName').value=x.name||'';
