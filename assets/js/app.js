@@ -4331,23 +4331,71 @@
         try{const next=x.status==='Inactive'?'Active':'Inactive';await ref.collection('staff').doc(id).update({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await staffAccountsCollection.doc(id).set({status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});await loadManagementData();managementNotice('Staff status + login status update ho gaya.');}
         catch(error){managementNotice('Status update nahi hua: '+(error.message||''),true);}
     };
+    function ensureManagementBranchEditModal(){
+        let modal=document.getElementById('mhBranchEditModal');
+        if(modal)return modal;
+        modal=document.createElement('div');
+        modal.id='mhBranchEditModal';
+        modal.style.cssText='display:none;position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML='<div role="dialog" aria-modal="true" aria-labelledby="mhBranchEditTitle" style="width:min(620px,96vw);max-height:92vh;overflow:auto;background:var(--card-bg,#111827);color:var(--text-color,#fff);border:1px solid #34d399;border-radius:14px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.5);"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;"><strong id="mhBranchEditTitle" style="font-size:1rem;color:#6ee7b7;">✏️ Edit Branch</strong><button class="btn-action" type="button" onclick="closeManagementBranchEdit()">✕ Close</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;"><div><label for="mhBranchEditName">Branch name *</label><input id="mhBranchEditName" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditCode">Branch code</label><input id="mhBranchEditCode" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditPhone">Contact number</label><input id="mhBranchEditPhone" type="tel" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditStatus">Status</label><select id="mhBranchEditStatus" style="width:100%;box-sizing:border-box;"><option>Active</option><option>Inactive</option></select></div><div style="grid-column:1/-1;"><label for="mhBranchEditAddress">Address</label><input id="mhBranchEditAddress" style="width:100%;box-sizing:border-box;"></div></div><div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px;"><button class="btn-action" type="button" onclick="closeManagementBranchEdit()">Cancel</button><button class="btn-action" type="button" onclick="saveManagementBranch()" style="background:#059669;color:#fff;">💾 Save Changes</button></div></div>';
+        modal.addEventListener('click',event=>{if(event.target===modal)window.closeManagementBranchEdit();});
+        document.body.appendChild(modal);
+        return modal;
+    }
+    window.closeManagementBranchEdit=function(){
+        const modal=document.getElementById('mhBranchEditModal');if(modal)modal.style.display='none';
+        managementEditingBranchId='';
+    };
     window.resetManagementBranchForm=function(){
-        managementEditingBranchId='';['mhBranchName','mhBranchCode','mhBranchPhone','mhBranchAddress'].forEach(id=>document.getElementById(id).value='');document.getElementById('mhBranchStatus').value='Active';
+        managementEditingBranchId='';
+        ['mhBranchName','mhBranchCode','mhBranchPhone','mhBranchAddress'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+        const status=document.getElementById('mhBranchStatus');if(status)status.value='Active';
+        const modal=document.getElementById('mhBranchEditModal');if(modal)modal.style.display='none';
     };
     window.saveManagementBranch=async function(){
-        const ref=managementTenantRef();const name=String(document.getElementById('mhBranchName').value||'').trim();if(!ref){managementNotice('Tenant select nahi hua.',true);return;}if(!name){alert('Branch name required hai.');return;}
-        const payload={name,code:String(document.getElementById('mhBranchCode').value||'').trim(),phone:String(document.getElementById('mhBranchPhone').value||'').trim(),address:String(document.getElementById('mhBranchAddress').value||'').trim(),status:document.getElementById('mhBranchStatus').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
-        try{if(managementEditingBranchId)await ref.collection('branches').doc(managementEditingBranchId).set(payload,{merge:true});else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('branches').add(payload);}await loadManagementData();window.resetManagementBranchForm();managementNotice('Branch cloud mein save ho gayi.');}
-        catch(error){console.error(error);managementNotice('Branch save nahi hui: '+(error.message||''),true);}
+        const ref=managementTenantRef();
+        const editing=!!managementEditingBranchId;
+        const prefix=editing?'mhBranchEdit':'mhBranch';
+        const value=id=>String(document.getElementById(prefix+id).value||'').trim();
+        const name=value('Name');
+        if(!ref){managementNotice('Tenant select nahi hua.',true);return;}
+        if(!name){alert('Branch name required hai.');return;}
+        const payload={name,code:value('Code'),phone:value('Phone'),address:value('Address'),status:document.getElementById(prefix+'Status').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        try{
+            if(editing)await ref.collection('branches').doc(managementEditingBranchId).set(payload,{merge:true});
+            else{payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();await ref.collection('branches').add(payload);}
+            await loadManagementData();
+            if(editing)window.closeManagementBranchEdit();else window.resetManagementBranchForm();
+            managementNotice(editing?'Branch details update ho gayi.':'Branch cloud mein save ho gayi.');
+        }catch(error){console.error(error);managementNotice('Branch save nahi hui: '+(error.message||''),true);}
     };
     function renderManagementBranches(){
         const box=document.getElementById('mhBranchList');if(!box)return;
         if(!managementBranches.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">Abhi branch records nahi hain. Upar form se add karein.</p>';return;}
-        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:570px;"><thead><tr><th align="left">Branch</th><th align="left">Address</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+managementBranches.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'<br><small>'+managementEscape(x.code||'')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.address||'—')+'</td><td>'+managementEscape(x.phone||'—')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td><button class="btn-quick" type="button" onclick="editManagementBranch(\''+escapeJsString(x.id)+'\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementBranch(\''+escapeJsString(x.id)+'\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button></td></tr>').join('')+'</tbody></table>';
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:650px;"><thead><tr><th align="left">Branch</th><th align="left">Address</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+managementBranches.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'<br><small>'+managementEscape(x.code||'')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.address||'—')+'</td><td>'+managementEscape(x.phone||'—')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td style="white-space:nowrap;"><button class="btn-quick" type="button" onclick="editManagementBranch(\\''+escapeJsString(x.id)+'\\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementBranch(\\''+escapeJsString(x.id)+'\\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button> <button class="btn-quick" type="button" style="background:#b91c1c;color:#fff;" onclick="deleteManagementBranch(\\''+escapeJsString(x.id)+'\\')">Delete</button></td></tr>').join('')+'</tbody></table>';
     }
     window.editManagementBranch=function(id){
-        const x=managementBranches.find(y=>y.id===id);if(!x)return;managementEditingBranchId=id;
-        document.getElementById('mhBranchName').value=x.name||'';document.getElementById('mhBranchCode').value=x.code||'';document.getElementById('mhBranchPhone').value=x.phone||'';document.getElementById('mhBranchAddress').value=x.address||'';document.getElementById('mhBranchStatus').value=x.status||'Active';document.getElementById('mhBranchName').focus();
+        const x=managementBranches.find(y=>y.id===id);if(!x)return;
+        managementEditingBranchId=id;
+        ensureManagementBranchEditModal();
+        document.getElementById('mhBranchEditName').value=x.name||'';
+        document.getElementById('mhBranchEditCode').value=x.code||'';
+        document.getElementById('mhBranchEditPhone').value=x.phone||'';
+        document.getElementById('mhBranchEditAddress').value=x.address||'';
+        document.getElementById('mhBranchEditStatus').value=x.status||'Active';
+        document.getElementById('mhBranchEditModal').style.display='flex';
+        document.getElementById('mhBranchEditName').focus();
+    };
+    window.deleteManagementBranch=async function(id){
+        const x=managementBranches.find(y=>y.id===id);const ref=managementTenantRef();if(!x||!ref)return;
+        const confirmed=confirm('Branch "'+(x.name||'Branch')+'" ko permanently delete karna hai?\\n\\nBranch record delete hoga. Is branch se jude customer/lead records automatically delete nahi honge.');
+        if(!confirmed)return;
+        try{
+            await ref.collection('branches').doc(id).delete();
+            if(managementEditingBranchId===id)window.closeManagementBranchEdit();
+            await loadManagementData();
+            managementNotice('Branch delete ho gayi. Existing customer/lead records delete nahi hue.');
+        }catch(error){console.error('Branch delete failed:',error);managementNotice('Branch delete nahi hui: '+(error.message||''),true);}
     };
     window.toggleManagementBranch=async function(id){
         const ref=managementTenantRef();const x=managementBranches.find(y=>y.id===id);if(!ref||!x)return;
