@@ -1,7 +1,14 @@
 # Staging Security Audit — 2026-09-29
 
 ## Scope
-Read-only review of the CRM source and the user's Firebase Console screenshots. No Firebase settings, users, rules, production data, or deployments were changed.
+Read-only review of the CRM source and the user's Firebase Console screenshots. No Firebase settings, users, rules, production data, billing, or deployments were changed.
+
+## Owner cost constraint
+**Use free-tier capabilities only for now. Do not enable or upgrade to any paid Firebase feature without explicit owner approval.**
+- Keep the staging project on the Spark/free plan. Do not upgrade to Blaze or enable paid services.
+- Do not create billable resources or trigger a paid deployment.
+- Prefer local development and Firebase Emulator Suite for backend/rules testing where practical.
+- Clearly label client-side checks as convenience only, not secure enforcement.
 
 ## Staging console observations
 - Staging project: `heritage-crm-staging`.
@@ -16,15 +23,16 @@ Read-only review of the CRM source and the user's Firebase Console screenshots. 
 - Client code performs direct Firestore reads and writes for tenant, lead, staff-account, staff, and branch data. A server-trusted tenant/role mapping and matching restrictive Rules are not yet verified.
 - PR #11 plan caps are client-side checks. They can be bypassed by direct writes or concurrent requests and are not authoritative enforcement.
 
-## Safe next steps (not yet performed)
+## Free-first next steps (not yet performed)
 1. Keep production and staging Firebase projects strictly separated. Introduce an explicit, non-secret staging configuration path and verify the active project before testing.
 2. Define the canonical tenant identity and role mapping from verified Firebase Auth UIDs. Do not trust tenant IDs or roles supplied by the browser.
-3. Map all existing read/write paths and document ownership fields before drafting Rules. Keep deny-by-default until an authenticated staging flow and rules tests are ready.
-4. Decide whether to enable billing for a trusted backend only after reviewing expected costs and obtaining explicit owner approval. No billing change is implied by this audit.
-5. Implement trusted, atomic server-side plan-cap enforcement and close client write bypasses.
-6. Test authentication, tenant isolation, permissions, cap boundaries, concurrent creates, and existing CRM workflows in Emulator Suite or isolated staging before considering any production release.
+3. Map existing read/write paths and document ownership fields before drafting Rules. Keep deny-by-default until authenticated staging flow and rules tests are ready.
+4. Use local Emulator Suite and free-tier tooling for development/tests where possible. Confirm current Firebase plan limits before relying on any service; do not upgrade or enable paid services without explicit approval.
+5. Keep plan caps in the UI as a helpful warning only until trusted atomic backend enforcement is available. Do not describe frontend checks as secure enforcement.
+6. Test authentication, tenant isolation, permissions, cap boundaries, concurrent creates, and existing CRM workflows in an emulator or isolated free-tier staging setup before considering release.
 
 ## Release guardrails
-- No production Firebase Rules, data, accounts, credentials, or deployment were changed.
+- No production Firebase Rules, data, accounts, credentials, billing settings, or deployment were changed.
 - Do not publish permissive Rules or deploy unverified code.
 - Keep PR #11 unmerged until backend enforcement and security/regression tests are complete.
+- Any step requiring a paid plan, paid backend, billing enablement, or potentially billable resource must be paused and presented for explicit approval first.
