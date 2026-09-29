@@ -1427,7 +1427,7 @@
    <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;"><strong>ADVANCED CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff search, role/branch overview aur account status management.</div></div><div><label for="mhStaffSearch">Search staff</label><input id="mhStaffSearch" placeholder="Name, mobile, email, role..." oninput="renderManagementStaff()" style="width:100%;box-sizing:border-box;"></div><div id="mhStaffList" style="margin-top:14px;overflow:auto;"></div><p style="margin:8px 0 0;font-size:.74rem;color:var(--text-muted);">Staff login ID/password aur feature access yahin manage hoga. Password edit karte waqt blank chhodne par existing password same rahega.</p>
   </div>
   <section id="managementPanelBranches" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #34d399;">
-   <h3 style="margin:0 0 6px;color:#6ee7b7;">🏢 Branches</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Branch profile, contact, address aur active/inactive status.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: branch profile, contact, active status. Advanced: staff mapping and branch-wise lead allocation.</p>
+   <h3 style="margin:0 0 6px;color:#6ee7b7;">🏢 Branches</h3><div id="mhBranchNotice" role="status" aria-live="polite" style="display:none;margin:10px 0 14px;padding:12px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.12);color:#fde68a;font-size:.88rem;line-height:1.5;font-weight:600;"></div><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Branch profile, contact, address aur active/inactive status.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: branch profile, contact, active status. Advanced: staff mapping and branch-wise lead allocation.</p>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;">
     <div><label for="mhBranchName">Branch name *</label><input id="mhBranchName" placeholder="e.g. Ahmedabad Branch" style="width:100%;box-sizing:border-box;"></div>
     <div><label for="mhBranchCode">Branch code</label><input id="mhBranchCode" placeholder="e.g. AMD01" style="width:100%;box-sizing:border-box;"></div>
@@ -1471,6 +1471,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/app.js?v=branch-edit-modal-fix-20260929-3"></script>
+<script src="assets/js/app.js?v=branch-plan-limit-notice-20260929-4"></script>
 </body>
 </html>

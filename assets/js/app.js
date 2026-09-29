@@ -4374,7 +4374,10 @@
             const limits={Starter:1,Professional:3,Business:10};
             const cap=Number.isFinite(configured)&&configured>=0?configured:(Object.prototype.hasOwnProperty.call(limits,plan)?limits[plan]:Infinity);
             if(managementBranches.length>=cap){
-                managementNotice('Aapke '+plan+' plan mein maximum '+cap+' branch(es) allowed hain. Nayi branch add karne ke liye plan upgrade karein.',true);
+                const planMessage='Aapka current plan '+plan+' hai. Is plan mein maximum '+cap+' branch'+(cap===1?'':'es')+' hi add kar sakte hain. Nayi branch add karne ke liye apna subscription plan upgrade karein.';
+                const notice=document.getElementById('mhBranchNotice');
+                if(notice){notice.textContent='⚠️ '+planMessage;notice.style.display='block';notice.style.borderColor='#f59e0b';notice.style.background='rgba(245,158,11,.12)';notice.style.color='#fde68a';notice.scrollIntoView({behavior:'smooth',block:'nearest'});}
+                managementNotice(planMessage,true);
                 return;
             }
         }
