@@ -961,6 +961,13 @@
         }
         return tenantAllowed.includes(featureKey);
     }
+    function requireFeatureAccess(featureKey, featureLabel) {
+        if (isFeatureEnabled(featureKey)) return true;
+        const tenant = resolveFeatureTenant();
+        const plan = String(tenant && tenant.subscriptionPlan || 'Starter');
+        alert('Aapka current plan ' + plan + ' hai. ' + (featureLabel || 'Ye feature') + ' is plan mein enabled nahi hai. Is feature ke liye subscription plan upgrade karein ya administrator se sampark karein.');
+        return false;
+    }
     // IT Master Admin dashboard-only visibility guard.
     // These operational CRM modules remain fully available to tenant CRM users
     // and when the Master Admin explicitly inspects a tenant.
@@ -1073,8 +1080,26 @@
                 el.style.display = isFeatureEnabled(feature) ? '' : 'none';
             });
         });
+        // Reports are a paid module and must be gated in both the hub navigation
+        // and the report panel itself (not only the CSV buttons).
+        const reportsEnabled = isFeatureEnabled('reports');
+        document.querySelectorAll('[data-management-module="reports"]').forEach(el => {
+            el.style.display = reportsEnabled ? '' : 'none';
+            el.setAttribute('aria-hidden', reportsEnabled ? 'false' : 'true');
+        });
+        const reportsPanel = document.getElementById('managementPanelReports');
+        if (reportsPanel && !reportsEnabled) {
+            reportsPanel.style.display = 'none';
+            reportsPanel.setAttribute('aria-hidden', 'true');
+        }
+        // Disbursement dashboard totals are part of the Disbursed feature.
+        ['lbl-disburse-leads', 'lbl-month-business'].forEach(id => {
+            const label = document.getElementById(id);
+            const card = label && label.closest('.metric-card');
+            if (card) card.style.display = isFeatureEnabled('disbursed') ? '' : 'none';
+        });
         const exportBtn = document.getElementById('btnExportExcel');
-        if (exportBtn && !isFeatureEnabled('reports')) exportBtn.style.display = 'none';
+        if (exportBtn) exportBtn.style.display = isFeatureEnabled('reports') ? '' : 'none';
     }
     window.handleSubscriptionPlanChange = function() {
         const plan = document.getElementById('t_subscriptionPlan').value;
@@ -4151,6 +4176,8 @@
     }
     window.showManagementModule=function(module){
         const activeUser=getCurrentSessionUser();
+        const requiredModuleFeature = ({leads:'pipeline', reports:'reports'})[module];
+        if (requiredModuleFeature && !requireFeatureAccess(requiredModuleFeature, module === 'reports' ? 'Reports & CSV Export' : 'Lead Management')) return false;
         // Staff can enter the Management & Reports center only for the Reports
         // module when their saved role policy grants Reports · View/Export.
         if(activeUser && activeUser.role==='staff'){
@@ -4501,6 +4528,7 @@
         });
     }
     window.generateManagementReport=function(){
+        if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
         const statusEl=document.getElementById('mhReportStatus');if(statusEl&&statusEl.options.length<=1){const statuses=[...new Set(getManagementReportBaseRows().map(l=>String(l.status||'New')).filter(Boolean))].sort();statuses.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;statusEl.appendChild(o);});}
         managementReportRows=managementReportFiltered();
         const total=managementReportRows.length;const disb=managementReportRows.filter(l=>l.status==='Disbursed');const amount=disb.reduce((n,l)=>n+(Number(String(l.disbursedAmount||l.loanAmount||0).replace(/[^0-9.]/g,''))||0),0);
@@ -4513,10 +4541,12 @@
         const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
     }
     window.exportManagementReport=function(){
+        if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
         const rows=[['Customer','Mobile','Status','Loan Amount','Disbursed Amount','Staff','Branch','Follow-up'],...managementReportFiltered().map(l=>[l.name||'',l.mobile||'',l.status||'',l.loanAmount||0,l.disbursedAmount||0,l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''])];
         downloadManagementCsv('management-report-'+new Date().toISOString().slice(0,10)+'.csv',rows);
     };
     window.exportManagementLeadList=function(){
+        if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
         const query=String(document.getElementById('mhLeadSearch')?.value||'').trim().toLowerCase();
         const status=document.getElementById('mhLeadStatusFilter')?.value||'';
         const filtered=getLeadScopedList().filter(l=>(!status||String(l.status||'New')===status)&&(!query||[l.name,l.mobile,l.status,l.city].some(v=>String(v||'').toLowerCase().includes(query))));
