@@ -4372,7 +4372,15 @@
     function renderManagementBranches(){
         const box=document.getElementById('mhBranchList');if(!box)return;
         if(!managementBranches.length){box.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;">Abhi branch records nahi hain. Upar form se add karein.</p>';return;}
-        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:650px;"><thead><tr><th align="left">Branch</th><th align="left">Address</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+managementBranches.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'<br><small>'+managementEscape(x.code||'')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.address||'—')+'</td><td>'+managementEscape(x.phone||'—')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td style="white-space:nowrap;"><button class="btn-quick" type="button" onclick="editManagementBranch(\\''+escapeJsString(x.id)+'\\')">Edit</button> <button class="btn-quick" type="button" onclick="toggleManagementBranch(\\''+escapeJsString(x.id)+'\\')">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button> <button class="btn-quick" type="button" style="background:#b91c1c;color:#fff;" onclick="deleteManagementBranch(\\''+escapeJsString(x.id)+'\\')">Delete</button></td></tr>').join('')+'</tbody></table>';
+        box.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:650px;"><thead><tr><th align="left">Branch</th><th align="left">Address</th><th align="left">Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+managementBranches.map(x=>'<tr><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.name)+'<br><small>'+managementEscape(x.code||'')+'</small></td><td style="padding:9px;border-top:1px solid var(--card-border);">'+managementEscape(x.address||'—')+'</td><td>'+managementEscape(x.phone||'—')+'</td><td>'+managementEscape(x.status||'Active')+'</td><td style="white-space:nowrap;"><button class="btn-quick" type="button" data-branch-action="edit" data-branch-id="'+managementEscape(x.id)+'">Edit</button> <button class="btn-quick" type="button" data-branch-action="toggle" data-branch-id="'+managementEscape(x.id)+'">'+(x.status==='Inactive'?'Activate':'Deactivate')+'</button> <button class="btn-quick" type="button" style="background:#b91c1c;color:#fff;" data-branch-action="delete" data-branch-id="'+managementEscape(x.id)+'">Delete</button></td></tr>').join('')+'</tbody></table>';
+        box.onclick=function(event){
+            const button=event.target.closest('button[data-branch-action]');if(!button||!box.contains(button))return;
+            const id=button.getAttribute('data-branch-id');
+            const action=button.getAttribute('data-branch-action');
+            if(action==='edit')window.editManagementBranch(id);
+            else if(action==='toggle')window.toggleManagementBranch(id);
+            else if(action==='delete')window.deleteManagementBranch(id);
+        };
     }
     window.editManagementBranch=function(id){
         const x=managementBranches.find(y=>y.id===id);if(!x)return;
