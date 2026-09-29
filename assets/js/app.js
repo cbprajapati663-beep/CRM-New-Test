@@ -4336,7 +4336,7 @@
         if(modal)return modal;
         modal=document.createElement('div');
         modal.id='mhBranchEditModal';
-        modal.style.cssText='display:none;position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px;';
+        modal.style.cssText='display:none;position:fixed;inset:0;z-index:1000000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px;';
         modal.innerHTML='<div role="dialog" aria-modal="true" aria-labelledby="mhBranchEditTitle" style="width:min(620px,96vw);max-height:92vh;overflow:auto;background:var(--card-bg,#111827);color:var(--text-color,#fff);border:1px solid #34d399;border-radius:14px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.5);"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;"><strong id="mhBranchEditTitle" style="font-size:1rem;color:#6ee7b7;">✏️ Edit Branch</strong><button class="btn-action" type="button" onclick="closeManagementBranchEdit()">✕ Close</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;"><div><label for="mhBranchEditName">Branch name *</label><input id="mhBranchEditName" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditCode">Branch code</label><input id="mhBranchEditCode" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditPhone">Contact number</label><input id="mhBranchEditPhone" type="tel" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditStatus">Status</label><select id="mhBranchEditStatus" style="width:100%;box-sizing:border-box;"><option>Active</option><option>Inactive</option></select></div><div style="grid-column:1/-1;"><label for="mhBranchEditAddress">Address</label><input id="mhBranchEditAddress" style="width:100%;box-sizing:border-box;"></div></div><div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px;"><button class="btn-action" type="button" onclick="closeManagementBranchEdit()">Cancel</button><button class="btn-action" type="button" onclick="saveManagementBranch()" style="background:#059669;color:#fff;">💾 Save Changes</button></div></div>';
         modal.addEventListener('click',event=>{if(event.target===modal)window.closeManagementBranchEdit();});
         document.body.appendChild(modal);
@@ -4360,6 +4360,19 @@
         const name=value('Name');
         if(!ref){managementNotice('Tenant select nahi hua.',true);return;}
         if(!name){alert('Branch name required hai.');return;}
+        // Enforce tenant subscription branch caps before creating a new branch.
+        // Editing an existing branch does not consume another branch slot.
+        if(!editing){
+            const tenant=managementTenantRecordCache || tenantsCache.find(t=>String(t.tenantId||'').trim().toLowerCase()===managementTenantId().toLowerCase()) || resolveFeatureTenant();
+            const plan=String(tenant&&tenant.subscriptionPlan||'Starter').trim();
+            const configured=tenant&&Number(tenant.branchLimit);
+            const limits={Starter:1,Professional:3,Business:10};
+            const cap=Number.isFinite(configured)&&configured>=0?configured:(Object.prototype.hasOwnProperty.call(limits,plan)?limits[plan]:Infinity);
+            if(managementBranches.length>=cap){
+                managementNotice('Aapke '+plan+' plan mein maximum '+cap+' branch(es) allowed hain. Nayi branch add karne ke liye plan upgrade karein.',true);
+                return;
+            }
+        }
         const payload={name,code:value('Code'),phone:value('Phone'),address:value('Address'),status:document.getElementById(prefix+'Status').value,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
             if(editing)await ref.collection('branches').doc(managementEditingBranchId).set(payload,{merge:true});
