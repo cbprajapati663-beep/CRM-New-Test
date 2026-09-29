@@ -25,6 +25,13 @@
       fail('Expected project "' + EXPECTED_PROJECT_ID + '"; received a different project. Initialization blocked.');
     }
 
+    const requiredFields = ['apiKey', 'authDomain', 'appId'];
+    requiredFields.forEach(function (field) {
+      if (typeof config[field] !== 'string' || !config[field].trim() || config[field].indexOf('REPLACE_WITH_') !== -1) {
+        fail('Staging config field "' + field + '" is missing or still contains a placeholder.');
+      }
+    });
+
     const apps = Array.isArray(global.firebase.apps) ? global.firebase.apps : [];
     const namedApp = apps.find(function (app) { return app.name === APP_NAME; });
     if (namedApp) {
