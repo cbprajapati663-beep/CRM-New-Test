@@ -4336,10 +4336,13 @@
         if(modal)return modal;
         modal=document.createElement('div');
         modal.id='mhBranchEditModal';
-        modal.style.cssText='display:none;position:fixed;inset:0;z-index:1000000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px;';
+        modal.style.cssText='display:none;position:fixed;inset:0;z-index:1001001;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px;';
         modal.innerHTML='<div role="dialog" aria-modal="true" aria-labelledby="mhBranchEditTitle" style="width:min(620px,96vw);max-height:92vh;overflow:auto;background:var(--card-bg,#111827);color:var(--text-color,#fff);border:1px solid #34d399;border-radius:14px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.5);"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;"><strong id="mhBranchEditTitle" style="font-size:1rem;color:#6ee7b7;">✏️ Edit Branch</strong><button class="btn-action" type="button" onclick="closeManagementBranchEdit()">✕ Close</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;"><div><label for="mhBranchEditName">Branch name *</label><input id="mhBranchEditName" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditCode">Branch code</label><input id="mhBranchEditCode" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditPhone">Contact number</label><input id="mhBranchEditPhone" type="tel" style="width:100%;box-sizing:border-box;"></div><div><label for="mhBranchEditStatus">Status</label><select id="mhBranchEditStatus" style="width:100%;box-sizing:border-box;"><option>Active</option><option>Inactive</option></select></div><div style="grid-column:1/-1;"><label for="mhBranchEditAddress">Address</label><input id="mhBranchEditAddress" style="width:100%;box-sizing:border-box;"></div></div><div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px;"><button class="btn-action" type="button" onclick="closeManagementBranchEdit()">Cancel</button><button class="btn-action" type="button" onclick="saveManagementBranch()" style="background:#059669;color:#fff;">💾 Save Changes</button></div></div>';
         modal.addEventListener('click',event=>{if(event.target===modal)window.closeManagementBranchEdit();});
-        document.body.appendChild(modal);
+        // Keep the editor inside Management & Reports so it cannot appear as a
+        // free-floating dialog over the Dashboard when the hub is hidden.
+        const hub=document.getElementById('managementHubModal');
+        (hub||document.body).appendChild(modal);
         return modal;
     }
     window.closeManagementBranchEdit=function(){
@@ -4397,6 +4400,10 @@
     }
     window.editManagementBranch=function(id){
         const x=managementBranches.find(y=>y.id===id);if(!x)return;
+        // The branch editor belongs to the Branches module, not the Dashboard.
+        const hub=document.getElementById('managementHubModal');
+        if(hub)hub.style.display='flex';
+        if(typeof window.showManagementModule==='function')window.showManagementModule('branches');
         managementEditingBranchId=id;
         ensureManagementBranchEditModal();
         document.getElementById('mhBranchEditName').value=x.name||'';
