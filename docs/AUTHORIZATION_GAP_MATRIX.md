@@ -18,6 +18,10 @@
 | Payout security | `payoutSecurity` is a separate top-level collection with master/tenant-derived document IDs. | Sensitive unlock state has no verified least-privilege access policy. | Inventory exact fields/actions, then isolate owner-only controls and test denial for other roles. |
 | Tenant lifecycle | Browser code can create/bootstrap a default tenant and update expiry/suspension fields. | Privileged lifecycle writes are performed by client code. | Move privileged lifecycle changes behind an approved trusted workflow; do not run bootstrap against production. |
 | Plan limits | Staff/branch/lead caps are checked in the client. | Direct or concurrent writes can bypass caps. | Treat as advisory until a trusted enforcement option compatible with the free-tier constraint is approved. |
+| Firebase environment | The reviewed app source initializes Firebase using the production project configuration. | The plan-limits branch is not isolated from production at the main application entry point. | Do not use this branch for live sign-in or data operations; implement and verify a separate staging entry/config before any test. |
+| Tenant password handling | Tenant login compares a submitted password with a password field read from a Firestore tenant document; bootstrap code includes a default tenant credential. | Plaintext/client-readable credentials are not a secure authentication system. | Stop using this path for production authentication; migrate through an approved Firebase Auth process and securely handle credential rotation. |
+| Session role trust | Session role and tenant identifiers are serialized into local storage and used by UI scoping logic. | A browser user can alter local state; UI filtering is not an authorization boundary. | Derive role and tenant membership from authenticated identity and enforce access in Firestore Rules. |
+| Lead scope fallback | Lead filtering uses tenant/creator fields and includes legacy fallback behavior for some records with missing ownership. | Missing or inconsistent ownership can cause records to be included in a tenant view incorrectly. | Establish a verified ownership migration/quarantine plan and test cross-tenant denial before enabling access. |
 
 ## Decisions needed before writing Firestore Rules
 
@@ -34,4 +38,5 @@
 - No Firestore Rules were authored or deployed.
 - No production or staging records, users, credentials, config, or billing were changed.
 - No paid Firebase feature was enabled.
-- Do not merge/deploy the security migration or plan-limit PR until trusted identity, tenant isolation, role/branch enforcement, and regression tests are demonstrated.
+- Current pull request validation was checked on commit `f61126dd27c715d5aa0ab4da956bf1f2158d2039`: CRM Validation run #438 and Jekyll site CI run #405 both completed successfully. These CI results do not establish Firebase authorization or tenant isolation.
+- Keep PR #11 in draft and do not merge/deploy until trusted identity, tenant isolation, role/branch enforcement, and regression tests are demonstrated.
