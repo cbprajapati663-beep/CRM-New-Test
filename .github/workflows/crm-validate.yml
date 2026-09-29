@@ -60,6 +60,9 @@ jobs:
       - name: Test subscription plan limits
         run: node tests/plan-limits.test.js
 
+      - name: Test staging config safety guards
+        run: node tests/staging-config.test.js
+
       - name: Syntax check inline JavaScript
         run: node --check /tmp/crm-inline.js
 
