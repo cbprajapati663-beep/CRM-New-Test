@@ -19,7 +19,7 @@
 | Plan cap tests | Partial | Static/client tests exist; server/rules enforcement and concurrent writes remain unresolved. |
 | Backup/restore test | Pending | Define backup scope, secret exclusion, restore validation, and rollback steps. |
 | Browser smoke test | Pending | Staging check page is not a full CRM sign-in or tenant-isolation test. |
-| CI evidence | Needs refresh | Verify workflow results for the current branch head before relying on earlier workflow numbers. |
+| CI evidence | **Passed (static CI only)** | On head `e539d77f1e0ec46d02ccb7fed7c57f41b1789b00`, CRM Validation run #439 and Jekyll site CI run #406 completed successfully. This is not evidence of Firebase security or tenant isolation. |
 
 ## Minimum test cases once the environment and policy are approved
 
