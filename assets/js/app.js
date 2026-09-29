@@ -1746,6 +1746,7 @@
 
     // Read-only quality scan: never edits or deletes customer records.
     window.renderDataHealth = function() {
+        if (!requireFeatureAccess('dataHealth', 'Data Health & Duplicate Scan')) return;
         const records = getLeadScopedList();
         const body = document.getElementById('dataHealthTableBody');
         if (!body) return;
@@ -2376,6 +2377,7 @@
     };
 
     function renderSmartWorkflow() {
+        if (!requireFeatureAccess('smartWorkflow', 'Smart Workflow')) return;
         const scoped = getLeadScopedList();
         const active = scoped.filter(l => !['Disbursed','Rejected','Not Interested'].includes(l.status));
         const overdue = active.filter(l => l.followDate && l.followDate < todayStr);
@@ -2616,6 +2618,7 @@
     }
 
     window.exportFollowupsCSV = function () {
+        if (!requireFeatureAccess('followups', 'Follow-up Export')) return;
         const scopedLeads = getLeadScopedList();
         const activeLeads = scopedLeads.filter(l => l.followDate && l.status !== 'Disbursed' && l.status !== 'Rejected');
         const futureLimit = new Date();
@@ -3196,6 +3199,7 @@
     }
 
     function promptAddNewDealer() {
+        if (!requireFeatureAccess('dealerLedger', 'Dealer / Broker Management')) return;
         const name = prompt("Naye Dealer / Sub-Broker ka naam darj karein:");
         if (!name || name.trim() === '') return;
         const clean = name.trim();
@@ -3211,6 +3215,7 @@
     }
 
     function openManageDealersModal() {
+        if (!requireFeatureAccess('dealerLedger', 'Dealer / Broker Management')) return;
         const dealers = getStoredDealers();
         const container = document.getElementById('dealersListContainer');
         container.innerHTML = '';
@@ -3248,6 +3253,7 @@
     }
 
     function deleteDealerItem(dealerName) {
+        if (!requireFeatureAccess('dealerLedger', 'Dealer / Broker Management')) return;
         if (!confirm(`Kya aap "${dealerName}" ko delete karna chahte hain?`)) return;
         let dealers = getStoredDealers();
         dealers = dealers.filter(d => d !== dealerName);
