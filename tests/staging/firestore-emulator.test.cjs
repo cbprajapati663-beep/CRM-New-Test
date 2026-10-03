@@ -13,6 +13,8 @@ const {
 const env = initializeTestEnvironment({
   projectId: 'heritage-crm-staging',
   firestore: {
+    host: '127.0.0.1',
+    port: 8080,
     rules: fs.readFileSync(
       path.join(__dirname, '../../firebase/staging/firestore.rules'),
       'utf8'
