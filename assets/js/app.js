@@ -896,7 +896,7 @@
     const PLAN_FEATURES = {
         Starter: ['pipeline', 'followups', 'documents'],
         Professional: ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'documents', 'emiCalculator', 'affordability', 'reports'],
-        Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport'],
+        Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports'],
         Enterprise: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport']
     };
     const FEATURE_CATALOG = [
@@ -1073,7 +1073,10 @@
             ['[onclick*="openDealerStatementModal"]', 'reports'],
             ['[onclick*="downloadCRMBackup"]', 'backupExport'],
             ['[onclick*="exportToCSV"]', 'reports'],
-            ['[onclick*="exportFollowupsCSV"]', 'followups']
+            ['[onclick*="exportFollowupsCSV"]', 'followups'],
+            ['[onclick*="exportAllClientsToCSV"]', 'reports'],
+            ['[onclick*="exportViewerBranchCSV"]', 'reports'],
+            ['[onclick*="exportDocumentChecklist"]', 'documents']
         ];
         selectorMappings.forEach(([selector, feature]) => {
             document.querySelectorAll(selector).forEach(el => {
