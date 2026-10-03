@@ -75,7 +75,7 @@
       password.value='';
       show('Authenticated. Tenant: '+membership.tenantId+' · Role: '+membership.role+' · Branches: '+membership.branchIds.length+'.');
       // Keep this page auth-only until the staging CRM entry point is wired to the same identity contract.
-      setTimeout(function(){ window.location.replace('./staging-auth-smoke.html'); },1200);
+      setTimeout(function(){ window.location.replace('./staging-crm.html'); },1200);
     }catch(error){
       password.value='';
       show('Sign-in blocked: '+(error.message||'Unknown authentication error'));
