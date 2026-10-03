@@ -1,0 +1,71 @@
+'use strict';
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { initializeApp } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const { assertActiveTenant, assertUnderLimit, getEffectiveLimits } = require('./lib/planLimits');
+
+initializeApp();
+const db = getFirestore();
+
+function requireAuth(request) {
+  if (!request.auth || !request.auth.uid) throw new HttpsError('unauthenticated', 'Authentication required.');
+  return request.auth.uid;
+}
+async function loadMembership(uid) {
+  const snap = await db.doc('memberships/' + uid).get();
+  if (!snap.exists) throw new HttpsError('permission-denied', 'Active membership required.');
+  const m = snap.data() || {};
+  if (m.status !== 'Active' || m.tenantStatus !== 'Active') throw new HttpsError('permission-denied', 'Inactive membership or tenant.');
+  if (!m.tenantId || !['owner', 'manager'].includes(m.role)) throw new HttpsError('permission-denied', 'Insufficient role.');
+  return m;
+}
+async function loadTenant(tenantId) {
+  const snap = await db.doc('tenants/' + tenantId).get();
+  if (!snap.exists) throw new HttpsError('failed-precondition', 'Tenant subscription state is missing.');
+  const tenant = snap.data() || {};
+  try { assertActiveTenant(tenant); getEffectiveLimits(tenant); }
+  catch (e) { throw new HttpsError('failed-precondition', e.message); }
+  return tenant;
+}
+function fail(e) {
+  if (e instanceof HttpsError) throw e;
+  if (e && e.message === 'PLAN_LIMIT_REACHED') throw new HttpsError('resource-exhausted', 'Plan limit reached for ' + e.kind + '.');
+  throw new HttpsError('internal', 'Trusted plan enforcement failed.');
+}
+
+exports.createPlanEnforcedBranch = onCall(async request => {
+  try {
+    const uid = requireAuth(request), m = await loadMembership(uid), tenantId = m.tenantId, tenant = await loadTenant(tenantId);
+    const input = request.data && typeof request.data === 'object' ? request.data : {};
+    if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
+    const ref = db.collection('tenants').doc(tenantId).collection('branches').doc();
+    await db.runTransaction(async tx => {
+      const q = await tx.get(db.collection('tenants').doc(tenantId).collection('branches').where('status', '!=', 'Inactive'));
+      assertUnderLimit('branches', q.size, tenant);
+      tx.set(ref, { ...input, tenantId, createdByUserId: uid, createdAt: new Date().toISOString(), status: input.status || 'Active' });
+    });
+    return { ok: true, id: ref.id };
+  } catch (e) { return fail(e); }
+});
+
+exports.createPlanEnforcedLead = onCall(async request => {
+  try {
+    const uid = requireAuth(request), m = await loadMembership(uid), tenantId = m.tenantId, tenant = await loadTenant(tenantId);
+    const input = request.data && typeof request.data === 'object' ? request.data : {};
+    if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
+    const ref = db.collection('leads').doc();
+    await db.runTransaction(async tx => {
+      const q = await tx.get(db.collection('leads').where('tenantId', '==', tenantId));
+      assertUnderLimit('leads', q.size, tenant);
+      tx.set(ref, { ...input, tenantId, createdByUserId: uid, createdAt: new Date().toISOString() });
+    });
+    return { ok: true, id: ref.id };
+  } catch (e) { return fail(e); }
+});
+
+exports.getPlanEntitlement = onCall(async request => {
+  try {
+    const uid = requireAuth(request), m = await loadMembership(uid), tenant = await loadTenant(m.tenantId);
+    return { plan: tenant.subscriptionPlan || 'Starter', limits: getEffectiveLimits(tenant) };
+  } catch (e) { return fail(e); }
+});
