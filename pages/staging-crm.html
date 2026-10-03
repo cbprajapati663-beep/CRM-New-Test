@@ -34,6 +34,7 @@ table{width:100%;border-collapse:collapse;margin-top:14px}th,td{text-align:left;
 const status=document.getElementById('status'), identity=document.getElementById('identity'), scope=document.getElementById('scope'), wrap=document.getElementById('tableWrap');
 function show(msg,error){status.textContent=msg;status.className='status'+(error?' error':'')}
 function esc(v){return String(v??'').replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]})}
+let authStateUnsubscribe=null;
 async function load(){
  try{
   if(!window.HAFStagingFirebase||!window.HAFStagingAuthSession) throw new Error('Staging security modules unavailable.');
@@ -74,6 +75,12 @@ async function load(){
  }catch(e){show('Staging CRM blocked: '+(e.message||'Unknown error'),true);wrap.innerHTML='<div class="empty">No CRM data loaded.</div>'}
 }
 document.getElementById('logout').addEventListener('click',async function(){await window.HAFStagingAuthSession.signOut();window.location.replace('./staging-login.html')});
+authStateUnsubscribe=window.HAFStagingAuthSession.onAuthStateChanged(function(user){
+  if(!user){
+    if(authStateUnsubscribe) authStateUnsubscribe();
+    window.location.replace('./staging-login.html');
+  }
+});
 load();
 }());
 </script>
