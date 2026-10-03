@@ -36,9 +36,7 @@ The backend must reject, before the write is committed:
 
 ## Current implementation state
 
-The repository currently contains the authorization rules and staging Auth identity bridge, but no trusted production backend function/service that can enforce aggregate plan limits atomically.
-
-Therefore **plan enforcement remains blocked** and must not be marked complete.
+The repository now contains a staging-only trusted Firebase Functions source boundary for aggregate plan enforcement. It is **not yet deployed or connected to the CRM write flows**, so plan enforcement remains blocked and must not be marked complete.
 
 ## Safe migration rule
 
