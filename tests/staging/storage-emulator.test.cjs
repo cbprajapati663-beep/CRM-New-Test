@@ -1,7 +1,10 @@
 'use strict';
 
+require('firebase/compat/app');
+require('firebase/compat/firestore');
+require('firebase/compat/storage');
+
 const test = require('node:test');
-const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const {
@@ -12,7 +15,13 @@ const {
 
 const env = initializeTestEnvironment({
   projectId: 'heritage-crm-staging',
+  firestore: {
+    host: '127.0.0.1',
+    port: 8080
+  },
   storage: {
+    host: '127.0.0.1',
+    port: 9199,
     rules: fs.readFileSync(
       path.join(__dirname, '../../firebase/staging/storage.rules'),
       'utf8'
