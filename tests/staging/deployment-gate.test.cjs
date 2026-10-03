@@ -8,13 +8,13 @@ const gate = fs.readFileSync(gatePath, 'utf8');
 test('staging deployment gate documents privileged provisioning boundaries', () => {
   for (const marker of [
     'heritage-crm-staging',
-    'No passwords',
+    'Do not put passwords',
     'service-account',
-    'No staging provisioning from the browser',
-    'legacy localStorage session',
-    'rules are the authorization boundary',
+    'Do not provision staging identities from browser JavaScript',
+    'legacy `localStorage` CRM session',
+    'rules remain the authorization boundary',
     'disabled-a',
-    'cross-tenant access denied'
+    'Cross-tenant access'
   ]) {
     assert.ok(gate.toLowerCase().includes(marker.toLowerCase()), marker);
   }
