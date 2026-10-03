@@ -1,7 +1,7 @@
 # Trusted Plan Enforcement Implementation — 2026-10-03
 
 ## Status
-The staging branch now contains a trusted Firebase Functions boundary for subscription limits. It is implemented in source but not yet deployed or production-connected.
+The staging branch now contains a trusted Firebase Functions boundary for subscription limits, including staff, branch, and lead creation. It is implemented in source but not yet deployed or production-connected.
 
 ## Boundary
 Callable functions resolve Firebase Auth uid -> trusted memberships/{uid} -> authoritative tenants/{tenantId} subscription state -> effective limits, then enforce aggregate branch/lead limits inside Firestore transactions.
@@ -14,7 +14,7 @@ Enterprise / Custom: tenant-specific planLimits overrides.
 
 ## Remaining gate
 - deploy Functions to heritage-crm-staging through a trusted deployment path
-- add staff creation to the trusted function boundary
+- migrate staging staff creation to createPlanEnforcedStaff
 - migrate staging CRM create flows away from direct aggregate-limit-sensitive writes
 - verify concurrent-write behavior against deployed Functions
 - run deployed Auth + plan-boundary smoke tests
