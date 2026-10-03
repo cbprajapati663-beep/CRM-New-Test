@@ -15,6 +15,7 @@ test('plan enforcement contract requires a trusted server-side boundary', () => 
   assert.match(contract, /request\.auth\.uid -> memberships/);
   assert.match(contract, /plan enforcement remains blocked/i);
   assert.match(contract, /concurrent writes/i);
+  assert.match(contract, /staff creation/i);
 });
 
 test('plan enforcement contract covers subscription limit classes', () => {
