@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>HERITAGE FINTECH CORE — Staging Login</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:#0b1020;color:#e8ecf8}
+    main{width:min(100%,460px);padding:28px;border:1px solid #d4af37;border-radius:16px;background:#111827;box-shadow:0 18px 60px #0006}
+    .tag{display:inline-block;padding:6px 10px;border-radius:999px;background:#422006;color:#fcd34d;font-size:12px;font-weight:800;letter-spacing:.08em}
+    h1{font-size:23px;margin:18px 0 8px;color:#d4af37}.sub{color:#9ca3af;font-size:14px;line-height:1.5;margin-bottom:20px}
+    label{display:block;margin:14px 0 6px;font-size:13px;color:#cbd5e1}
+    input{width:100%;padding:12px;border-radius:8px;border:1px solid #374151;background:#0b1220;color:#fff;font-size:15px}
+    button{width:100%;padding:12px;margin-top:14px;border:0;border-radius:8px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer}#resetButton{background:#374151}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    #status{min-height:44px;margin-top:14px;padding:11px;border-radius:8px;background:#0b1220;color:#b9c6e2;font-size:13px}
+    .meta{margin-top:16px;padding-top:14px;border-top:1px solid #374151;color:#8190af;font-size:12px;line-height:1.5}
+  </style>
+</head>
+<body>
+<main>
+  <span class="tag">STAGING ONLY · FIREBASE AUTH</span>
+  <h1>HERITAGE FINTECH CORE</h1>
+  <div class="sub">Staging CRM authentication. Identity comes from Firebase Authentication; tenant, role, status and branches come only from the trusted membership document.</div>
+  <form id="stagingLoginForm">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <button id="loginButton" type="submit">Sign in to staging</button>
+    <button id="resetButton" type="button">Send password reset email</button>
+  </form>
+  <div id="status" role="status" aria-live="polite">Loading staging authentication…</div>
+  <div class="meta">No password, tenant ID, role or membership data is stored in localStorage by this page. This entry point must remain isolated from production.</div>
+</main>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../assets/js/staging/firebase-config.js"></script>
+<script src="../assets/js/staging/firebase-bootstrap.js"></script>
+<script src="../assets/js/staging/auth-session.js"></script>
+<script>
+(function(){
+  'use strict';
+  const form=document.getElementById('stagingLoginForm');
+  const email=document.getElementById('email');
+  const password=document.getElementById('password');
+  const button=document.getElementById('loginButton');
+  const resetButton=document.getElementById('resetButton');
+  const status=document.getElementById('status');
+
+  function show(message){status.textContent=message;}
+  function busy(value){button.disabled=value;resetButton.disabled=value;}
+
+  try{
+    if(!window.HAFStagingFirebase || !window.HAFStagingFirebase.getServices){
+      throw new Error('Staging Firebase bootstrap is unavailable.');
+    }
+    const services=window.HAFStagingFirebase.getServices();
+    if(services.projectId!=='heritage-crm-staging'){
+      throw new Error('Unexpected Firebase project.');
+    }
+    show('Connected to heritage-crm-staging. Enter a dedicated staging account.');
+  }catch(error){
+    show('Setup blocked: '+(error.message||'Unknown error'));
+    busy(true);
+    return;
+  }
+
+  resetButton.addEventListener('click',async function(){
+    const address=email.value.trim();
+    if(!address){ show('Enter your staging account email first.'); return; }
+    busy(true);
+    try{
+      await window.HAFStagingAuthSession.sendPasswordResetEmail(address);
+      show('Password reset email requested. Check the staging account inbox.');
+    }catch(error){
+      show('Password reset blocked: '+(error.message||'Unknown error'));
+    }finally{ busy(false); }
+  });
+
+  form.addEventListener('submit',async function(event){
+    event.preventDefault();
+    busy(true);
+    try{
+      const membership=await window.HAFStagingAuthSession.signInAndLoadMembership(email.value,password.value);
+      password.value='';
+      show('Authenticated. Tenant: '+membership.tenantId+' · Role: '+membership.role+' · Branches: '+membership.branchIds.length+'.');
+      // Keep this page auth-only until the staging CRM entry point is wired to the same identity contract.
+      setTimeout(function(){ window.location.replace('./staging-crm.html'); },1200);
+    }catch(error){
+      password.value='';
+      show('Sign-in blocked: '+(error.message||'Unknown authentication error'));
+    }finally{
+      busy(false);
+    }
+  });
+}());
+</script>
+</body>
+</html>

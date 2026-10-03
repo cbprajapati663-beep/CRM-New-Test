@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function membership() {
+      return firestore.get(/databases/(default)/documents/memberships/$(request.auth.uid)).data;
+    }
+    function activeMember() {
+      return signedIn() && membership().status == 'Active' && membership().tenantStatus == 'Active';
+    }
+    function sameTenant(tenantId) { return activeMember() && tenantId == membership().tenantId; }
+    function branchAllowed(branchId) {
+      return membership().role == 'owner' || (branchId != null && branchId in membership().branchIds);
+    }
+    match /customer-documents/{tenantId}/{leadId}/{allPaths=**} {
+      allow read, delete: if sameTenant(tenantId)
+        && firestore.get(/databases/(default)/documents/leads/$(leadId)).data.tenantId == tenantId
+        && (
+          membership().role == 'owner'
+          || branchAllowed(firestore.get(/databases/(default)/documents/leads/$(leadId)).data.branchId)
+          || (membership().role == 'sales' &&
+              (firestore.get(/databases/(default)/documents/leads/$(leadId)).data.createdByUserId == request.auth.uid
+               || firestore.get(/databases/(default)/documents/leads/$(leadId)).data.assignedStaffId == request.auth.uid))
+        );
+      allow write: if sameTenant(tenantId)
+        && request.resource.size < 25 * 1024 * 1024
+        && firestore.get(/databases/(default)/documents/leads/$(leadId)).data.tenantId == tenantId
+        && (
+          membership().role == 'owner'
+          || branchAllowed(firestore.get(/databases/(default)/documents/leads/$(leadId)).data.branchId)
+          || (membership().role == 'sales' &&
+              (firestore.get(/databases/(default)/documents/leads/$(leadId)).data.createdByUserId == request.auth.uid
+               || firestore.get(/databases/(default)/documents/leads/$(leadId)).data.assignedStaffId == request.auth.uid))
+        );
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

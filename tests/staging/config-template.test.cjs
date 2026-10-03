@@ -57,7 +57,7 @@ test('staging authorization plan covers cross-tenant and privilege boundaries', 
     assert.ok(authorizationPlan.includes(scenario), 'Missing scenario: ' + scenario);
   }
   assert.match(authorizationPlan, /client-side route hiding.*not authorization/i);
-  assert.match(authorizationPlan, /No authorization tests have been executed/);
+  assert.ok(/No authorization tests have been executed/i.test(authorizationPlan));
   assert.match(authorizationPlan, /Do not approve production cutover until/);
 });
 

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>HERITAGE FINTECH CORE — Staging CRM</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#e8ecf8}.wrap{max-width:1180px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 20px;border:1px solid #26324a;border-radius:14px;background:#111827}
+h1{margin:0;color:#d4af37;font-size:22px}.sub{color:#9ca3af;font-size:12px;margin-top:4px}
+button{border:0;border-radius:8px;padding:9px 13px;font-weight:700;cursor:pointer;background:#7c3aed;color:#fff}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#172554;color:#93c5fd;font-size:12px;font-weight:700;margin:3px}
+.panel{margin-top:18px;padding:18px;border:1px solid #26324a;border-radius:14px;background:#111827}
+.status{padding:10px 12px;border-radius:8px;background:#0b1220;color:#b9c6e2;font-size:13px}
+table{width:100%;border-collapse:collapse;margin-top:14px}th,td{text-align:left;padding:10px;border-bottom:1px solid #26324a;font-size:13px}th{color:#d4af37}
+.empty{color:#9ca3af;padding:18px 0}.error{color:#fca5a5}
+</style>
+</head>
+<body><div class="wrap">
+<header><div><h1>🚗 HERITAGE FINTECH CORE</h1><div class="sub">STAGING CRM · Firebase Auth + tenant authorization</div></div><div><span id="identity"></span><button id="logout" type="button">Logout</button></div></header>
+<section class="panel"><div id="status" class="status">Loading staging identity…</div></section>
+<section class="panel"><h2 style="margin:0;font-size:17px">Active Pipeline</h2><div id="scope" style="margin-top:7px"></div><div id="tableWrap"><div class="empty">Loading leads…</div></div></section>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../assets/js/staging/firebase-config.js"></script>
+<script src="../assets/js/staging/firebase-bootstrap.js"></script>
+<script src="../assets/js/staging/auth-session.js"></script>
+<script>
+(function(){
+'use strict';
+const status=document.getElementById('status'), identity=document.getElementById('identity'), scope=document.getElementById('scope'), wrap=document.getElementById('tableWrap');
+function show(msg,error){status.textContent=msg;status.className='status'+(error?' error':'')}
+function esc(v){return String(v??'').replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]})}
+let authStateUnsubscribe=null;
+async function load(){
+ try{
+  if(!window.HAFStagingFirebase||!window.HAFStagingAuthSession) throw new Error('Staging security modules unavailable.');
+  const services=window.HAFStagingFirebase.getServices();
+  if(services.projectId!=='heritage-crm-staging') throw new Error('Unexpected Firebase project.');
+  const authUser=services.auth.currentUser;
+  if(!authUser) { window.location.replace('./staging-login.html'); return; }
+  const snap=await services.db.collection('memberships').doc(authUser.uid).get();
+  if(!snap.exists) throw new Error('Trusted membership is missing.');
+  const m=snap.data()||{};
+  if(m.status!=='Active'||m.tenantStatus!=='Active'||!m.tenantId) throw new Error('Account or tenant is inactive.');
+  const role=String(m.role||''), branches=Array.isArray(m.branchIds)?m.branchIds:[];
+  identity.innerHTML='<span class="badge">'+esc(role)+'</span>';
+  scope.innerHTML='<span class="badge">Tenant: '+esc(m.tenantId)+'</span>'+branches.map(b=>'<span class="badge">Branch: '+esc(b)+'</span>').join('');
+  const rows=[];
+  if(role==='owner'){
+    const q=await services.db.collection('leads').where('tenantId','==',m.tenantId).limit(250).get();
+    q.forEach(d=>rows.push({id:d.id,...d.data()}));
+  }else if(role==='manager'||role==='viewer'){
+    for(const branchId of branches){
+      const q=await services.db.collection('leads').where('tenantId','==',m.tenantId).where('branchId','==',branchId).limit(250).get();
+      q.forEach(d=>rows.push({id:d.id,...d.data()}));
+    }
+  }else if(role==='sales'){
+    const queries=[
+      services.db.collection('leads').where('tenantId','==',m.tenantId).where('createdByUserId','==',authUser.uid).limit(250).get(),
+      services.db.collection('leads').where('tenantId','==',m.tenantId).where('assignedStaffId','==',authUser.uid).limit(250).get()
+    ];
+    const results=await Promise.all(queries); results.forEach(q=>q.forEach(d=>rows.push({id:d.id,...d.data()})));
+  }else throw new Error('Unsupported membership role.');
+  const unique=[...new Map(rows.map(x=>[x.id,x])).values()];
+  unique.sort((a,b)=>String(b.updatedAt?.seconds||0).localeCompare(String(a.updatedAt?.seconds||0)));
+  if(!unique.length){wrap.innerHTML='<div class="empty">No leads are visible in this authorized scope.</div>'}
+  else {wrap.innerHTML='<table><thead><tr><th>Customer</th><th>Mobile</th><th>Status</th><th>Loan Amount</th><th>Branch</th><th>Assigned</th></tr></thead><tbody>'+
+    unique.map(l=>'<tr><td>'+esc(l.name)+'</td><td>'+esc(l.mobile)+'</td><td>'+esc(l.status)+'</td><td>₹'+esc(l.loanAmount)+'</td><td>'+esc(l.branchId)+'</td><td>'+esc(l.assignedStaffId)+'</td></tr>').join('')+
+    '</tbody></table>'}
+  show('Authenticated and loaded only the leads permitted by the staging authorization model.');
+ }catch(e){show('Staging CRM blocked: '+(e.message||'Unknown error'),true);wrap.innerHTML='<div class="empty">No CRM data loaded.</div>'}
+}
+document.getElementById('logout').addEventListener('click',async function(){await window.HAFStagingAuthSession.signOut();window.location.replace('./staging-login.html')});
+authStateUnsubscribe=window.HAFStagingAuthSession.onAuthStateChanged(function(user){
+  if(!user){
+    if(authStateUnsubscribe) authStateUnsubscribe();
+    window.location.replace('./staging-login.html');
+  }
+});
+load();
+}());
+</script>
+</body></html>

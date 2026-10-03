@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function membership() { return get(/databases/$(database)/documents/memberships/$(request.auth.uid)).data; }
+    function activeMember() {
+      return signedIn() && membership().status == 'Active' && membership().tenantStatus == 'Active';
+    }
+    function sameTenant(tenantId) { return activeMember() && tenantId == membership().tenantId; }
+    function isOwner() { return activeMember() && membership().role == 'owner'; }
+    function branchAllowed(branchId) {
+      return isOwner() || (branchId != null && branchId in membership().branchIds);
+    }
+    function canReadLead(data) {
+      return sameTenant(data.tenantId) && (
+        isOwner()
+        || (membership().role in ['manager', 'viewer'] && branchAllowed(data.branchId))
+        || (membership().role == 'sales' &&
+            (data.createdByUserId == request.auth.uid || data.assignedStaffId == request.auth.uid))
+      );
+    }
+    function canCreateLead(data) {
+      return sameTenant(data.tenantId)
+        && data.createdByUserId == request.auth.uid
+        && branchAllowed(data.branchId)
+        && membership().role in ['owner', 'manager', 'sales'];
+    }
+    function canUpdateLead(before, after) {
+      return canReadLead(before)
+        && sameTenant(after.tenantId)
+        && after.tenantId == before.tenantId
+        && after.createdByUserId == before.createdByUserId
+        && (isOwner() || membership().role == 'manager'
+             || (membership().role == 'sales'
+                 && (before.createdByUserId == request.auth.uid || before.assignedStaffId == request.auth.uid)
+                 && after.branchId == before.branchId));
+    }
+
+    match /memberships/{uid} {
+      allow read: if signedIn() && uid == request.auth.uid && activeMember();
+      allow write: if false;
+    }
+    match /leads/{leadId} {
+      allow read: if canReadLead(resource.data);
+      allow create: if canCreateLead(request.resource.data);
+      allow update: if canUpdateLead(resource.data, request.resource.data);
+      allow delete: if isOwner();
+    }
+    match /leads/{leadId}/activity/{activityId} {
+      allow read: if canReadLead(get(/databases/$(database)/documents/leads/$(leadId)).data);
+      allow create: if activeMember()
+        && request.resource.data.tenantId == membership().tenantId
+        && request.resource.data.createdBy == request.auth.uid
+        && canReadLead(get(/databases/$(database)/documents/leads/$(leadId)).data);
+      allow update, delete: if false;
+    }
+    match /branches/{branchId} {
+      allow read: if sameTenant(resource.data.tenantId) && branchAllowed(resource.data.branchId);
+      allow create: if isOwner() && sameTenant(request.resource.data.tenantId);
+      allow update: if isOwner() && sameTenant(resource.data.tenantId)
+        && request.resource.data.tenantId == resource.data.tenantId;
+      allow delete: if isOwner() && sameTenant(resource.data.tenantId);
+    }
+    match /tenants/{tenantId} { allow read, write: if false; }
+    match /staffAccounts/{staffId} { allow read, write: if false; }
+    match /payoutSecurity/{documentId} { allow read, write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
