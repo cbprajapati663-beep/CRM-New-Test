@@ -80,3 +80,6 @@ jobs:
 
       - name: Run Firestore emulator authorization tests
         run: npm run test:staging:firestore
+
+      - name: Run Storage emulator authorization tests
+        run: npm run test:staging:storage
