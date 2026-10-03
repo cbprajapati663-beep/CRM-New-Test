@@ -82,8 +82,39 @@
     await services.auth.signOut();
   }
 
+  async function sendPasswordResetEmail(email) {
+    if (!global.HAFStagingFirebase || typeof global.HAFStagingFirebase.getServices !== 'function') {
+      fail('Staging Firebase bootstrap is unavailable.');
+    }
+    const services = global.HAFStagingFirebase.getServices();
+    if (services.projectId !== EXPECTED_PROJECT_ID) {
+      fail('Unexpected Firebase project.');
+    }
+    const normalizedEmail = String(email || '').trim();
+    if (!normalizedEmail) {
+      fail('A staging account email is required.');
+    }
+    await services.auth.sendPasswordResetEmail(normalizedEmail);
+  }
+
+  function onAuthStateChanged(callback) {
+    if (!global.HAFStagingFirebase || typeof global.HAFStagingFirebase.getServices !== 'function') {
+      fail('Staging Firebase bootstrap is unavailable.');
+    }
+    if (typeof callback !== 'function') {
+      fail('Auth state callback is required.');
+    }
+    const services = global.HAFStagingFirebase.getServices();
+    if (services.projectId !== EXPECTED_PROJECT_ID) {
+      fail('Unexpected Firebase project.');
+    }
+    return services.auth.onAuthStateChanged(callback);
+  }
+
   global.HAFStagingAuthSession = Object.freeze({
     signInAndLoadMembership: signInAndLoadMembership,
-    signOut: signOut
+    signOut: signOut,
+    sendPasswordResetEmail: sendPasswordResetEmail,
+    onAuthStateChanged: onAuthStateChanged
   });
 })(typeof window !== 'undefined' ? window : globalThis);
