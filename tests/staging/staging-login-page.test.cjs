@@ -22,3 +22,11 @@ test('staging login does not accept tenant or role as browser-auth credentials',
   assert.doesNotMatch(html, /tenantId\s*=\s*document/);
   assert.doesNotMatch(html, /role\s*=\s*document/);
 });
+
+
+test('staging login exposes password recovery without browser persistence', () => {
+  assert.match(source, /resetButton/);
+  assert.match(source, /sendPasswordResetEmail/);
+  assert.doesNotMatch(source, /localStorage/);
+  assert.doesNotMatch(source, /sessionStorage/);
+});
