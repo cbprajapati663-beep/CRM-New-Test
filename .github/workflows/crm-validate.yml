@@ -74,3 +74,9 @@ jobs:
 
       - name: Run staging identity fixture safety tests
         run: node --test tests/staging/identity-fixture.test.cjs
+
+      - name: Install staging security test dependencies
+        run: npm install --ignore-scripts
+
+      - name: Run Firestore emulator authorization tests
+        run: npm run test:staging:firestore
