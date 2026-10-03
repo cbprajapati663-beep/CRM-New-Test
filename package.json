@@ -2,10 +2,12 @@
   "name": "heritage-crm-security-tests",
   "private": true,
   "scripts": {
-    "test:staging:firestore": "firebase emulators:exec --only firestore --project heritage-crm-staging \"node --test tests/staging/firestore-emulator.test.cjs\""
+    "test:staging:firestore": "firebase emulators:exec --only firestore --project heritage-crm-staging \"node --test tests/staging/firestore-emulator.test.cjs\"",
+    "test:staging:storage": "firebase emulators:exec --only storage --project heritage-crm-staging \"node --test tests/staging/storage-emulator.test.cjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",
+    "@firebase/storage": "^0.13.4",
     "firebase-tools": "^14.0.0"
   }
 }
