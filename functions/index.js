@@ -63,6 +63,37 @@ exports.createPlanEnforcedLead = onCall(async request => {
   } catch (e) { return fail(e); }
 });
 
+exports.createPlanEnforcedStaff = onCall(async request => {
+  try {
+    const uid = requireAuth(request);
+    const m = await loadMembership(uid);
+    const tenantId = m.tenantId;
+    const tenant = await loadTenant(tenantId);
+    const input = request.data && typeof request.data === 'object' ? request.data : {};
+    if (String(input.tenantId || '') !== tenantId) {
+      throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
+    }
+    const ref = db.collection('tenants').doc(tenantId).collection('staff').doc();
+    await db.runTransaction(async tx => {
+      const q = await tx.get(
+        db.collection('tenants').doc(tenantId).collection('staff')
+          .where('status', '!=', 'Inactive')
+      );
+      assertUnderLimit('staff', q.size, tenant);
+      tx.set(ref, {
+        ...input,
+        tenantId,
+        createdByUserId: uid,
+        createdAt: new Date().toISOString(),
+        status: input.status || 'Active'
+      });
+    });
+    return { ok: true, id: ref.id };
+  } catch (e) {
+    return fail(e);
+  }
+});
+
 exports.getPlanEntitlement = onCall(async request => {
   try {
     const uid = requireAuth(request), m = await loadMembership(uid), tenant = await loadTenant(m.tenantId);
