@@ -88,7 +88,7 @@ test('Tenant A owner cannot access Tenant B lead documents', async () => {
   await seed();
   const storage = await storageFor('owner-a');
   const ref = storage.ref('customer-documents/tenant-b/lead-b/rc.pdf');
-  await assertFails(ref.getBytes());
+  await assertFails(ref.getMetadata());
 });
 
 test('Tenant A sales user cannot upload another tenant document', async () => {
