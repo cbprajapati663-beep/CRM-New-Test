@@ -12,7 +12,7 @@ test('staging identity contract exposes only synthetic principals', () => {
   const sandbox = {};
   vm.runInNewContext(source, { globalThis: sandbox });
   const c = sandbox.HAFStagingIdentityContract;
-  assert.deepEqual(c.tenantIds, ['tenant-a', 'tenant-b']);
+  assert.deepEqual(Array.from(c.tenantIds), ['tenant-a', 'tenant-b']);
   assert.equal(c.principals.ownerA.tenantId, 'tenant-a');
   assert.equal(c.principals.ownerB.tenantId, 'tenant-b');
   assert.equal(c.principals.disabledA.status, 'Inactive');
