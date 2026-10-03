@@ -66,6 +66,9 @@ jobs:
       - name: Run staging auth page isolation tests
         run: node --test tests/staging/auth-smoke-page.test.cjs
 
+      - name: Run staging login isolation tests
+        run: node --test tests/staging/staging-login-page.test.cjs
+
       - name: Run staging config template guard tests
         run: node --test tests/staging/config-template.test.cjs
 
