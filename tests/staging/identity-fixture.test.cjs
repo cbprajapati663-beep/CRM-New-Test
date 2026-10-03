@@ -6,5 +6,5 @@ const path = require('node:path');
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../../firebase/staging/identity-fixture.example.json'), 'utf8'));
 test('fixture contains both synthetic tenants', () => { assert.equal(fixture['tenant-a'].tenantId, 'tenant-a'); assert.equal(fixture['tenant-b'].tenantId, 'tenant-b'); });
 test('fixture has all logical principals', () => { assert.deepEqual(Object.keys(fixture.principals).sort(), ['disabled-a','manager-a','owner-a','owner-b','sales-a','sales-b','viewer-a'].sort()); });
-test('fixture contains placeholders only and no secrets', () => { for (const p of Object.values(fixture.principals)) { assert.match(p.uid, /^REPLACE_WITH_STAGING_AUTH_UID_/); assert.match(p.email, /@staging\\.invalid$/); assert.ok(!('password' in p)); assert.ok(!('passwordHash' in p)); assert.ok(!('salt' in p)); } });
+test('fixture contains placeholders only and no secrets', () => { for (const p of Object.values(fixture.principals)) { assert.match(p.uid, /^REPLACE_WITH_STAGING_AUTH_UID_/); assert.match(p.email, /@staging\.invalid$/); assert.ok(!('password' in p)); assert.ok(!('passwordHash' in p)); assert.ok(!('salt' in p)); } });
 test('disabled principal is inactive', () => { assert.equal(fixture.principals['disabled-a'].status, 'Inactive'); });
