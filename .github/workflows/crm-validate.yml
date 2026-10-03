@@ -89,6 +89,8 @@ jobs:
 
       - name: Run staging deployment gate tests
         run: node --test tests/staging/deployment-gate.test.cjs
+      - name: Run server-side plan enforcement contract tests
+        run: node --test tests/staging/plan-enforcement-contract.test.cjs
 
       - name: Install staging security test dependencies
         run: npm install --ignore-scripts
