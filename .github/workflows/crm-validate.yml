@@ -65,3 +65,9 @@ jobs:
 
       - name: Run staging config template guard tests
         run: node --test tests/staging/config-template.test.cjs
+
+      - name: Run staging identity contract tests
+        run: node --test tests/staging/identity-contract.test.cjs
+
+      - name: Run staging authorization rules contract tests
+        run: node --test tests/staging/rules-contract.test.cjs
