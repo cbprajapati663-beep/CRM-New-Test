@@ -109,3 +109,11 @@ test('rejects inactive membership and signs out', async () => {
   );
   assert.equal(services.calls.includes('signOut'), true);
 });
+
+
+test('staging auth session exposes recovery and state-listener hooks without local persistence', () => {
+  assert.equal(typeof sandbox.window.HAFStagingAuthSession.sendPasswordResetEmail, 'function');
+  assert.equal(typeof sandbox.window.HAFStagingAuthSession.onAuthStateChanged, 'function');
+  assert.equal(source.includes('localStorage'), false);
+  assert.equal(source.includes('sessionStorage'), false);
+});
