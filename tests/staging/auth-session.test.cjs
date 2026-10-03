@@ -1,5 +1,6 @@
 'use strict';
 
+const assert = require('node:assert/strict');
 const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,14 +11,10 @@ function loadModule() {
     path.join(__dirname, '../../assets/js/staging/auth-session.js'),
     'utf8'
   );
-  const context = {
-    globalThis: {},
-    window: {},
-    console
-  };
-  context.globalThis = context.window;
+  const window = {};
+  const context = { globalThis: window, window, console };
   vm.runInNewContext(source, context);
-  return context.window.HAFStagingAuthSession;
+  return { session: window.HAFStagingAuthSession, window };
 }
 
 function servicesFor(overrides) {
@@ -46,7 +43,7 @@ function servicesFor(overrides) {
 }
 
 test('returns only trusted active membership fields', async () => {
-  const session = loadModule();
+  const loaded = loadModule();
   const services = servicesFor({
     membershipData: {
       tenantId: 'tenant-a',
@@ -58,34 +55,45 @@ test('returns only trusted active membership fields', async () => {
       password: 'must-not-be-returned'
     }
   });
-  globalThis.HAFStagingFirebase = { getServices: () => services };
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
 
-  const result = await session.signInAndLoadMembership('sales-a@staging.invalid', 'secret');
+  const result = await loaded.session.signInAndLoadMembership(
+    'sales-a@staging.invalid',
+    'secret'
+  );
 
-  if (result.uid !== 'uid-a' || result.tenantId !== 'tenant-a' || result.role !== 'sales') {
-    throw new Error('Trusted membership fields were not returned correctly.');
-  }
-  if ('password' in result || 'clientSuppliedRole' in result) {
-    throw new Error('Untrusted/secret fields leaked into the session.');
-  }
+  assert.deepEqual(
+    result,
+    {
+      uid: 'uid-a',
+      tenantId: 'tenant-a',
+      role: 'sales',
+      status: 'Active',
+      tenantStatus: 'Active',
+      branchIds: ['branch-a1']
+    }
+  );
+  assert.equal('password' in result, false);
+  assert.equal('clientSuppliedRole' in result, false);
 });
 
 test('signs out when authenticated UID has no membership', async () => {
-  const session = loadModule();
+  const loaded = loadModule();
   const services = servicesFor({ exists: false });
-  globalThis.HAFStagingFirebase = { getServices: () => services };
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
 
   await assert.rejects(
-    () => session.signInAndLoadMembership('unknown@staging.invalid', 'secret'),
+    () => loaded.session.signInAndLoadMembership(
+      'unknown@staging.invalid',
+      'secret'
+    ),
     /No trusted membership/
   );
-  if (!services.calls.includes('signOut')) {
-    throw new Error('Missing membership did not trigger sign-out.');
-  }
+  assert.equal(services.calls.includes('signOut'), true);
 });
 
 test('rejects inactive membership and signs out', async () => {
-  const session = loadModule();
+  const loaded = loadModule();
   const services = servicesFor({
     membershipData: {
       tenantId: 'tenant-a',
@@ -95,13 +103,14 @@ test('rejects inactive membership and signs out', async () => {
       branchIds: ['branch-a1']
     }
   });
-  globalThis.HAFStagingFirebase = { getServices: () => services };
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
 
   await assert.rejects(
-    () => session.signInAndLoadMembership('sales-a@staging.invalid', 'secret'),
+    () => loaded.session.signInAndLoadMembership(
+      'sales-a@staging.invalid',
+      'secret'
+    ),
     /inactive/
   );
-  if (!services.calls.includes('signOut')) {
-    throw new Error('Inactive membership did not trigger sign-out.');
-  }
+  assert.equal(services.calls.includes('signOut'), true);
 });
