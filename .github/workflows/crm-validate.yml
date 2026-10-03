@@ -92,6 +92,14 @@ jobs:
       - name: Run server-side plan enforcement contract tests
         run: node --test tests/staging/plan-enforcement-contract.test.cjs
 
+      - name: Syntax check trusted plan enforcement functions
+        run: |
+          node --check functions/lib/planLimits.js
+          node --check functions/index.js
+
+      - name: Run trusted plan enforcement engine tests
+        run: node --test tests/staging/plan-enforcement-engine.test.cjs
+
       - name: Install staging security test dependencies
         run: npm install --ignore-scripts
 
