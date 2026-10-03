@@ -62,17 +62,12 @@ test('returns only trusted active membership fields', async () => {
     'secret'
   );
 
-  assert.deepEqual(
-    result,
-    {
-      uid: 'uid-a',
-      tenantId: 'tenant-a',
-      role: 'sales',
-      status: 'Active',
-      tenantStatus: 'Active',
-      branchIds: ['branch-a1']
-    }
-  );
+  assert.equal(result.uid, 'uid-a');
+  assert.equal(result.tenantId, 'tenant-a');
+  assert.equal(result.role, 'sales');
+  assert.equal(result.status, 'Active');
+  assert.equal(result.tenantStatus, 'Active');
+  assert.deepEqual(Array.from(result.branchIds), ['branch-a1']);
   assert.equal('password' in result, false);
   assert.equal('clientSuppliedRole' in result, false);
 });
