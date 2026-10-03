@@ -87,6 +87,9 @@ jobs:
       - name: Run staging identity fixture safety tests
         run: node --test tests/staging/identity-fixture.test.cjs
 
+      - name: Run staging deployment gate tests
+        run: node --test tests/staging/deployment-gate.test.cjs
+
       - name: Install staging security test dependencies
         run: npm install --ignore-scripts
 
