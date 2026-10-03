@@ -71,3 +71,6 @@ jobs:
 
       - name: Run staging authorization rules contract tests
         run: node --test tests/staging/rules-contract.test.cjs
+
+      - name: Run staging identity fixture safety tests
+        run: node --test tests/staging/identity-fixture.test.cjs
