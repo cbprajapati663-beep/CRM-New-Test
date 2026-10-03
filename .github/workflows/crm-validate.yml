@@ -54,6 +54,9 @@ jobs:
       - name: Syntax check staging Firebase bootstrap
         run: node --check assets/js/staging/firebase-bootstrap.js
 
+      - name: Syntax check staging Auth session bridge
+        run: node --check assets/js/staging/auth-session.js
+
       - name: Syntax check staging config template
         run: node --check assets/js/staging/firebase-config.example.js
 
@@ -68,6 +71,9 @@ jobs:
 
       - name: Run staging identity contract tests
         run: node --test tests/staging/identity-contract.test.cjs
+
+      - name: Run staging Auth membership bridge tests
+        run: node --test tests/staging/auth-session.test.cjs
 
       - name: Run staging authorization rules contract tests
         run: node --test tests/staging/rules-contract.test.cjs
