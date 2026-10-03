@@ -1,0 +1,100 @@
+{
+  "_comment": "STAGING ONLY. Replace UID placeholders only inside heritage-crm-staging. Never use production UIDs.",
+  "tenant-a": {
+    "tenantId": "tenant-a",
+    "tenantStatus": "Active",
+    "plan": "Starter",
+    "branchIds": [
+      "branch-a1",
+      "branch-a2"
+    ]
+  },
+  "tenant-b": {
+    "tenantId": "tenant-b",
+    "tenantStatus": "Active",
+    "plan": "Starter",
+    "branchIds": [
+      "branch-b1"
+    ]
+  },
+  "principals": {
+    "owner-a": {
+      "uid": "REPLACE_WITH_STAGING_AUTH_UID_OWNER_A",
+      "email": "owner-a@staging.invalid",
+      "tenantId": "tenant-a",
+      "role": "owner",
+      "status": "Active",
+      "tenantStatus": "Active",
+      "branchIds": [
+        "branch-a1",
+        "branch-a2"
+      ]
+    },
+    "manager-a": {
+      "uid": "REPLACE_WITH_STAGING_AUTH_UID_MANAGER_A",
+      "email": "manager-a@staging.invalid",
+      "tenantId": "tenant-a",
+      "role": "manager",
+      "status": "Active",
+      "tenantStatus": "Active",
+      "branchIds": [
+        "branch-a1"
+      ]
+    },
+    "sales-a": {
+      "uid": "REPLACE_WITH_STAGING_AUTH_UID_SALES_A",
+      "email": "sales-a@staging.invalid",
+      "tenantId": "tenant-a",
+      "role": "sales",
+      "status": "Active",
+      "tenantStatus": "Active",
+      "branchIds": [
+        "branch-a1"
+      ]
+    },
+    "viewer-a": {
+      "uid": "REPLACE_WITH_STAGING_AUTH_UID_VIEWER_A",
+      "email": "viewer-a@staging.invalid",
+      "tenantId": "tenant-a",
+      "role": "viewer",
+      "status": "Active",
+      "tenantStatus": "Active",
+      "branchIds": [
+        "branch-a1"
+      ]
+    },
+    "owner-b": {
+      "uid": "REPLACE_WITH_STAGING_AUTH_UID_OWNER_B",
+      "email": "owner-b@staging.invalid",
+      "tenantId": "tenant-b",
+      "role": "owner",
+      "status": "Active",
+      "tenantStatus": "Active",
+      "branchIds": [
+        "branch-b1"
+      ]
+    },
+    "sales-b": {
+      "uid": "REPLACE_WITH_STAGING_AUTH_UID_SALES_B",
+      "email": "sales-b@staging.invalid",
+      "tenantId": "tenant-b",
+      "role": "sales",
+      "status": "Active",
+      "tenantStatus": "Active",
+      "branchIds": [
+        "branch-b1"
+      ]
+    },
+    "disabled-a": {
+      "uid": "REPLACE_WITH_STAGING_AUTH_UID_DISABLED_A",
+      "email": "disabled-a@staging.invalid",
+      "tenantId": "tenant-a",
+      "role": "sales",
+      "status": "Inactive",
+      "tenantStatus": "Active",
+      "branchIds": [
+        "branch-a1"
+      ]
+    }
+  }
+}
