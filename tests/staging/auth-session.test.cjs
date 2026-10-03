@@ -112,8 +112,13 @@ test('rejects inactive membership and signs out', async () => {
 
 
 test('staging auth session exposes recovery and state-listener hooks without local persistence', () => {
-  assert.equal(typeof sandbox.window.HAFStagingAuthSession.sendPasswordResetEmail, 'function');
-  assert.equal(typeof sandbox.window.HAFStagingAuthSession.onAuthStateChanged, 'function');
+  const loaded = loadModule();
+  assert.equal(typeof loaded.session.sendPasswordResetEmail, 'function');
+  assert.equal(typeof loaded.session.onAuthStateChanged, 'function');
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../assets/js/staging/auth-session.js'),
+    'utf8'
+  );
   assert.equal(source.includes('localStorage'), false);
   assert.equal(source.includes('sessionStorage'), false);
 });
