@@ -101,7 +101,7 @@ jobs:
         run: node --test tests/staging/plan-enforcement-engine.test.cjs
 
       - name: Install staging security test dependencies
-        run: npm install --ignore-scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
 
       - name: Run Firestore emulator authorization tests
         run: npm run test:staging:firestore
