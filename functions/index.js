@@ -38,9 +38,9 @@ exports.createPlanEnforcedBranch = onCall(async request => {
     const uid = requireAuth(request), m = await loadMembership(uid), tenantId = m.tenantId, tenant = await loadTenant(tenantId);
     const input = request.data && typeof request.data === 'object' ? request.data : {};
     if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
-    const ref = db.collection('tenants').doc(tenantId).collection('branches').doc();
+    const ref = db.collection('branches').doc();
     await db.runTransaction(async tx => {
-      const q = await tx.get(db.collection('tenants').doc(tenantId).collection('branches').where('status', '!=', 'Inactive'));
+      const q = await tx.get(db.collection('branches').where('tenantId', '==', tenantId).where('status', '!=', 'Inactive'));
       assertUnderLimit('branches', q.size, tenant);
       tx.set(ref, { ...input, tenantId, createdByUserId: uid, createdAt: new Date().toISOString(), status: input.status || 'Active' });
     });
@@ -73,10 +73,11 @@ exports.createPlanEnforcedStaff = onCall(async request => {
     if (String(input.tenantId || '') !== tenantId) {
       throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
     }
-    const ref = db.collection('tenants').doc(tenantId).collection('staff').doc();
+    const ref = db.collection('staffAccounts').doc();
     await db.runTransaction(async tx => {
       const q = await tx.get(
-        db.collection('tenants').doc(tenantId).collection('staff')
+        db.collection('staffAccounts')
+          .where('tenantId', '==', tenantId)
           .where('status', '!=', 'Inactive')
       );
       assertUnderLimit('staff', q.size, tenant);
