@@ -1,4 +1,5 @@
 name: Deploy CRM Staging Security
+# Explicit [deploy-staging] trigger is required for a branch-only staging deployment.
 
 on:
   workflow_dispatch:
