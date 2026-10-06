@@ -48,7 +48,7 @@ jobs:
       - name: Verify staging deployment target
         run: |
           test "heritage-crm-staging" = "heritage-crm-staging"
-          ! git grep -n "heritage-crm-f179a" -- functions firebase/staging -- '*.js' '*.cjs' '*.json' '*.rules' '*.html'
+          ! git grep -n "heritage-crm-f179a" -- functions firebase/staging ':!**/*.md'
       - name: Deploy staging Functions and authorization rules
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
