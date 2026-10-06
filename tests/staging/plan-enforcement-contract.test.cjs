@@ -36,17 +36,17 @@ test('trusted plan functions use the canonical staging collection paths', () => 
   assert.match(source, /db\.collection\('branches'\)\.doc\(\)/);
   assert.match(source, /db\.collection\('branches'\)\.where\('tenantId', '==', tenantId\)/);
   assert.match(source, /db\.collection\('staffAccounts'\)\.doc\(\)/);
-  assert.match(source, /db\.collection\('staffAccounts'\)\s*\\n\s*\.where\('tenantId', '==', tenantId\)/);
+  assert.match(source, /db\.collection\('staffAccounts'\)[\s\S]*?\.where\('tenantId', '==', tenantId\)/);
   assert.doesNotMatch(source, /collection\('tenants'\)\.doc\(tenantId\)\.collection\('(branches|staff)'\)/);
 });
 
 
 test('trusted plan functions enforce role boundaries without blocking sales lead creation', () => {
   const source = fs.readFileSync(path.join(__dirname, '../../functions/index.js'), 'utf8');
-  assert.match(source, /createPlanEnforcedLead[\\s\\S]*?loadMembership/);
+  assert.match(source, /createPlanEnforcedLead[\s\S]*?loadMembership/);
   assert.match(source, /Owner role required for branch creation/);
   assert.match(source, /Manager or owner role required for staff creation/);
-  assert.match(source, /\\['owner', 'manager', 'sales', 'viewer'\\]\.includes\(m\.role\)/);
+  assert.match(source, /\['owner', 'manager', 'sales', 'viewer'\]\.includes\(m\.role\)/);
 });
 
 
