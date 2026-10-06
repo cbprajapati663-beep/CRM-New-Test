@@ -10,3 +10,10 @@ test('staging CRM uses staging auth and no production Firebase or local session'
 test('staging CRM does not read protected legacy collections',()=>{
  assert.doesNotMatch(p,/collection\(['"]tenants['"]\)/);assert.doesNotMatch(p,/collection\(['"]staffAccounts['"]\)/);assert.doesNotMatch(p,/collection\(['"]payoutSecurity['"]\)/);
 });
+
+test('staging CRM clears auth state through bridge logout and redirects on signed-out state',()=>{
+ assert.match(p,/HAFStagingAuthSession\.signOut\(\)/);
+ assert.match(p,/HAFStagingAuthSession\.onAuthStateChanged/);
+ assert.match(p,/window\.location\.replace\(['"]\.\/staging-login\.html['"]\)/);
+ assert.doesNotMatch(p,/authUser\.email\s*&&\s*localStorage/);
+});
