@@ -45,6 +45,9 @@ jobs:
           test -n "$FIREBASE_SERVICE_ACCOUNT_STAGING"
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_STAGING" > "$RUNNER_TEMP/firebase-service-account.json"
           node -e "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP + '/firebase-service-account.json','utf8'));"
+      - name: Verify deployment service account identity
+        run: |
+          node -e "const x=require(process.env.RUNNER_TEMP + '/firebase-service-account.json'); if (!x.client_email) process.exit(1); console.log('Deployment service account:', x.client_email);"
       - name: Verify staging deployment target
         run: |
           test "heritage-crm-staging" = "heritage-crm-staging"
