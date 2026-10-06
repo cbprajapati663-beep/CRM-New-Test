@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
+      - name: Enforce security branch
+        run: test "$GITHUB_REF_NAME" = "security/auth-implementation-gate-20261003"
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node.js
