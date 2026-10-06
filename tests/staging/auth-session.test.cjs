@@ -122,3 +122,20 @@ test('staging auth session exposes recovery and state-listener hooks without loc
   assert.equal(source.includes('localStorage'), false);
   assert.equal(source.includes('sessionStorage'), false);
 });
+
+
+test('rejects a non-staging Firebase project before authentication', async () => {
+  const loaded = loadModule();
+  const services = servicesFor({ membershipData: { tenantId: 'tenant-a', role: 'sales', status: 'Active', tenantStatus: 'Active', branchIds: ['branch-a1'] } });
+  services.projectId = 'heritage-crm-f179a';
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
+  await assert.rejects(() => loaded.session.signInAndLoadMembership('sales-a@staging.invalid', 'secret'), /Unexpected Firebase project/);
+});
+
+test('rejects malformed trusted membership branch data', async () => {
+  const loaded = loadModule();
+  const services = servicesFor({ membershipData: { tenantId: 'tenant-a', role: 'sales', status: 'Active', tenantStatus: 'Active', branchIds: 'branch-a1' } });
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
+  await assert.rejects(() => loaded.session.signInAndLoadMembership('sales-a@staging.invalid', 'secret'), /branchIds array/);
+  assert.equal(services.calls.includes('signOut'), true);
+});
