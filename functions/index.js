@@ -16,7 +16,7 @@ async function loadMembership(uid) {
   if (!snap.exists) throw new HttpsError('permission-denied', 'Active membership required.');
   const m = snap.data() || {};
   if (m.status !== 'Active' || m.tenantStatus !== 'Active') throw new HttpsError('permission-denied', 'Inactive membership or tenant.');
-  if (!m.tenantId || !['owner', 'manager'].includes(m.role)) throw new HttpsError('permission-denied', 'Insufficient role.');
+  if (!m.tenantId || !['owner', 'manager', 'sales', 'viewer'].includes(m.role)) throw new HttpsError('permission-denied', 'Unsupported membership role.');
   return m;
 }
 async function loadTenant(tenantId) {
@@ -36,6 +36,7 @@ function fail(e) {
 exports.createPlanEnforcedBranch = onCall(async request => {
   try {
     const uid = requireAuth(request), m = await loadMembership(uid), tenantId = m.tenantId, tenant = await loadTenant(tenantId);
+    if (m.role !== 'owner') throw new HttpsError('permission-denied', 'Owner role required for branch creation.');
     const input = request.data && typeof request.data === 'object' ? request.data : {};
     if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
     const ref = db.collection('branches').doc();
@@ -67,6 +68,7 @@ exports.createPlanEnforcedStaff = onCall(async request => {
   try {
     const uid = requireAuth(request);
     const m = await loadMembership(uid);
+    if (m.role !== 'owner' && m.role !== 'manager') throw new HttpsError('permission-denied', 'Manager or owner role required for staff creation.');
     const tenantId = m.tenantId;
     const tenant = await loadTenant(tenantId);
     const input = request.data && typeof request.data === 'object' ? request.data : {};
