@@ -26,3 +26,16 @@ test('staging gate does not contain credential-shaped material', () => {
   assert.doesNotMatch(gate, /password\s*[:=]\s*[^<\n]{8,}/i);
   assert.doesNotMatch(gate, /client_email\s*[:=]/i);
 });
+
+
+test('staging deployment workflow is manual, staging-only, and credential-safe', () => {
+  const workflow = fs.readFileSync('.github/workflows/deploy-staging-security.yml', 'utf8');
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /environment:\s*staging/);
+  assert.match(workflow, /heritage-crm-staging/);
+  assert.match(workflow, /FIREBASE_SERVICE_ACCOUNT_STAGING/);
+  assert.match(workflow, /GOOGLE_APPLICATION_CREDENTIALS/);
+  assert.match(workflow, /rm -f.*firebase-service-account\.json/);
+  assert.doesNotMatch(workflow, /AIza[0-9A-Za-z_-]{20,}/);
+  assert.doesNotMatch(workflow, /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/);
+});
