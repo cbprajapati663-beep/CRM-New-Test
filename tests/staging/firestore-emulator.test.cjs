@@ -122,3 +122,23 @@ test('Unknown protected paths are denied', async () => {
   const db = (await env).authenticatedContext('owner-a').firestore();
   await assertFails(db.doc('secret/internal').get());
 });
+
+
+test('Sales user can create an owned lead only in an allowed branch', async () => {
+  const db = (await env).authenticatedContext('sales-a').firestore();
+  await assertSucceeds(db.doc('leads/sales-created').set({
+    tenantId: 'tenant-a', branchId: 'branch-a1', createdByUserId: 'sales-a', assignedStaffId: 'sales-a'
+  }));
+});
+
+test('Sales user cannot create a lead in an unassigned branch', async () => {
+  const db = (await env).authenticatedContext('sales-a').firestore();
+  await assertFails(db.doc('leads/sales-forbidden-branch').set({
+    tenantId: 'tenant-a', branchId: 'branch-a2', createdByUserId: 'sales-a', assignedStaffId: 'sales-a'
+  }));
+});
+
+test('Non-owner cannot create a branch', async () => {
+  const db = (await env).authenticatedContext('sales-a').firestore();
+  await assertFails(db.doc('branches/forged-branch').set({ tenantId: 'tenant-a', branchId: 'branch-a1', status: 'Active' }));
+});
