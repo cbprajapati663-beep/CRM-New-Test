@@ -31,6 +31,8 @@ test('staging gate does not contain credential-shaped material', () => {
 test('staging deployment workflow is manual, staging-only, and credential-safe', () => {
   const workflow = fs.readFileSync('.github/workflows/deploy-staging-security.yml', 'utf8');
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /GITHUB_REF_NAME/);
+  assert.match(workflow, /security\/auth-implementation-gate-20261003/);
   assert.match(workflow, /environment:\s*staging/);
   assert.match(workflow, /heritage-crm-staging/);
   assert.match(workflow, /FIREBASE_SERVICE_ACCOUNT_STAGING/);
