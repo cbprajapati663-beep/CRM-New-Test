@@ -39,11 +39,12 @@ exports.createPlanEnforcedBranch = onCall(async request => {
     if (m.role !== 'owner') throw new HttpsError('permission-denied', 'Owner role required for branch creation.');
     const input = request.data && typeof request.data === 'object' ? request.data : {};
     if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
+    const { tenantId: _tenantId, createdByUserId: _createdByUserId, createdAt: _createdAt, ...safeInput } = input;
     const ref = db.collection('branches').doc();
     await db.runTransaction(async tx => {
       const q = await tx.get(db.collection('branches').where('tenantId', '==', tenantId).where('status', '!=', 'Inactive'));
       assertUnderLimit('branches', q.size, tenant);
-      tx.set(ref, { ...input, tenantId, createdByUserId: uid, createdAt: new Date().toISOString(), status: input.status || 'Active' });
+      tx.set(ref, { ...safeInput, tenantId, createdByUserId: uid, createdAt: new Date().toISOString(), status: 'Active' });
     });
     return { ok: true, id: ref.id };
   } catch (e) { return fail(e); }
@@ -54,11 +55,12 @@ exports.createPlanEnforcedLead = onCall(async request => {
     const uid = requireAuth(request), m = await loadMembership(uid), tenantId = m.tenantId, tenant = await loadTenant(tenantId);
     const input = request.data && typeof request.data === 'object' ? request.data : {};
     if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
+    const { tenantId: _tenantId, createdByUserId: _createdByUserId, createdAt: _createdAt, ...safeInput } = input;
     const ref = db.collection('leads').doc();
     await db.runTransaction(async tx => {
       const q = await tx.get(db.collection('leads').where('tenantId', '==', tenantId));
       assertUnderLimit('leads', q.size, tenant);
-      tx.set(ref, { ...input, tenantId, createdByUserId: uid, createdAt: new Date().toISOString() });
+      tx.set(ref, { ...safeInput, tenantId, createdByUserId: uid, createdAt: new Date().toISOString() });
     });
     return { ok: true, id: ref.id };
   } catch (e) { return fail(e); }
@@ -75,6 +77,7 @@ exports.createPlanEnforcedStaff = onCall(async request => {
     if (String(input.tenantId || '') !== tenantId) {
       throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
     }
+    const { tenantId: _tenantId, createdByUserId: _createdByUserId, createdAt: _createdAt, status: _status, role: _role, tenantStatus: _tenantStatus, branchIds: _branchIds, ...safeInput } = input;
     const ref = db.collection('staffAccounts').doc();
     await db.runTransaction(async tx => {
       const q = await tx.get(
@@ -88,7 +91,7 @@ exports.createPlanEnforcedStaff = onCall(async request => {
         tenantId,
         createdByUserId: uid,
         createdAt: new Date().toISOString(),
-        status: input.status || 'Active'
+        status: 'Active'
       });
     });
     return { ok: true, id: ref.id };
