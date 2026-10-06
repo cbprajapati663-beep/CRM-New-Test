@@ -33,6 +33,8 @@ test('staging deployment workflow is manual, staging-only, and credential-safe',
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /GITHUB_REF_NAME/);
   assert.match(workflow, /security\/auth-implementation-gate-20261003/);
+  assert.match(workflow, /Verify staging deployment target/);
+  assert.match(workflow, /heritage-crm-f179a/);
   assert.match(workflow, /environment:\s*staging/);
   assert.match(workflow, /heritage-crm-staging/);
   assert.match(workflow, /FIREBASE_SERVICE_ACCOUNT_STAGING/);
