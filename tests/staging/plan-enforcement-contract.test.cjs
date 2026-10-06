@@ -29,3 +29,13 @@ test('plan enforcement contract forbids client-selected authorization state', ()
     assert.ok(contract.includes(marker), 'missing client-state restriction: ' + marker);
   }
 });
+
+
+test('trusted plan functions use the canonical staging collection paths', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../../functions/index.js'), 'utf8');
+  assert.match(source, /db\.collection\('branches'\)\.doc\(\)/);
+  assert.match(source, /db\.collection\('branches'\)\.where\('tenantId', '==', tenantId\)/);
+  assert.match(source, /db\.collection\('staffAccounts'\)\.doc\(\)/);
+  assert.match(source, /db\.collection\('staffAccounts'\)\s*\\n\s*\.where\('tenantId', '==', tenantId\)/);
+  assert.doesNotMatch(source, /collection\('tenants'\)\.doc\(tenantId\)\.collection\('(branches|staff)'\)/);
+});
