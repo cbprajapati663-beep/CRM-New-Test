@@ -104,3 +104,25 @@ test('Unknown storage paths are denied', async () => {
   const ref = storage.ref('unknown/internal.txt');
   await assertFails(ref.put(new Uint8Array([1]), { contentType: 'text/plain' }));
 });
+
+
+test('Sales user can upload its assigned lead document', async () => {
+  await seed();
+  const storage = await storageFor('sales-a');
+  const ref = storage.ref('customer-documents/tenant-a/lead-a/assigned.pdf');
+  await assertSucceeds(ref.put(new Uint8Array([4, 5, 6]), { contentType: 'application/pdf' }));
+});
+
+test('Sales user cannot upload a lead it neither owns nor is assigned', async () => {
+  await seed();
+  const storage = await storageFor('sales-a');
+  const ref = storage.ref('customer-documents/tenant-a/lead-other/other.pdf');
+  await assertFails(ref.put(new Uint8Array([4, 5, 6]), { contentType: 'application/pdf' }));
+});
+
+test('Inactive or missing lead cannot be used for document upload', async () => {
+  await seed();
+  const storage = await storageFor('owner-a');
+  const ref = storage.ref('customer-documents/tenant-a/missing-lead/doc.pdf');
+  await assertFails(ref.put(new Uint8Array([1]), { contentType: 'application/pdf' }));
+});
