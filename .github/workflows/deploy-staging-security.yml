@@ -56,7 +56,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
         run: |
-          npx firebase-tools deploy --project heritage-crm-staging --only functions,firestore:rules,storage --non-interactive
+          npx firebase-tools deploy --project heritage-crm-staging --only functions,firestore:rules,storage --non-interactive --force
       - name: Remove staging credential
         if: always()
         run: rm -f "$RUNNER_TEMP/firebase-service-account.json"
