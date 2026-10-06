@@ -1,6 +1,6 @@
 name: Deploy CRM Staging Security
 # Explicit [deploy-staging] trigger is required for a branch-only staging deployment.
-# Retry after target-guard fix.
+# Retry after target-guard path-filter fix.
 
 on:
   workflow_dispatch:
