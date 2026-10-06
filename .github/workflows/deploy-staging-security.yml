@@ -22,7 +22,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Install Functions dependencies
         working-directory: functions
-        run: npm ci
+        run: npm install --no-audit --no-fund
       - name: Validate trusted Functions
         run: |
           node --check functions/lib/planLimits.js
