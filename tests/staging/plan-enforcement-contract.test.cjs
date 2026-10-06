@@ -48,3 +48,15 @@ test('trusted plan functions enforce role boundaries without blocking sales lead
   assert.match(source, /Manager or owner role required for staff creation/);
   assert.match(source, /\\['owner', 'manager', 'sales', 'viewer'\\]\.includes\(m\.role\)/);
 });
+
+
+test('trusted write boundary strips client-controlled identity and staff privilege fields', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../../functions/index.js'), 'utf8');
+  assert.match(source, /createdByUserId: _createdByUserId/);
+  assert.match(source, /createdAt: _createdAt/);
+  assert.match(source, /status: _status/);
+  assert.match(source, /role: _role/);
+  assert.match(source, /tenantStatus: _tenantStatus/);
+  assert.match(source, /branchIds: _branchIds/);
+  assert.match(source, /status: 'Active'/);
+});
