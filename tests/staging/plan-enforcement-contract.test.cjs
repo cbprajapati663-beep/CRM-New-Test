@@ -13,7 +13,7 @@ const contract = fs.readFileSync(
 test('plan enforcement contract requires a trusted server-side boundary', () => {
   assert.match(contract, /trusted server-side boundary/i);
   assert.match(contract, /request\.auth\.uid -> memberships/);
-  assert.match(contract, /plan enforcement remains blocked/i);
+  assert.match(contract, /deployment is verified/i);
   assert.match(contract, /concurrent writes/i);
   assert.match(contract, /Creating a staff member/i);
 });
