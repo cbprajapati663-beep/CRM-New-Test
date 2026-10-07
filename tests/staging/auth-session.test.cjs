@@ -124,6 +124,57 @@ test('staging auth session exposes recovery and state-listener hooks without loc
 });
 
 
+
+test('password reset is delegated only to staging Firebase Auth', async () => {
+  const loaded = loadModule();
+  const calls = [];
+  const services = servicesFor({
+    membershipData: { tenantId: 'tenant-a', role: 'sales', status: 'Active', tenantStatus: 'Active', branchIds: ['branch-a1'] }
+  });
+  services.auth.sendPasswordResetEmail = async email => calls.push(email);
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
+
+  await loaded.session.sendPasswordResetEmail(' sales-a@staging.invalid ');
+  assert.deepEqual(calls, [' sales-a@staging.invalid ']);
+});
+
+test('auth state listener delegates to staging Firebase Auth', () => {
+  const loaded = loadModule();
+  let callbackSeen = null;
+  const unsubscribe = () => {};
+  const services = servicesFor({ membershipData: { tenantId: 'tenant-a', role: 'sales', status: 'Active', tenantStatus: 'Active', branchIds: ['branch-a1'] } });
+  services.auth.onAuthStateChanged = callback => {
+    callbackSeen = callback;
+    return unsubscribe;
+  };
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
+
+  const returned = loaded.session.onAuthStateChanged(() => {});
+  assert.equal(typeof callbackSeen, 'function');
+  assert.equal(returned, unsubscribe);
+});
+
+test('current membership lookup signs out when trusted membership is invalid', async () => {
+  const loaded = loadModule();
+  const services = servicesFor({
+    membershipData: {
+      tenantId: 'tenant-a',
+      role: 'sales',
+      status: 'Active',
+      tenantStatus: 'Active',
+      branchIds: 'not-an-array'
+    }
+  });
+  services.auth.currentUser = { uid: 'uid-a' };
+  loaded.window.HAFStagingFirebase = { getServices: () => services };
+
+  await assert.rejects(
+    () => loaded.session.getCurrentMembership(),
+    /branchIds array/
+  );
+  assert.equal(services.calls.includes('signOut'), true);
+});
+
 test('rejects a non-staging Firebase project before authentication', async () => {
   const loaded = loadModule();
   const services = servicesFor({ membershipData: { tenantId: 'tenant-a', role: 'sales', status: 'Active', tenantStatus: 'Active', branchIds: ['branch-a1'] } });
