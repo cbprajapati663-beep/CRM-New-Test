@@ -44,6 +44,20 @@ async function seed() {
       tenantStatus: 'Active',
       branchIds: ['branch-a1', 'branch-a2']
     });
+    await adminDb.doc('memberships/manager-a').set({
+      tenantId: 'tenant-a',
+      role: 'manager',
+      status: 'Active',
+      tenantStatus: 'Active',
+      branchIds: ['branch-a1']
+    });
+    await adminDb.doc('memberships/viewer-a').set({
+      tenantId: 'tenant-a',
+      role: 'viewer',
+      status: 'Active',
+      tenantStatus: 'Active',
+      branchIds: ['branch-a1']
+    });
     await adminDb.doc('memberships/sales-a').set({
       tenantId: 'tenant-a',
       role: 'sales',
@@ -71,6 +85,12 @@ async function seed() {
       createdByUserId: 'owner-a',
       assignedStaffId: 'sales-a'
     });
+    await adminDb.doc('leads/lead-a2').set({
+      tenantId: 'tenant-a',
+      branchId: 'branch-a2',
+      createdByUserId: 'owner-a',
+      assignedStaffId: 'owner-a'
+    });
     await adminDb.doc('leads/lead-b').set({
       tenantId: 'tenant-b',
       branchId: 'branch-b1',
@@ -90,6 +110,28 @@ test('Tenant A owner can read Tenant A lead', async () => {
 test('Tenant A owner cannot read Tenant B lead', async () => {
   const db = (await env).authenticatedContext('owner-a').firestore();
   await assertFails(db.doc('leads/lead-b').get());
+});
+
+test('Tenant A manager can read an allowed branch but not another branch', async () => {
+  await seed();
+  const db = (await env).authenticatedContext('manager-a').firestore();
+  await assertSucceeds(db.doc('leads/lead-a').get());
+  await assertFails(db.doc('leads/lead-a2').get());
+});
+
+test('Tenant A viewer can read an allowed branch but not another branch', async () => {
+  await seed();
+  const db = (await env).authenticatedContext('viewer-a').firestore();
+  await assertSucceeds(db.doc('leads/lead-a').get());
+  await assertFails(db.doc('leads/lead-a2').get());
+});
+
+test('Tenant A manager and viewer cannot read Tenant B lead', async () => {
+  await seed();
+  const managerDb = (await env).authenticatedContext('manager-a').firestore();
+  const viewerDb = (await env).authenticatedContext('viewer-a').firestore();
+  await assertFails(managerDb.doc('leads/lead-b').get());
+  await assertFails(viewerDb.doc('leads/lead-b').get());
 });
 
 test('Tenant A cannot create a lead claiming Tenant B ownership', async () => {
@@ -123,22 +165,31 @@ test('Unknown protected paths are denied', async () => {
   await assertFails(db.doc('secret/internal').get());
 });
 
-
 test('Sales user can create an owned lead only in an allowed branch', async () => {
   const db = (await env).authenticatedContext('sales-a').firestore();
   await assertSucceeds(db.doc('leads/sales-created').set({
-    tenantId: 'tenant-a', branchId: 'branch-a1', createdByUserId: 'sales-a', assignedStaffId: 'sales-a'
+    tenantId: 'tenant-a',
+    branchId: 'branch-a1',
+    createdByUserId: 'sales-a',
+    assignedStaffId: 'sales-a'
   }));
 });
 
 test('Sales user cannot create a lead in an unassigned branch', async () => {
   const db = (await env).authenticatedContext('sales-a').firestore();
   await assertFails(db.doc('leads/sales-forbidden-branch').set({
-    tenantId: 'tenant-a', branchId: 'branch-a2', createdByUserId: 'sales-a', assignedStaffId: 'sales-a'
+    tenantId: 'tenant-a',
+    branchId: 'branch-a2',
+    createdByUserId: 'sales-a',
+    assignedStaffId: 'sales-a'
   }));
 });
 
 test('Non-owner cannot create a branch', async () => {
   const db = (await env).authenticatedContext('sales-a').firestore();
-  await assertFails(db.doc('branches/forged-branch').set({ tenantId: 'tenant-a', branchId: 'branch-a1', status: 'Active' }));
+  await assertFails(db.doc('branches/forged-branch').set({
+    tenantId: 'tenant-a',
+    branchId: 'branch-a1',
+    status: 'Active'
+  }));
 });
