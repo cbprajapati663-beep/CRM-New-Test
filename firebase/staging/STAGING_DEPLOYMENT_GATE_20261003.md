@@ -5,7 +5,7 @@
 The staging authorization implementation is code-complete and CI-verified. Production remains untouched, and PR #22 remains unmerged.
 
 Latest validation:
-- CRM Validation run #587: successful
+- CRM Validation run #589: successful
 - Staging login isolation: passed
 - Staging CRM isolation: passed
 - Firebase Auth membership bridge: passed
@@ -15,9 +15,8 @@ Latest validation:
 
 Latest security fixes and validation:
 - Trusted callable lead creation independently enforces the caller's allowed branch membership.
-- Firestore lead updates prevent managers from moving an existing lead into a branch outside their authorized branch set; regression coverage is CI-verified in CRM Validation #584.
-- This is required because callable Functions use the Admin SDK and therefore do not rely on client Firestore rules for their writes.
-- These fixes are CI-verified. The deployed staging smoke matrix is documented in `firebase/staging/DEPLOYED_STAGING_SECURITY_SMOKE_MATRIX_20261007.md`. They must still be included in a successful staging deployment before they are treated as deployed.
+- Firestore lead updates prevent managers from moving an existing lead into a branch outside their authorized branch set; regression coverage is CI-verified.
+- These fixes are now included in the verified staging deployment below.
 
 ## Required before real staging sign-in
 
@@ -53,11 +52,15 @@ The staging CRM shell reads only authorized `leads` data. Trusted write operatio
 
 ## Deployment status
 
-A previously verified staging deployment exists for an earlier security-branch commit. The current branch contains later CI-verified changes that are **not assumed deployed** until the staging deployment workflow reports success for the corresponding commit.
+**DEPLOYED AND VERIFIED:** staging deployment run **#13** successfully deployed commit `ad4250c1eccdbf60ca0b4dfb7e6711f59fda0728` to Firebase project `heritage-crm-staging`.
+
+The deployment workflow is branch-guarded and explicitly targets staging only. Production was not part of this deployment.
 
 No deployment credentials or real Auth identities are stored in the repository.
 
 ## Next implementation gate
+
+The remaining work is now **deployed staging verification**, not code deployment.
 
 Once real staging Auth users and memberships are provisioned through a trusted administrative path, execute the deployed smoke matrix:
 
@@ -74,17 +77,15 @@ Once real staging Auth users and memberships are provisioned through a trusted a
 | Membership self-edit | Denied |
 | Unknown Firestore/Storage paths | Denied |
 
-Only after this deployed matrix passes should the full staging CRM be considered ready for production migration work.
-
-## Remaining migration gates
-
-- Deploy the current CI-verified security-branch commit to staging and verify the deployment workflow succeeds (the latest rules regression is included in commit `c713f0d6b2960834b84ca0625c2e01ee1a94ac5f`).
-- Real staging Auth UID/membership provisioning.
-- Deployed smoke matrix.
-- Deployed session expiry/logout/password recovery verification.
-- Deployed plan-limit boundary and concurrent-write proof.
+Also verify:
+- Logout and Auth-state loss.
+- Password reset/recovery.
+- Trusted write operations and plan limits.
+- Concurrent plan-limit boundary behavior.
 - Backup/rollback evidence.
+
+Only after the deployed matrix passes should the full staging CRM be considered ready for production migration work.
 
 Production remains blocked until all gates pass.
 
-CI note: CRM Validation #587 passed after the deployed staging smoke matrix documentation was added.
+CI note: CRM Validation #589 passed for the deployment-trigger commit.
