@@ -36,7 +36,7 @@ The backend must reject, before the write is committed:
 
 ## Current implementation state
 
-The repository now contains a staging-only trusted Firebase Functions source boundary for aggregate plan enforcement. It is **not yet deployed or connected to the CRM write flows**, so plan enforcement remains blocked and must not be marked complete.
+The repository contains a staging-only trusted Firebase Functions source boundary for aggregate plan enforcement, and the Functions/rules deployment workflow has successfully deployed the trusted Functions and Firestore/Storage rules to `heritage-crm-staging`. The staging CRM shell is still read-oriented and does not yet route its staff/branch/lead creation UI through these callable Functions. Therefore, deployment is verified, but end-to-end plan enforcement through the CRM write flows and the concurrent-write aggregate-limit proof remain pending.
 
 ## Safe migration rule
 
