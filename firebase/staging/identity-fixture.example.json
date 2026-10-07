@@ -3,7 +3,7 @@
   "tenant-a": {
     "tenantId": "tenant-a",
     "tenantStatus": "Active",
-    "plan": "Starter",
+    "plan": "Professional",
     "branchIds": [
       "branch-a1",
       "branch-a2"
