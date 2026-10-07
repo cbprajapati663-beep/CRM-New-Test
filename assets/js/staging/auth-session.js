@@ -74,6 +74,27 @@
     }
   }
 
+  async function getCurrentMembership() {
+    if (!global.HAFStagingFirebase || typeof global.HAFStagingFirebase.getServices !== 'function') {
+      fail('Staging Firebase bootstrap is unavailable.');
+    }
+    const services = global.HAFStagingFirebase.getServices();
+    if (services.projectId !== EXPECTED_PROJECT_ID) fail('Unexpected Firebase project.');
+    const user = services.auth.currentUser;
+    if (!user || !user.uid) fail('Authenticated staging user is required.');
+    const snapshot = await services.db.collection('memberships').doc(user.uid).get();
+    if (!snapshot.exists) {
+      await services.auth.signOut().catch(function () {});
+      fail('No trusted membership exists for the authenticated UID.');
+    }
+    try {
+      return validateMembership(user.uid, snapshot.data());
+    } catch (error) {
+      await services.auth.signOut().catch(function () {});
+      throw error;
+    }
+  }
+
   async function signOut() {
     if (!global.HAFStagingFirebase) {
       return;
@@ -113,6 +134,7 @@
 
   global.HAFStagingAuthSession = Object.freeze({
     signInAndLoadMembership: signInAndLoadMembership,
+    getCurrentMembership: getCurrentMembership,
     signOut: signOut,
     sendPasswordResetEmail: sendPasswordResetEmail,
     onAuthStateChanged: onAuthStateChanged
