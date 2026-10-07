@@ -2,20 +2,21 @@
 
 ## Current state
 
-The staging authorization implementation is code-complete, CI-verified, and the trusted Functions/rules deployment is verified successful.
+The staging authorization implementation is code-complete and CI-verified. Production remains untouched, and PR #22 remains unmerged.
 
 Latest validation:
-- CRM Validation run #573: successful
-- Trusted lead branch authorization regression: passed
+- CRM Validation run #579: successful
 - Staging login isolation: passed
 - Staging CRM isolation: passed
 - Firebase Auth membership bridge: passed
 - Firestore authorization emulator: passed
 - Storage authorization emulator: passed
+- Staging write smoke page and trusted-write adapter checks: passed
 
 Latest security fix:
-- Trusted callable lead creation now independently enforces the caller's allowed branch membership.
+- Trusted callable lead creation independently enforces the caller's allowed branch membership.
 - This is required because callable Functions use the Admin SDK and therefore do not rely on client Firestore rules for their writes.
+- The fix is CI-verified. It must still be included in a successful staging deployment before it is treated as deployed.
 
 ## Required before real staging sign-in
 
@@ -49,6 +50,12 @@ The staging login authenticates through Firebase Auth and resolves authorization
 
 The staging CRM shell reads only authorized `leads` data. Trusted write operations use callable Functions rather than direct client writes.
 
+## Deployment status
+
+A previously verified staging deployment exists for an earlier security-branch commit. The current branch contains later CI-verified changes that are **not assumed deployed** until the staging deployment workflow reports success for the corresponding commit.
+
+No deployment credentials or real Auth identities are stored in the repository.
+
 ## Next implementation gate
 
 Once real staging Auth users and memberships are provisioned through a trusted administrative path, execute the deployed smoke matrix:
@@ -70,10 +77,11 @@ Only after this deployed matrix passes should the full staging CRM be considered
 
 ## Remaining migration gates
 
-- Real staging Auth UID/membership provisioning
-- Deployed smoke matrix
-- Deployed session expiry/logout/password recovery verification
-- Deployed plan-limit boundary and concurrent-write proof
-- Backup/rollback evidence
+- Deploy the current CI-verified security-branch commit to staging and verify the deployment workflow succeeds.
+- Real staging Auth UID/membership provisioning.
+- Deployed smoke matrix.
+- Deployed session expiry/logout/password recovery verification.
+- Deployed plan-limit boundary and concurrent-write proof.
+- Backup/rollback evidence.
 
 Production remains blocked until all gates pass.
