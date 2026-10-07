@@ -31,7 +31,8 @@ service cloud.firestore {
         && sameTenant(after.tenantId)
         && after.tenantId == before.tenantId
         && after.createdByUserId == before.createdByUserId
-        && (isOwner() || membership().role == 'manager'
+        && (isOwner()
+             || (membership().role == 'manager' && branchAllowed(after.branchId))
              || (membership().role == 'sales'
                  && (before.createdByUserId == request.auth.uid || before.assignedStaffId == request.auth.uid)
                  && after.branchId == before.branchId));
