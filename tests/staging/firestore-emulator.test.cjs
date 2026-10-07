@@ -7,189 +7,87 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails
-} = require('@firebase/rules-unit-testing');
+const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
 
 const env = initializeTestEnvironment({
   projectId: 'heritage-crm-staging',
   firestore: {
     host: '127.0.0.1',
     port: 8080,
-    rules: fs.readFileSync(
-      path.join(__dirname, '../../firebase/staging/firestore.rules'),
-      'utf8'
-    )
+    rules: fs.readFileSync(path.join(__dirname, '../../firebase/staging/firestore.rules'), 'utf8')
   }
 });
 
-test.after(async () => {
-  await (await env).cleanup();
-});
+test.after(async () => { await (await env).cleanup(); });
 
 async function seed() {
   const testEnv = await env;
-  const db = testEnv
-    .authenticatedContext('owner-a')
-    .firestore();
-
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
-    const adminDb = ctx.firestore();
-    await adminDb.doc('memberships/owner-a').set({
-      tenantId: 'tenant-a',
-      role: 'owner',
-      status: 'Active',
-      tenantStatus: 'Active',
-      branchIds: ['branch-a1', 'branch-a2']
-    });
-    await adminDb.doc('memberships/manager-a').set({
-      tenantId: 'tenant-a',
-      role: 'manager',
-      status: 'Active',
-      tenantStatus: 'Active',
-      branchIds: ['branch-a1']
-    });
-    await adminDb.doc('memberships/viewer-a').set({
-      tenantId: 'tenant-a',
-      role: 'viewer',
-      status: 'Active',
-      tenantStatus: 'Active',
-      branchIds: ['branch-a1']
-    });
-    await adminDb.doc('memberships/sales-a').set({
-      tenantId: 'tenant-a',
-      role: 'sales',
-      status: 'Active',
-      tenantStatus: 'Active',
-      branchIds: ['branch-a1']
-    });
-    await adminDb.doc('memberships/owner-b').set({
-      tenantId: 'tenant-b',
-      role: 'owner',
-      status: 'Active',
-      tenantStatus: 'Active',
-      branchIds: ['branch-b1']
-    });
-    await adminDb.doc('memberships/disabled-a').set({
-      tenantId: 'tenant-a',
-      role: 'sales',
-      status: 'Inactive',
-      tenantStatus: 'Active',
-      branchIds: ['branch-a1']
-    });
-    await adminDb.doc('leads/lead-a').set({
-      tenantId: 'tenant-a',
-      branchId: 'branch-a1',
-      createdByUserId: 'owner-a',
-      assignedStaffId: 'sales-a'
-    });
-    await adminDb.doc('leads/lead-a2').set({
-      tenantId: 'tenant-a',
-      branchId: 'branch-a2',
-      createdByUserId: 'owner-a',
-      assignedStaffId: 'owner-a'
-    });
-    await adminDb.doc('leads/lead-b').set({
-      tenantId: 'tenant-b',
-      branchId: 'branch-b1',
-      createdByUserId: 'owner-b',
-      assignedStaffId: 'owner-b'
-    });
+    const db = ctx.firestore();
+    await db.doc('memberships/owner-a').set({tenantId:'tenant-a',role:'owner',status:'Active',tenantStatus:'Active',branchIds:['branch-a1','branch-a2']});
+    await db.doc('memberships/manager-a').set({tenantId:'tenant-a',role:'manager',status:'Active',tenantStatus:'Active',branchIds:['branch-a1']});
+    await db.doc('memberships/viewer-a').set({tenantId:'tenant-a',role:'viewer',status:'Active',tenantStatus:'Active',branchIds:['branch-a1']});
+    await db.doc('memberships/sales-a').set({tenantId:'tenant-a',role:'sales',status:'Active',tenantStatus:'Active',branchIds:['branch-a1']});
+    await db.doc('memberships/owner-b').set({tenantId:'tenant-b',role:'owner',status:'Active',tenantStatus:'Active',branchIds:['branch-b1']});
+    await db.doc('memberships/disabled-a').set({tenantId:'tenant-a',role:'sales',status:'Inactive',tenantStatus:'Active',branchIds:['branch-a1']});
+    await db.doc('leads/lead-a').set({tenantId:'tenant-a',branchId:'branch-a1',createdByUserId:'owner-a',assignedStaffId:'sales-a'});
+    await db.doc('leads/lead-a2').set({tenantId:'tenant-a',branchId:'branch-a2',createdByUserId:'owner-a',assignedStaffId:'owner-a'});
+    await db.doc('leads/lead-b').set({tenantId:'tenant-b',branchId:'branch-b1',createdByUserId:'owner-b',assignedStaffId:'owner-b'});
   });
-
-  return db;
 }
 
-test('Tenant A owner can read Tenant A lead', async () => {
-  const db = await seed();
+test('owner tenant isolation', async () => {
+  await seed();
+  const db=(await env).authenticatedContext('owner-a').firestore();
   await assertSucceeds(db.doc('leads/lead-a').get());
-});
-
-test('Tenant A owner cannot read Tenant B lead', async () => {
-  const db = (await env).authenticatedContext('owner-a').firestore();
   await assertFails(db.doc('leads/lead-b').get());
 });
 
-test('Tenant A manager can read an allowed branch but not another branch', async () => {
+test('manager and viewer are branch scoped and cross-tenant denied', async () => {
   await seed();
-  const db = (await env).authenticatedContext('manager-a').firestore();
-  await assertSucceeds(db.doc('leads/lead-a').get());
-  await assertFails(db.doc('leads/lead-a2').get());
+  const manager=(await env).authenticatedContext('manager-a').firestore();
+  const viewer=(await env).authenticatedContext('viewer-a').firestore();
+  await assertSucceeds(manager.doc('leads/lead-a').get());
+  await assertFails(manager.doc('leads/lead-a2').get());
+  await assertSucceeds(viewer.doc('leads/lead-a').get());
+  await assertFails(viewer.doc('leads/lead-a2').get());
+  await assertFails(manager.doc('leads/lead-b').get());
+  await assertFails(viewer.doc('leads/lead-b').get());
 });
 
-test('Tenant A viewer can read an allowed branch but not another branch', async () => {
+test('manager cannot move a lead into an unauthorized branch', async () => {
   await seed();
-  const db = (await env).authenticatedContext('viewer-a').firestore();
-  await assertSucceeds(db.doc('leads/lead-a').get());
-  await assertFails(db.doc('leads/lead-a2').get());
+  const db=(await env).authenticatedContext('manager-a').firestore();
+  await assertFails(db.doc('leads/lead-a').set({
+    tenantId:'tenant-a', branchId:'branch-a2', createdByUserId:'owner-a', assignedStaffId:'sales-a'
+  }));
 });
 
-test('Tenant A manager and viewer cannot read Tenant B lead', async () => {
+test('tenant cannot forge ownership or membership', async () => {
   await seed();
-  const managerDb = (await env).authenticatedContext('manager-a').firestore();
-  const viewerDb = (await env).authenticatedContext('viewer-a').firestore();
-  await assertFails(managerDb.doc('leads/lead-b').get());
-  await assertFails(viewerDb.doc('leads/lead-b').get());
+  const owner=(await env).authenticatedContext('owner-a').firestore();
+  const sales=(await env).authenticatedContext('sales-a').firestore();
+  await assertFails(owner.doc('leads/forged').set({tenantId:'tenant-b',branchId:'branch-b1',createdByUserId:'owner-a',assignedStaffId:'owner-a'}));
+  await assertFails(sales.doc('memberships/sales-a').set({tenantId:'tenant-a',role:'owner',status:'Active',tenantStatus:'Active',branchIds:['branch-a1','branch-a2']}));
 });
 
-test('Tenant A cannot create a lead claiming Tenant B ownership', async () => {
-  const db = (await env).authenticatedContext('owner-a').firestore();
-  await assertFails(db.doc('leads/forged').set({
-    tenantId: 'tenant-b',
-    branchId: 'branch-b1',
-    createdByUserId: 'owner-a',
-    assignedStaffId: 'owner-a'
-  }));
+test('inactive user and unknown paths are denied', async () => {
+  await seed();
+  const disabled=(await env).authenticatedContext('disabled-a').firestore();
+  const owner=(await env).authenticatedContext('owner-a').firestore();
+  await assertFails(disabled.doc('leads/lead-a').get());
+  await assertFails(owner.doc('secret/internal').get());
 });
 
-test('Sales user cannot self-promote through membership writes', async () => {
-  const db = (await env).authenticatedContext('sales-a').firestore();
-  await assertFails(db.doc('memberships/sales-a').set({
-    tenantId: 'tenant-a',
-    role: 'owner',
-    status: 'Active',
-    tenantStatus: 'Active',
-    branchIds: ['branch-a1', 'branch-a2']
-  }));
+test('sales create is limited to owned allowed branch', async () => {
+  await seed();
+  const db=(await env).authenticatedContext('sales-a').firestore();
+  await assertSucceeds(db.doc('leads/sales-created').set({tenantId:'tenant-a',branchId:'branch-a1',createdByUserId:'sales-a',assignedStaffId:'sales-a'}));
+  await assertFails(db.doc('leads/sales-forbidden-branch').set({tenantId:'tenant-a',branchId:'branch-a2',createdByUserId:'sales-a',assignedStaffId:'sales-a'}));
 });
 
-test('Inactive user is denied protected lead access', async () => {
-  const db = (await env).authenticatedContext('disabled-a').firestore();
-  await assertFails(db.doc('leads/lead-a').get());
-});
-
-test('Unknown protected paths are denied', async () => {
-  const db = (await env).authenticatedContext('owner-a').firestore();
-  await assertFails(db.doc('secret/internal').get());
-});
-
-test('Sales user can create an owned lead only in an allowed branch', async () => {
-  const db = (await env).authenticatedContext('sales-a').firestore();
-  await assertSucceeds(db.doc('leads/sales-created').set({
-    tenantId: 'tenant-a',
-    branchId: 'branch-a1',
-    createdByUserId: 'sales-a',
-    assignedStaffId: 'sales-a'
-  }));
-});
-
-test('Sales user cannot create a lead in an unassigned branch', async () => {
-  const db = (await env).authenticatedContext('sales-a').firestore();
-  await assertFails(db.doc('leads/sales-forbidden-branch').set({
-    tenantId: 'tenant-a',
-    branchId: 'branch-a2',
-    createdByUserId: 'sales-a',
-    assignedStaffId: 'sales-a'
-  }));
-});
-
-test('Non-owner cannot create a branch', async () => {
-  const db = (await env).authenticatedContext('sales-a').firestore();
-  await assertFails(db.doc('branches/forged-branch').set({
-    tenantId: 'tenant-a',
-    branchId: 'branch-a1',
-    status: 'Active'
-  }));
+test('non-owner cannot create a branch', async () => {
+  await seed();
+  const db=(await env).authenticatedContext('sales-a').firestore();
+  await assertFails(db.doc('branches/forged-branch').set({tenantId:'tenant-a',branchId:'branch-a1',status:'Active'}));
 });
