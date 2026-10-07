@@ -5,7 +5,7 @@
 The staging authorization implementation is code-complete and CI-verified. Production remains untouched, and PR #22 remains unmerged.
 
 Latest validation:
-- CRM Validation run #584: successful
+- CRM Validation run #587: successful
 - Staging login isolation: passed
 - Staging CRM isolation: passed
 - Firebase Auth membership bridge: passed
@@ -13,11 +13,11 @@ Latest validation:
 - Storage authorization emulator: passed
 - Staging write smoke page and trusted-write adapter checks: passed
 
-Latest security fixes:
+Latest security fixes and validation:
 - Trusted callable lead creation independently enforces the caller's allowed branch membership.
 - Firestore lead updates prevent managers from moving an existing lead into a branch outside their authorized branch set; regression coverage is CI-verified in CRM Validation #584.
 - This is required because callable Functions use the Admin SDK and therefore do not rely on client Firestore rules for their writes.
-- These fixes are CI-verified. They must still be included in a successful staging deployment before they are treated as deployed.
+- These fixes are CI-verified. The deployed staging smoke matrix is documented in `firebase/staging/DEPLOYED_STAGING_SECURITY_SMOKE_MATRIX_20261007.md`. They must still be included in a successful staging deployment before they are treated as deployed.
 
 ## Required before real staging sign-in
 
@@ -86,3 +86,5 @@ Only after this deployed matrix passes should the full staging CRM be considered
 - Backup/rollback evidence.
 
 Production remains blocked until all gates pass.
+
+CI note: CRM Validation #587 passed after the deployed staging smoke matrix documentation was added.
