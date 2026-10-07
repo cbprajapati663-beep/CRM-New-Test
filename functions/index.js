@@ -87,7 +87,7 @@ exports.createPlanEnforcedStaff = onCall(async request => {
       );
       assertUnderLimit('staff', q.size, tenant);
       tx.set(ref, {
-        ...input,
+        ...safeInput,
         tenantId,
         createdByUserId: uid,
         createdAt: new Date().toISOString(),
