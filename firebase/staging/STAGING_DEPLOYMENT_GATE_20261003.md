@@ -2,7 +2,7 @@
 
 ## Current state
 
-The staging authorization implementation is code-complete and CI-verified.
+The staging authorization implementation is code-complete, CI-verified, and the trusted Functions/rules deployment is verified successful.
 
 Latest validation:
 - CRM Validation run #496: successful
@@ -47,7 +47,7 @@ A privileged staging deployment must provision:
 
 The staging login authenticates through Firebase Auth and resolves authorization context only from the trusted `memberships/{uid}` document.
 
-The staging CRM shell reads only authorized `leads` data and does not access legacy `tenants`, `staffAccounts`, or `payoutSecurity` collections.
+The staging CRM shell reads only authorized `leads` data and does not access legacy `tenants`, `staffAccounts`, or `payoutSecurity` collections. The trusted write adapter routes create staff/branch/lead operations through deployed callable Functions.
 
 ## Next implementation gate
 
