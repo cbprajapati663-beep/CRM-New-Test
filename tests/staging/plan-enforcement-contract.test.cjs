@@ -30,7 +30,6 @@ test('plan enforcement contract forbids client-selected authorization state', ()
   }
 });
 
-
 test('trusted plan functions use the canonical staging collection paths', () => {
   const source = fs.readFileSync(path.join(__dirname, '../../functions/index.js'), 'utf8');
   assert.match(source, /db\.collection\('branches'\)\.doc\(\)/);
@@ -40,15 +39,15 @@ test('trusted plan functions use the canonical staging collection paths', () => 
   assert.doesNotMatch(source, /collection\('tenants'\)\.doc\(tenantId\)\.collection\('(branches|staff)'\)/);
 });
 
-
-test('trusted plan functions enforce role boundaries without blocking sales lead creation', () => {
+test('trusted plan functions enforce role and branch boundaries', () => {
   const source = fs.readFileSync(path.join(__dirname, '../../functions/index.js'), 'utf8');
   assert.match(source, /createPlanEnforcedLead[\s\S]*?loadMembership/);
   assert.match(source, /Owner role required for branch creation/);
   assert.match(source, /Manager or owner role required for staff creation/);
   assert.match(source, /\['owner', 'manager', 'sales', 'viewer'\]\.includes\(m\.role\)/);
+  assert.match(source, /branchAllowedForMembership/);
+  assert.match(source, /Lead branch is outside the caller membership/);
 });
-
 
 test('trusted write boundary strips client-controlled identity and staff privilege fields', () => {
   const source = fs.readFileSync(path.join(__dirname, '../../functions/index.js'), 'utf8');
