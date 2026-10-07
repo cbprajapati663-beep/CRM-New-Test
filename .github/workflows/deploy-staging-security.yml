@@ -3,6 +3,7 @@ name: Deploy CRM Staging Security
 # Current gate: deploy the CI-verified security branch to heritage-crm-staging only.
 # [deploy-staging] Security-branch deployment trigger; production remains blocked.
 # Production deployment is intentionally impossible from this workflow.
+# CI-verified deployment gate refresh: CRM Validation #588.
 
 on:
   workflow_dispatch:
