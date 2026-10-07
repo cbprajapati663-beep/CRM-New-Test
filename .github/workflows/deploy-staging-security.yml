@@ -1,7 +1,7 @@
 name: Deploy CRM Staging Security
 # Explicit [deploy-staging] trigger is required for a branch-only staging deployment.
 # Retry after target-guard path-filter fix.
-# Latest trigger validates the staging artifact cleanup-policy handling.
+# Latest trigger validates staging deployment after fixture alignment.
 
 on:
   workflow_dispatch:
