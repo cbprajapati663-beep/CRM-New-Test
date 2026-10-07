@@ -135,7 +135,7 @@ test('password reset is delegated only to staging Firebase Auth', async () => {
   loaded.window.HAFStagingFirebase = { getServices: () => services };
 
   await loaded.session.sendPasswordResetEmail(' sales-a@staging.invalid ');
-  assert.deepEqual(calls, [' sales-a@staging.invalid ']);
+  assert.deepEqual(calls, ['sales-a@staging.invalid']);
 });
 
 test('auth state listener delegates to staging Firebase Auth', () => {
