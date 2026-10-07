@@ -27,6 +27,11 @@ async function loadTenant(tenantId) {
   catch (e) { throw new HttpsError('failed-precondition', e.message); }
   return tenant;
 }
+function branchAllowedForMembership(membership, branchId) {
+  if (!branchId) return false;
+  if (membership.role === 'owner') return true;
+  return Array.isArray(membership.branchIds) && membership.branchIds.includes(branchId);
+}
 function fail(e) {
   if (e instanceof HttpsError) throw e;
   if (e && e.message === 'PLAN_LIMIT_REACHED') throw new HttpsError('resource-exhausted', 'Plan limit reached for ' + e.kind + '.');
@@ -55,6 +60,7 @@ exports.createPlanEnforcedLead = onCall(async request => {
     const uid = requireAuth(request), m = await loadMembership(uid), tenantId = m.tenantId, tenant = await loadTenant(tenantId);
     const input = request.data && typeof request.data === 'object' ? request.data : {};
     if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
+    if (!branchAllowedForMembership(m, input.branchId)) throw new HttpsError('permission-denied', 'Lead branch is outside the caller membership.');
     const { tenantId: _tenantId, createdByUserId: _createdByUserId, createdAt: _createdAt, ...safeInput } = input;
     const ref = db.collection('leads').doc();
     await db.runTransaction(async tx => {
