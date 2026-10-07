@@ -11,7 +11,7 @@ test('staging deployment gate documents privileged provisioning boundaries', () 
     'Do not put passwords',
     'service-account',
     'Do not provision staging identities from browser JavaScript',
-    'legacy `localStorage` CRM session',
+    'browser-persisted CRM session',
     'rules remain the authorization boundary',
     'disabled-a',
     'Cross-tenant access'
@@ -26,7 +26,6 @@ test('staging gate does not contain credential-shaped material', () => {
   assert.doesNotMatch(gate, /password\s*[:=]\s*[^<\n]{8,}/i);
   assert.doesNotMatch(gate, /client_email\s*[:=]/i);
 });
-
 
 test('staging deployment workflow is manual, staging-only, and credential-safe', () => {
   const workflow = fs.readFileSync('.github/workflows/deploy-staging-security.yml', 'utf8');
