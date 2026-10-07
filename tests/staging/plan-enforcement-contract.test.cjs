@@ -59,4 +59,5 @@ test('trusted write boundary strips client-controlled identity and staff privile
   assert.match(source, /tenantStatus: _tenantStatus/);
   assert.match(source, /branchIds: _branchIds/);
   assert.match(source, /status: 'Active'/);
+  assert.match(source, /tx\.set\(ref, \{[\s\S]*\.\.\.safeInput[\s\S]*tenantId,[\s\S]*createdByUserId: uid/);
 });
