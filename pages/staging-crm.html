@@ -42,11 +42,8 @@ async function load(){
   if(services.projectId!=='heritage-crm-staging') throw new Error('Unexpected Firebase project.');
   const authUser=services.auth.currentUser;
   if(!authUser) { window.location.replace('./staging-login.html'); return; }
-  const snap=await services.db.collection('memberships').doc(authUser.uid).get();
-  if(!snap.exists) throw new Error('Trusted membership is missing.');
-  const m=snap.data()||{};
-  if(m.status!=='Active'||m.tenantStatus!=='Active'||!m.tenantId) throw new Error('Account or tenant is inactive.');
-  const role=String(m.role||''), branches=Array.isArray(m.branchIds)?m.branchIds:[];
+  const m=await window.HAFStagingAuthSession.getCurrentMembership();
+  const role=m.role, branches=m.branchIds;
   identity.innerHTML='<span class="badge">'+esc(role)+'</span>';
   scope.innerHTML='<span class="badge">Tenant: '+esc(m.tenantId)+'</span>'+branches.map(b=>'<span class="badge">Branch: '+esc(b)+'</span>').join('');
   const rows=[];
