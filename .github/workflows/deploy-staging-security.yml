@@ -15,6 +15,9 @@ on:
       - security/auth-implementation-gate-20261003
     paths:
       - .github/workflows/deploy-staging-security.yml
+      - pages/staging-login.html
+      - pages/staging-crm.html
+      - assets/js/staging/**
 
 permissions:
   contents: read
@@ -99,7 +102,7 @@ jobs:
           const configPath = '.staging-public/assets/js/staging/firebase-config.js';
           const html = fs.readFileSync(htmlPath, 'utf8');
           const configScript = fs.readFileSync(configPath, 'utf8').trim();
-          const externalTag = '<script src="assets/js/staging/firebase-config.js?v=20261008-1"></script>';
+          const externalTag = '<script src="assets/js/staging/firebase-config.js?v=20261008-2"></script>';
           if (!html.includes(externalTag)) {
             throw new Error('Expected staging Firebase config script tag was not found.');
           }
