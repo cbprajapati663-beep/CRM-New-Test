@@ -61,6 +61,56 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
         run: |
           npx firebase-tools deploy --project heritage-crm-staging --only functions,firestore:rules,storage --non-interactive --force
+
+      - name: Prepare isolated staging Hosting bundle
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          set -e
+          rm -rf .staging-public
+          mkdir -p .staging-public/assets/js/staging
+          cp pages/staging-login.html .staging-public/index.html
+          cp pages/staging-crm.html .staging-public/staging-crm.html
+          cp assets/js/staging/firebase-bootstrap.js .staging-public/assets/js/staging/
+          cp assets/js/staging/auth-session.js .staging-public/assets/js/staging/
+          cp assets/js/staging/identity-contract.js .staging-public/assets/js/staging/
+          cp assets/js/staging/trusted-writes.js .staging-public/assets/js/staging/
+          node - <<'NODE'
+          const { execFileSync } = require('child_process');
+          const fs = require('fs');
+          const appId = '1:396389940454:web:9bdb36500c65d6daac8f27';
+          const raw = execFileSync('npx', ['firebase-tools', 'apps:sdkconfig', 'web', appId, '--project', 'heritage-crm-staging'], { encoding: 'utf8' }).trim();
+          const config = JSON.parse(raw);
+          if (config.projectId !== 'heritage-crm-staging' || config.appId !== appId) {
+            throw new Error('Staging web config identity mismatch.');
+          }
+          fs.writeFileSync(
+            '.staging-public/assets/js/staging/firebase-config.js',
+            'window.HAF_STAGING_FIREBASE_CONFIG = ' + JSON.stringify(config, null, 2) + ';\\n'
+          );
+          NODE
+          test -s .staging-public/index.html
+          test -s .staging-public/staging-crm.html
+          test -s .staging-public/assets/js/staging/firebase-config.js
+          grep -q 'heritage-crm-staging' .staging-public/assets/js/staging/firebase-config.js
+          ! grep -q 'heritage-crm-f179a' .staging-public/assets/js/staging/firebase-config.js
+
+      - name: Ensure staging Hosting site exists
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          set -e
+          if ! npx firebase-tools hosting:sites:get heritage-crm-staging --project heritage-crm-staging >/dev/null 2>&1; then
+            npx firebase-tools hosting:sites:create heritage-crm-staging --project heritage-crm-staging
+          fi
+          npx firebase-tools hosting:sites:get heritage-crm-staging --project heritage-crm-staging
+
+      - name: Deploy staging Hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          npx firebase-tools deploy --config firebase.staging.json --project heritage-crm-staging --only hosting --non-interactive --force
+
       - name: Remove staging credential
         if: always()
         run: rm -f "$RUNNER_TEMP/firebase-service-account.json"
