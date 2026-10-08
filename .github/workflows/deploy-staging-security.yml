@@ -6,6 +6,7 @@ name: Deploy CRM Staging Security
 # Production deployment is intentionally impossible from this workflow.
 # CI-verified deployment gate refresh: CRM Validation #588.
 # Manual staging gate trigger refresh.
+# Cache-busting staging login deployment refresh [deploy-staging].
 
 on:
   workflow_dispatch:
