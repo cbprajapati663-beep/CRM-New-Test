@@ -31,49 +31,41 @@ table{width:100%;border-collapse:collapse;margin-top:14px}th,td{text-align:left;
 <script>
 (function(){
 'use strict';
-const status=document.getElementById('status'), identity=document.getElementById('identity'), scope=document.getElementById('scope'), wrap=document.getElementById('tableWrap');
+const status=document.getElementById('status'),identity=document.getElementById('identity'),scope=document.getElementById('scope'),wrap=document.getElementById('tableWrap');
 function show(msg,error){status.textContent=msg;status.className='status'+(error?' error':'')}
 function esc(v){return String(v??'').replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]})}
 let authStateUnsubscribe=null;
-let authStateResolved=false;
-function handleAuthState(user){
-  if(!authStateResolved){
-    authStateResolved=true;
+function waitForAuthenticatedUser(auth){
+ return new Promise(function(resolve,reject){
+  let settled=false;
+  const timeout=setTimeout(function(){
+    if(settled)return;
+    settled=true;
+    unsubscribe();
+    reject(new Error('Staging Auth state timed out.'));
+  },15000);
+  const unsubscribe=auth.onAuthStateChanged(function(user){
+    if(settled)return;
     if(!user){
-      window.location.replace('./staging-login.html');
       return;
     }
-    return;
-  }
-  if(!user){
-    if(authStateUnsubscribe) authStateUnsubscribe();
-    window.location.replace('./staging-login.html');
-  }
+    settled=true;
+    clearTimeout(timeout);
+    unsubscribe();
+    resolve(user);
+  });
+ });
 }
-authStateUnsubscribe=window.HAFStagingAuthSession.onAuthStateChanged(handleAuthState);
 async function load(){
  try{
   if(!window.HAFStagingFirebase||!window.HAFStagingAuthSession) throw new Error('Staging security modules unavailable.');
   const services=window.HAFStagingFirebase.getServices();
   if(services.projectId!=='heritage-crm-staging') throw new Error('Unexpected Firebase project.');
   show('Restoring authenticated staging session…');
-  await new Promise(function(resolve,reject){
-    const timeout=setTimeout(function(){reject(new Error('Staging Auth state timed out.'));},15000);
-    if(services.auth.currentUser){
-      clearTimeout(timeout);
-      resolve();
-      return;
-    }
-    const unsubscribe=services.auth.onAuthStateChanged(function(user){
-      unsubscribe();
-      clearTimeout(timeout);
-      if(user) resolve(); else reject(new Error('No authenticated staging user.'));
-    });
-  });
-  const authUser=services.auth.currentUser;
-  if(!authUser) { window.location.replace('./staging-login.html'); return; }
+  const authUser=services.auth.currentUser || await waitForAuthenticatedUser(services.auth);
+  if(!authUser){window.location.replace('./staging-login.html');return;}
   const m=await window.HAFStagingAuthSession.getCurrentMembership();
-  const role=m.role, branches=m.branchIds;
+  const role=m.role,branches=m.branchIds;
   identity.innerHTML='<span class="badge">'+esc(role)+'</span>';
   scope.innerHTML='<span class="badge">Tenant: '+esc(m.tenantId)+'</span>'+branches.map(b=>'<span class="badge">Branch: '+esc(b)+'</span>').join('');
   const rows=[];
@@ -90,15 +82,20 @@ async function load(){
       services.db.collection('leads').where('tenantId','==',m.tenantId).where('createdByUserId','==',authUser.uid).limit(250).get(),
       services.db.collection('leads').where('tenantId','==',m.tenantId).where('assignedStaffId','==',authUser.uid).limit(250).get()
     ];
-    const results=await Promise.all(queries); results.forEach(q=>q.forEach(d=>rows.push({id:d.id,...d.data()})));
+    const results=await Promise.all(queries);results.forEach(q=>q.forEach(d=>rows.push({id:d.id,...d.data()})));
   }else throw new Error('Unsupported membership role.');
   const unique=[...new Map(rows.map(x=>[x.id,x])).values()];
   unique.sort((a,b)=>String(b.updatedAt?.seconds||0).localeCompare(String(a.updatedAt?.seconds||0)));
   if(!unique.length){wrap.innerHTML='<div class="empty">No leads are visible in this authorized scope.</div>'}
-  else {wrap.innerHTML='<table><thead><tr><th>Customer</th><th>Mobile</th><th>Status</th><th>Loan Amount</th><th>Branch</th><th>Assigned</th></tr></thead><tbody>'+
-    unique.map(l=>'<tr><td>'+esc(l.name)+'</td><td>'+esc(l.mobile)+'</td><td>'+esc(l.status)+'</td><td>₹'+esc(l.loanAmount)+'</td><td>'+esc(l.branchId)+'</td><td>'+esc(l.assignedStaffId)+'</td></tr>').join('')+
-    '</tbody></table>'}
+  else{wrap.innerHTML='<table><thead><tr><th>Customer</th><th>Mobile</th><th>Status</th><th>Loan Amount</th><th>Branch</th><th>Assigned</th></tr></thead><tbody>'+
+    unique.map(l=>'<tr><td>'+esc(l.name)+'</td><td>'+esc(l.mobile)+'</td><td>'+esc(l.status)+'</td><td>₹'+esc(l.loanAmount)+'</td><td>'+esc(l.branchId)+'</td><td>'+esc(l.assignedStaffId)+'</td></tr>').join('')+'</tbody></table>'}
   show('Authenticated and loaded only the leads permitted by the staging authorization model.');
+  authStateUnsubscribe=window.HAFStagingAuthSession.onAuthStateChanged(function(user){
+    if(!user){
+      if(authStateUnsubscribe)authStateUnsubscribe();
+      window.location.replace('./staging-login.html');
+    }
+  });
  }catch(e){show('Staging CRM blocked: '+(e.message||'Unknown error'),true);wrap.innerHTML='<div class="empty">No CRM data loaded.</div>'}
 }
 document.getElementById('logout').addEventListener('click',async function(){await window.HAFStagingAuthSession.signOut();window.location.replace('./staging-login.html')});
