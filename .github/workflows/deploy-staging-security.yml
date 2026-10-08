@@ -68,6 +68,11 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
         run: |
           npx firebase-tools deploy --project heritage-crm-staging --only functions,firestore:rules,storage --non-interactive --force
+      - name: Provision staging membership fixtures
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          node scripts/staging/seed-memberships.js
       - name: Prepare isolated staging Hosting bundle
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
