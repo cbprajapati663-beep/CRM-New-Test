@@ -38,9 +38,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="assets/js/staging/firebase-config.js"></script>
-<script src="assets/js/staging/firebase-bootstrap.js"></script>
-<script src="assets/js/staging/auth-session.js"></script>
+<script src="assets/js/staging/firebase-config.js?v=20261008-1"></script>
+<script src="assets/js/staging/firebase-bootstrap.js?v=20261008-1"></script>
+<script src="assets/js/staging/auth-session.js?v=20261008-1"></script>
 <script>
 (function(){
   'use strict';
@@ -50,10 +50,8 @@
   const button=document.getElementById('loginButton');
   const resetButton=document.getElementById('resetButton');
   const status=document.getElementById('status');
-
   function show(message){status.textContent=message;}
   function busy(value){button.disabled=value;resetButton.disabled=value;}
-
   try{
     if(!window.HAFStagingFirebase || !window.HAFStagingFirebase.getServices){
       throw new Error('Staging Firebase bootstrap is unavailable.');
@@ -68,7 +66,6 @@
     busy(true);
     return;
   }
-
   resetButton.addEventListener('click',async function(){
     const address=email.value.trim();
     if(!address){ show('Enter your staging account email first.'); return; }
@@ -80,7 +77,6 @@
       show('Password reset blocked: '+(error.message||'Unknown error'));
     }finally{ busy(false); }
   });
-
   form.addEventListener('submit',async function(event){
     event.preventDefault();
     busy(true);
@@ -88,14 +84,11 @@
       const membership=await window.HAFStagingAuthSession.signInAndLoadMembership(email.value,password.value);
       password.value='';
       show('Authenticated. Tenant: '+membership.tenantId+' · Role: '+membership.role+' · Branches: '+membership.branchIds.length+'.');
-      // Keep this page auth-only until the staging CRM entry point is wired to the same identity contract.
       setTimeout(function(){ window.location.replace('./staging-crm.html'); },1200);
     }catch(error){
       password.value='';
       show('Sign-in blocked: '+(error.message||'Unknown authentication error'));
-    }finally{
-      busy(false);
-    }
+    }finally{ busy(false); }
   });
 }());
 </script>
