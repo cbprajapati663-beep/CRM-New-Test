@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/firebase/firebase-tools/master/schema/firebase-config.json",
+  "hosting": {
+    "site": "heritage-crm-staging",
+    "public": ".staging-public",
+    "ignore": [
+      "firebase.staging.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "firestore": {
+    "rules": "firebase/staging/firestore.rules"
+  },
+  "storage": {
+    "rules": "firebase/staging/storage.rules"
+  }
+}
