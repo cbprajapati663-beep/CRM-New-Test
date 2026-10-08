@@ -7,6 +7,7 @@ name: Deploy CRM Staging Security
 # CI-verified deployment gate refresh: CRM Validation #588.
 # Manual staging gate trigger refresh.
 # Cache-busting staging login deployment refresh [deploy-staging].
+# Deploy trigger for valid inline staging config [deploy-staging].
 
 on:
   workflow_dispatch:
