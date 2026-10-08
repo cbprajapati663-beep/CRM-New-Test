@@ -33,6 +33,22 @@
     <button id="resetButton" type="button">Send password reset email</button>
   </form>
   <div id="status" role="status" aria-live="polite">Loading staging authentication…</div>
+<script>
+(function(){
+  var status=document.getElementById('status');
+  var button=document.getElementById('loginButton');
+  window.addEventListener('error',function(event){
+    if(status) status.textContent='Page JavaScript error: '+(event.message||'Unknown error');
+  });
+  if(button){
+    button.addEventListener('click',function(){
+      if(status && status.textContent==='Loading staging authentication…'){
+        status.textContent='Login button clicked. Starting staging authentication…';
+      }
+    },{capture:true});
+  }
+}());
+</script>
   <div class="meta">No password, tenant ID, role or membership data is stored in localStorage by this page. This entry point must remain isolated from production.</div>
 </main>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
