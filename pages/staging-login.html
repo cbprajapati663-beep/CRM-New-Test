@@ -80,8 +80,15 @@
   form.addEventListener('submit',async function(event){
     event.preventDefault();
     busy(true);
+    show('Signing in to heritage-crm-staging…');
     try{
-      const membership=await window.HAFStagingAuthSession.signInAndLoadMembership(email.value,password.value);
+      const timeout = new Promise(function(_, reject){
+        setTimeout(function(){ reject(new Error('Sign-in request timed out. Check staging Firebase Auth/network connectivity.')); }, 15000);
+      });
+      const membership=await Promise.race([
+        window.HAFStagingAuthSession.signInAndLoadMembership(email.value,password.value),
+        timeout
+      ]);
       password.value='';
       show('Authenticated. Tenant: '+membership.tenantId+' · Role: '+membership.role+' · Branches: '+membership.branchIds.length+'.');
       setTimeout(function(){ window.location.replace('./staging-crm.html'); },1200);
