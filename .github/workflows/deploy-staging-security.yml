@@ -87,7 +87,7 @@ jobs:
           const raw = execFileSync('npx', ['firebase-tools', 'apps:sdkconfig', 'web', appId, '--project', 'heritage-crm-staging'], { encoding: 'utf8' }).trim();
           const config = JSON.parse(raw);
           if (config.projectId !== 'heritage-crm-staging' || config.appId !== appId) throw new Error('Staging web config identity mismatch.');
-          fs.writeFileSync('.staging-public/assets/js/staging/firebase-config.js','window.HAF_STAGING_FIREBASE_CONFIG = ' + JSON.stringify(config, null, 2) + ';\\n');
+          fs.writeFileSync('.staging-public/assets/js/staging/firebase-config.js','window.HAF_STAGING_FIREBASE_CONFIG = ' + JSON.stringify(config, null, 2) + ';\n');
           NODE
           test -s .staging-public/index.html
           test -s .staging-public/staging-crm.html
