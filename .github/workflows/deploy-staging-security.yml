@@ -4,6 +4,7 @@ name: Deploy CRM Staging Security
 # [deploy-staging] Security-branch deployment trigger; production remains blocked.
 # Production deployment is intentionally impossible from this workflow.
 # CI-verified deployment gate refresh: CRM Validation #588.
+# Manual staging gate trigger refresh.
 
 on:
   workflow_dispatch:
