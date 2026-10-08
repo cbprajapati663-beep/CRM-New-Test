@@ -93,6 +93,21 @@ jobs:
           NODE
           test -s .staging-public/index.html
           test -s .staging-public/staging-crm.html
+          node - <<'NODE'
+          const fs = require('fs');
+          const htmlPath = '.staging-public/index.html';
+          const configPath = '.staging-public/assets/js/staging/firebase-config.js';
+          const html = fs.readFileSync(htmlPath, 'utf8');
+          const configScript = fs.readFileSync(configPath, 'utf8').trim();
+          const externalTag = '<script src="assets/js/staging/firebase-config.js?v=20261008-1"></script>';
+          if (!html.includes(externalTag)) {
+            throw new Error('Expected staging Firebase config script tag was not found.');
+          }
+          const nextHtml = html.replace(externalTag, '<script>' + configScript + '</script>');
+          fs.writeFileSync(htmlPath, nextHtml);
+          NODE
+          grep -q 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/index.html
+          test -s .staging-public/index.html
           test -s .staging-public/assets/js/staging/firebase-config.js
           grep -q 'heritage-crm-staging' .staging-public/assets/js/staging/firebase-config.js
           ! grep -q 'heritage-crm-f179a' .staging-public/assets/js/staging/firebase-config.js
