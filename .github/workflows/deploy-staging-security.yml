@@ -109,6 +109,11 @@ jobs:
           NODE
           grep -q 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/index.html
           grep -q 'heritage-crm-staging' .staging-public/assets/js/staging/firebase-config.js
+          grep -q 'function initializeStagingFirebase' .staging-public/index.html
+          echo '--- STAGING INDEX INLINE VERIFICATION ---'
+          grep -o 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/index.html | head -1
+          grep -o 'function initializeStagingFirebase' .staging-public/index.html | head -1
+          echo '--- END INLINE VERIFICATION ---'
           ! grep -q 'heritage-crm-f179a' .staging-public/assets/js/staging/firebase-config.js
       - name: Ensure staging Hosting site exists
         env:
