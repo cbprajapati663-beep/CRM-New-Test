@@ -15,6 +15,7 @@ on:
       - security/auth-implementation-gate-20261003
     paths:
       - .github/workflows/deploy-staging-security.yml
+      - firebase.staging.json
       - pages/staging-login.html
       - pages/staging-crm.html
       - assets/js/staging/**
@@ -66,7 +67,6 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
         run: |
           npx firebase-tools deploy --project heritage-crm-staging --only functions,firestore:rules,storage --non-interactive --force
-
       - name: Prepare isolated staging Hosting bundle
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
@@ -86,13 +86,8 @@ jobs:
           const appId = '1:396389940454:web:9bdb36500c65d6daac8f27';
           const raw = execFileSync('npx', ['firebase-tools', 'apps:sdkconfig', 'web', appId, '--project', 'heritage-crm-staging'], { encoding: 'utf8' }).trim();
           const config = JSON.parse(raw);
-          if (config.projectId !== 'heritage-crm-staging' || config.appId !== appId) {
-            throw new Error('Staging web config identity mismatch.');
-          }
-          fs.writeFileSync(
-            '.staging-public/assets/js/staging/firebase-config.js',
-            'window.HAF_STAGING_FIREBASE_CONFIG = ' + JSON.stringify(config, null, 2) + ';\\n'
-          );
+          if (config.projectId !== 'heritage-crm-staging' || config.appId !== appId) throw new Error('Staging web config identity mismatch.');
+          fs.writeFileSync('.staging-public/assets/js/staging/firebase-config.js','window.HAF_STAGING_FIREBASE_CONFIG = ' + JSON.stringify(config, null, 2) + ';\\n');
           NODE
           test -s .staging-public/index.html
           test -s .staging-public/staging-crm.html
@@ -103,18 +98,12 @@ jobs:
           const html = fs.readFileSync(htmlPath, 'utf8');
           const configScript = fs.readFileSync(configPath, 'utf8').trim();
           const externalTag = '<script src="assets/js/staging/firebase-config.js?v=20261008-2"></script>';
-          if (!html.includes(externalTag)) {
-            throw new Error('Expected staging Firebase config script tag was not found.');
-          }
-          const nextHtml = html.replace(externalTag, '<script>' + configScript + '</script>');
-          fs.writeFileSync(htmlPath, nextHtml);
+          if (!html.includes(externalTag)) throw new Error('Expected staging Firebase config script tag was not found.');
+          fs.writeFileSync(htmlPath, html.replace(externalTag, '<script>' + configScript + '</script>'));
           NODE
           grep -q 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/index.html
-          test -s .staging-public/index.html
-          test -s .staging-public/assets/js/staging/firebase-config.js
           grep -q 'heritage-crm-staging' .staging-public/assets/js/staging/firebase-config.js
           ! grep -q 'heritage-crm-f179a' .staging-public/assets/js/staging/firebase-config.js
-
       - name: Ensure staging Hosting site exists
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
@@ -123,14 +112,11 @@ jobs:
           if ! npx firebase-tools hosting:sites:get heritage-crm-staging --project heritage-crm-staging >/dev/null 2>&1; then
             npx firebase-tools hosting:sites:create heritage-crm-staging --project heritage-crm-staging
           fi
-          npx firebase-tools hosting:sites:get heritage-crm-staging --project heritage-crm-staging
-
       - name: Deploy staging Hosting
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
         run: |
           npx firebase-tools deploy --config firebase.staging.json --project heritage-crm-staging --only hosting --non-interactive --force
-
       - name: Remove staging credential
         if: always()
         run: rm -f "$RUNNER_TEMP/firebase-service-account.json"
