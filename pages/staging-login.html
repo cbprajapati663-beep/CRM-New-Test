@@ -29,7 +29,7 @@
     <input id="email" type="email" autocomplete="username" required>
     <label for="password">Password</label>
     <input id="password" type="password" autocomplete="current-password" required>
-    <button id="loginButton" type="submit">Sign in to staging</button>
+    <button id="loginButton" type="button">Sign in to staging</button>
     <button id="resetButton" type="button">Send password reset email</button>
   </form>
   <div id="status" role="status" aria-live="polite">Loading staging authentication…</div>
@@ -77,8 +77,10 @@
       show('Password reset blocked: '+(error.message||'Unknown error'));
     }finally{ busy(false); }
   });
-  form.addEventListener('submit',async function(event){
-    event.preventDefault();
+  button.addEventListener('click',async function(){
+    const address=email.value.trim();
+    if(!address){ show('Enter your staging account email first.'); return; }
+    if(!password.value){ show('Enter your staging account password first.'); return; }
     busy(true);
     show('Signing in to heritage-crm-staging…');
     try{
