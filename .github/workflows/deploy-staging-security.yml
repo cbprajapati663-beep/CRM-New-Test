@@ -98,8 +98,14 @@ jobs:
           const html = fs.readFileSync(htmlPath, 'utf8');
           const configScript = fs.readFileSync(configPath, 'utf8').trim();
           const externalTag = '<script src="assets/js/staging/firebase-config.js?v=20261008-2"></script>';
+          const bootstrapTag = '<script src="assets/js/staging/firebase-bootstrap.js?v=20261008-2"></script>';
           if (!html.includes(externalTag)) throw new Error('Expected staging Firebase config script tag was not found.');
-          fs.writeFileSync(htmlPath, html.replace(externalTag, '<script>' + configScript + '</script>'));
+          if (!html.includes(bootstrapTag)) throw new Error('Expected staging Firebase bootstrap script tag was not found.');
+          const bootstrap = fs.readFileSync('assets/js/staging/firebase-bootstrap.js', 'utf8');
+          const nextHtml = html
+            .replace(externalTag, '<script>' + configScript + '</script>')
+            .replace(bootstrapTag, '<script>' + bootstrap + '</script>');
+          fs.writeFileSync(htmlPath, nextHtml);
           NODE
           grep -q 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/index.html
           grep -q 'heritage-crm-staging' .staging-public/assets/js/staging/firebase-config.js
