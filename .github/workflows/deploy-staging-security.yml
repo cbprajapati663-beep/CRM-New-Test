@@ -2,6 +2,7 @@ name: Deploy CRM Staging Security
 # Explicit [deploy-staging] trigger is required for a branch-only staging deployment.
 # Current gate: deploy the CI-verified security branch to heritage-crm-staging only.
 # [deploy-staging] Security-branch deployment trigger; production remains blocked.
+# Staging Hosting isolation gate [deploy-staging].
 # Production deployment is intentionally impossible from this workflow.
 # CI-verified deployment gate refresh: CRM Validation #588.
 # Manual staging gate trigger refresh.
