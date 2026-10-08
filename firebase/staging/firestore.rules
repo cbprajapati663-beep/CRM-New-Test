@@ -39,7 +39,9 @@ service cloud.firestore {
     }
 
     match /memberships/{uid} {
-      allow read: if signedIn() && uid == request.auth.uid && activeMember();
+      // Bootstrap read: the membership document is the source of trusted role/status data,
+      // so this rule must not call membership()/activeMember() recursively on itself.
+      allow read: if signedIn() && uid == request.auth.uid;
       allow write: if false;
     }
     match /leads/{leadId} {
