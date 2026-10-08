@@ -24,14 +24,14 @@
   <span class="tag">STAGING ONLY · FIREBASE AUTH</span>
   <h1>HERITAGE FINTECH CORE</h1>
   <div class="sub">Staging CRM authentication. Identity comes from Firebase Authentication; tenant, role, status and branches come only from the trusted membership document.</div>
-  <form id="stagingLoginForm">
+  <div id="stagingLoginForm">
     <label for="email">Email</label>
     <input id="email" type="email" autocomplete="username" required>
     <label for="password">Password</label>
     <input id="password" type="password" autocomplete="current-password" required>
     <button id="loginButton" type="button">Sign in to staging</button>
     <button id="resetButton" type="button">Send password reset email</button>
-  </form>
+  </div>
   <div id="status" role="status" aria-live="polite">Loading staging authentication…</div>
 <script>
 (function(){
@@ -60,7 +60,6 @@
 <script>
 (function(){
   'use strict';
-  const form=document.getElementById('stagingLoginForm');
   const email=document.getElementById('email');
   const password=document.getElementById('password');
   const button=document.getElementById('loginButton');
