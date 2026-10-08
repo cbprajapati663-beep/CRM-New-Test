@@ -81,6 +81,7 @@ jobs:
           rm -rf .staging-public
           mkdir -p .staging-public/assets/js/staging
           cp pages/staging-login.html .staging-public/index.html
+          cp pages/staging-login.html .staging-public/staging-login.html
           cp pages/staging-crm.html .staging-public/staging-crm.html
           cp assets/js/staging/firebase-bootstrap.js .staging-public/assets/js/staging/
           cp assets/js/staging/auth-session.js .staging-public/assets/js/staging/
