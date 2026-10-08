@@ -103,10 +103,10 @@ jobs:
           const configPath = '.staging-public/assets/js/staging/firebase-config.js';
           const configScript = fs.readFileSync(configPath, 'utf8').trim();
           const bootstrap = fs.readFileSync('assets/js/staging/firebase-bootstrap.js', 'utf8');
-          for (const htmlPath of ['.staging-public/index.html', '.staging-public/staging-login.html']) {
+          for (const htmlPath of ['.staging-public/index.html', '.staging-public/staging-login.html', '.staging-public/staging-crm.html']) {
             const html = fs.readFileSync(htmlPath, 'utf8');
-            const externalTag = '<script src="assets/js/staging/firebase-config.js?v=20261008-2"></script>';
-            const bootstrapTag = '<script src="assets/js/staging/firebase-bootstrap.js?v=20261008-2"></script>';
+            const externalTag = htmlPath.endsWith('staging-crm.html') ? '<script src="assets/js/staging/firebase-config.js"></script>' : '<script src="assets/js/staging/firebase-config.js?v=20261008-2"></script>';
+            const bootstrapTag = htmlPath.endsWith('staging-crm.html') ? '<script src="assets/js/staging/firebase-bootstrap.js"></script>' : '<script src="assets/js/staging/firebase-bootstrap.js?v=20261008-2"></script>';
             if (!html.includes(externalTag)) throw new Error('Expected staging Firebase config script tag was not found in ' + htmlPath);
             if (!html.includes(bootstrapTag)) throw new Error('Expected staging Firebase bootstrap script tag was not found in ' + htmlPath);
             const nextHtml = html
@@ -115,7 +115,7 @@ jobs:
             fs.writeFileSync(htmlPath, nextHtml);
           }
           NODE
-          for html in .staging-public/index.html .staging-public/staging-login.html; do
+          for html in .staging-public/index.html .staging-public/staging-login.html .staging-public/staging-crm.html; do
             grep -q 'HAF_STAGING_FIREBASE_CONFIG' "$html"
             grep -q 'function initializeStagingFirebase' "$html"
           done
@@ -125,6 +125,7 @@ jobs:
           grep -o 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/staging-login.html | head -1
           grep -o 'function initializeStagingFirebase' .staging-public/index.html | head -1
           grep -o 'function initializeStagingFirebase' .staging-public/staging-login.html | head -1
+          grep -o 'function initializeStagingFirebase' .staging-public/staging-crm.html | head -1
           echo '--- END INLINE VERIFICATION ---'
           ! grep -q 'heritage-crm-f179a' .staging-public/assets/js/staging/firebase-config.js
       - name: Ensure staging Hosting site exists
