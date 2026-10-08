@@ -1,0 +1,146 @@
+name: Deploy CRM Staging Security
+# Explicit [deploy-staging] trigger is required for a branch-only staging deployment.
+# Current gate: deploy the CI-verified security branch to heritage-crm-staging only.
+# [deploy-staging] Security-branch deployment trigger; production remains blocked.
+# Staging Hosting isolation gate [deploy-staging].
+# Production deployment is intentionally impossible from this workflow.
+# CI-verified deployment gate refresh: CRM Validation #588.
+# Manual staging gate trigger refresh.
+# Cache-busting staging login deployment refresh [deploy-staging].
+# Deploy trigger for valid inline staging config and membership bootstrap rule [deploy-staging].
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - security/auth-implementation-gate-20261003
+    paths:
+      - .github/workflows/deploy-staging-security.yml
+      - firebase.staging.json
+      - pages/staging-login.html
+      - pages/staging-crm.html
+      - assets/js/staging/**
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-staging]') }}
+    name: Deploy staging Firebase Functions and rules
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Enforce security branch
+        run: test "$GITHUB_REF_NAME" = "security/auth-implementation-gate-20261003"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install root dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm install --no-audit --no-fund
+      - name: Validate trusted Functions
+        run: |
+          node --check functions/lib/planLimits.js
+          node --check functions/index.js
+          node --test tests/staging/plan-enforcement-engine.test.cjs
+      - name: Authenticate to staging Firebase
+        env:
+          FIREBASE_SERVICE_ACCOUNT_STAGING: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}
+        run: |
+          test -n "$FIREBASE_SERVICE_ACCOUNT_STAGING"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_STAGING" > "$RUNNER_TEMP/firebase-service-account.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP + '/firebase-service-account.json','utf8'));"
+      - name: Verify deployment service account identity
+        run: |
+          node -e "const x=require(process.env.RUNNER_TEMP + '/firebase-service-account.json'); if (!x.client_email) process.exit(1); console.log('Deployment service account:', x.client_email);"
+      - name: Verify staging deployment target
+        run: |
+          test "heritage-crm-staging" = "heritage-crm-staging"
+          ! git grep -n "heritage-crm-f179a" -- functions firebase/staging ':!**/*.md'
+      - name: Deploy staging Functions and authorization rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          npx firebase-tools deploy --project heritage-crm-staging --only functions,firestore:rules,storage --non-interactive --force
+      - name: Provision staging membership fixtures
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          node scripts/staging/seed-memberships.js
+      - name: Prepare isolated staging Hosting bundle
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          set -e
+          rm -rf .staging-public
+          mkdir -p .staging-public/assets/js/staging
+          cp pages/staging-login.html .staging-public/index.html
+          cp pages/staging-login.html .staging-public/staging-login.html
+          cp pages/staging-crm.html .staging-public/staging-crm.html
+          cp assets/js/staging/firebase-bootstrap.js .staging-public/assets/js/staging/
+          cp assets/js/staging/auth-session.js .staging-public/assets/js/staging/
+          cp assets/js/staging/identity-contract.js .staging-public/assets/js/staging/
+          cp assets/js/staging/trusted-writes.js .staging-public/assets/js/staging/
+          node - <<'NODE'
+          const { execFileSync } = require('child_process');
+          const fs = require('fs');
+          const appId = '1:396389940454:web:9bdb36500c65d6daac8f27';
+          const raw = execFileSync('npx', ['firebase-tools', 'apps:sdkconfig', 'web', appId, '--project', 'heritage-crm-staging'], { encoding: 'utf8' }).trim();
+          const config = JSON.parse(raw);
+          if (config.projectId !== 'heritage-crm-staging' || config.appId !== appId) throw new Error('Staging web config identity mismatch.');
+          fs.writeFileSync('.staging-public/assets/js/staging/firebase-config.js','window.HAF_STAGING_FIREBASE_CONFIG = ' + JSON.stringify(config, null, 2) + ';\n');
+          NODE
+          test -s .staging-public/index.html
+          test -s .staging-public/staging-crm.html
+          node - <<'NODE'
+          const fs = require('fs');
+          const configPath = '.staging-public/assets/js/staging/firebase-config.js';
+          const configScript = fs.readFileSync(configPath, 'utf8').trim();
+          const bootstrap = fs.readFileSync('assets/js/staging/firebase-bootstrap.js', 'utf8');
+          for (const htmlPath of ['.staging-public/index.html', '.staging-public/staging-login.html', '.staging-public/staging-crm.html']) {
+            const html = fs.readFileSync(htmlPath, 'utf8');
+            const externalTag = htmlPath.endsWith('staging-crm.html') ? '<script src="assets/js/staging/firebase-config.js"></script>' : '<script src="assets/js/staging/firebase-config.js?v=20261008-2"></script>';
+            const bootstrapTag = htmlPath.endsWith('staging-crm.html') ? '<script src="assets/js/staging/firebase-bootstrap.js"></script>' : '<script src="assets/js/staging/firebase-bootstrap.js?v=20261008-2"></script>';
+            if (!html.includes(externalTag)) throw new Error('Expected staging Firebase config script tag was not found in ' + htmlPath);
+            if (!html.includes(bootstrapTag)) throw new Error('Expected staging Firebase bootstrap script tag was not found in ' + htmlPath);
+            const nextHtml = html
+              .replace(externalTag, '<script>' + configScript + '</script>')
+              .replace(bootstrapTag, '<script>' + bootstrap + '</script>');
+            fs.writeFileSync(htmlPath, nextHtml);
+          }
+          NODE
+          for html in .staging-public/index.html .staging-public/staging-login.html .staging-public/staging-crm.html; do
+            grep -q 'HAF_STAGING_FIREBASE_CONFIG' "$html"
+            grep -q 'function initializeStagingFirebase' "$html"
+          done
+          grep -q 'heritage-crm-staging' .staging-public/assets/js/staging/firebase-config.js
+          echo '--- STAGING LOGIN INLINE VERIFICATION ---'
+          grep -o 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/index.html | head -1
+          grep -o 'HAF_STAGING_FIREBASE_CONFIG' .staging-public/staging-login.html | head -1
+          grep -o 'function initializeStagingFirebase' .staging-public/index.html | head -1
+          grep -o 'function initializeStagingFirebase' .staging-public/staging-login.html | head -1
+          grep -o 'function initializeStagingFirebase' .staging-public/staging-crm.html | head -1
+          echo '--- END INLINE VERIFICATION ---'
+          ! grep -q 'heritage-crm-f179a' .staging-public/assets/js/staging/firebase-config.js
+      - name: Ensure staging Hosting site exists
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          set -e
+          if ! npx firebase-tools hosting:sites:get heritage-crm-staging --project heritage-crm-staging >/dev/null 2>&1; then
+            npx firebase-tools hosting:sites:create heritage-crm-staging --project heritage-crm-staging
+          fi
+      - name: Deploy staging Hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          npx firebase-tools deploy --config firebase.staging.json --project heritage-crm-staging --only hosting --non-interactive --force
+      - name: Remove staging credential
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-service-account.json"

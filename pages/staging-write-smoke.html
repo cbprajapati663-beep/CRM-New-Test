@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HAF Staging Write Smoke</title></head>
+<body>
+<h1>HERITAGE FINTECH CORE — STAGING WRITE SMOKE</h1>
+<p>Security-only staging test page. No production Firebase and no browser-persisted CRM session.</p>
+<pre id="result">Waiting for authenticated staging user…</pre>
+<button id="plan" type="button">Check Plan Entitlement</button>
+<button id="lead" type="button">Test Lead Create</button>
+<button id="branch" type="button">Test Branch Create</button>
+<button id="staff" type="button">Test Staff Create</button>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+<script src="../assets/js/staging/firebase-config.js"></script>
+<script src="../assets/js/staging/firebase-bootstrap.js"></script>
+<script src="../assets/js/staging/auth-session.js"></script>
+<script src="../assets/js/staging/trusted-writes.js"></script>
+<script>
+(function(){
+'use strict';
+const out=document.getElementById('result');
+function show(value){out.textContent=typeof value==='string'?value:JSON.stringify(value,null,2)}
+async function run(action){
+ try{
+  const membership=await HAFStagingAuthSession.getCurrentMembership();
+  show({role:membership.role,tenantId:membership.tenantId,action:action,status:'calling trusted Function'});
+  let result;
+  if(action==='plan') result=await HAFStagingTrustedWrites.getPlanEntitlement();
+  if(action==='lead') result=await HAFStagingTrustedWrites.createLead({name:'STAGING-SMOKE-DO-NOT-USE',status:'Smoke'});
+  if(action==='branch') result=await HAFStagingTrustedWrites.createBranch({name:'STAGING-SMOKE-DO-NOT-USE'});
+  if(action==='staff') result=await HAFStagingTrustedWrites.createStaff({name:'STAGING-SMOKE-DO-NOT-USE'});
+  show({action,status:'success',result});
+ }catch(e){show({action,status:'blocked-or-failed',message:e&&e.message?e.message:String(e)})}
+}
+document.getElementById('plan').onclick=()=>run('plan');
+document.getElementById('lead').onclick=()=>run('lead');
+document.getElementById('branch').onclick=()=>run('branch');
+document.getElementById('staff').onclick=()=>run('staff');
+if(!HAFStagingFirebase||HAFStagingFirebase.expectedProjectId!=='heritage-crm-staging') show('Staging bootstrap unavailable.');
+}());
+</script>
+</body></html>

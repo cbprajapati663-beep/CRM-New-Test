@@ -13,7 +13,9 @@
         return String(value ?? '').replace(/[\\'\r\n\u2028\u2029]/g, char => ({'\\':'\\\\', "'":"\\'", '\r':'\\r', '\n':'\\n', '\u2028':'\\u2028', '\u2029':'\\u2029'}[char]));
     }
 
-    const firebaseConfig = {
+    // Firebase target is selected explicitly. Production keeps its existing config;
+    // staging must provide a verified staging config and is blocked from falling back to production.
+    const productionFirebaseConfig = {
         apiKey: "AIzaSyACLaRm5yH301JVqlvl8KYglANOc3uh6w",
         authDomain: "heritage-crm-f179a.firebaseapp.com",
         projectId: "heritage-crm-f179a",
@@ -21,6 +23,13 @@
         messagingSenderId: "434634669830",
         appId: "1:434634669830:web:afa939caa85df772066887"
     };
+
+    const stagingFirebaseConfig = window.HAF_STAGING_FIREBASE_CONFIG;
+    const firebaseConfig = stagingFirebaseConfig || productionFirebaseConfig;
+
+    if (stagingFirebaseConfig && stagingFirebaseConfig.projectId !== 'heritage-crm-staging') {
+        throw new Error('[HAF Firebase bootstrap] Staging configuration must target heritage-crm-staging.');
+    }
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();

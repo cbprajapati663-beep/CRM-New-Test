@@ -54,6 +54,9 @@ jobs:
       - name: Syntax check staging Firebase bootstrap
         run: node --check assets/js/staging/firebase-bootstrap.js
 
+      - name: Syntax check staging Auth session bridge
+        run: node --check assets/js/staging/auth-session.js
+
       - name: Syntax check staging config template
         run: node --check assets/js/staging/firebase-config.example.js
 
@@ -63,5 +66,49 @@ jobs:
       - name: Run staging auth page isolation tests
         run: node --test tests/staging/auth-smoke-page.test.cjs
 
+      - name: Run staging login isolation tests
+        run: node --test tests/staging/staging-login-page.test.cjs
+
+      - name: Run staging CRM isolation tests
+        run: node --test tests/staging/staging-crm-page.test.cjs
+
       - name: Run staging config template guard tests
         run: node --test tests/staging/config-template.test.cjs
+
+      - name: Run staging identity contract tests
+        run: node --test tests/staging/identity-contract.test.cjs
+
+      - name: Run staging Auth membership bridge tests
+        run: node --test tests/staging/auth-session.test.cjs
+      - name: Run staging trusted write adapter tests
+        run: node --test tests/staging/trusted-writes.test.cjs
+      - name: Run staging trusted write smoke page tests
+        run: node --test tests/staging/write-smoke-page.test.cjs
+
+      - name: Run staging authorization rules contract tests
+        run: node --test tests/staging/rules-contract.test.cjs
+
+      - name: Run staging identity fixture safety tests
+        run: node --test tests/staging/identity-fixture.test.cjs
+
+      - name: Run staging deployment gate tests
+        run: node --test tests/staging/deployment-gate.test.cjs
+      - name: Run server-side plan enforcement contract tests
+        run: node --test tests/staging/plan-enforcement-contract.test.cjs
+
+      - name: Syntax check trusted plan enforcement functions
+        run: |
+          node --check functions/lib/planLimits.js
+          node --check functions/index.js
+
+      - name: Run trusted plan enforcement engine tests
+        run: node --test tests/staging/plan-enforcement-engine.test.cjs
+
+      - name: Install staging security test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --prefer-offline --fetch-retries=2 --fetch-timeout=120000
+
+      - name: Run Firestore emulator authorization tests
+        run: npm run test:staging:firestore
+
+      - name: Run Storage emulator authorization tests
+        run: npm run test:staging:storage
