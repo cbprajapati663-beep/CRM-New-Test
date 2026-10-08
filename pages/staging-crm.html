@@ -35,11 +35,41 @@ const status=document.getElementById('status'), identity=document.getElementById
 function show(msg,error){status.textContent=msg;status.className='status'+(error?' error':'')}
 function esc(v){return String(v??'').replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]})}
 let authStateUnsubscribe=null;
+let authStateResolved=false;
+function handleAuthState(user){
+  if(!authStateResolved){
+    authStateResolved=true;
+    if(!user){
+      window.location.replace('./staging-login.html');
+      return;
+    }
+    return;
+  }
+  if(!user){
+    if(authStateUnsubscribe) authStateUnsubscribe();
+    window.location.replace('./staging-login.html');
+  }
+}
+authStateUnsubscribe=window.HAFStagingAuthSession.onAuthStateChanged(handleAuthState);
 async function load(){
  try{
   if(!window.HAFStagingFirebase||!window.HAFStagingAuthSession) throw new Error('Staging security modules unavailable.');
   const services=window.HAFStagingFirebase.getServices();
   if(services.projectId!=='heritage-crm-staging') throw new Error('Unexpected Firebase project.');
+  show('Restoring authenticated staging session…');
+  await new Promise(function(resolve,reject){
+    const timeout=setTimeout(function(){reject(new Error('Staging Auth state timed out.'));},15000);
+    if(services.auth.currentUser){
+      clearTimeout(timeout);
+      resolve();
+      return;
+    }
+    const unsubscribe=services.auth.onAuthStateChanged(function(user){
+      unsubscribe();
+      clearTimeout(timeout);
+      if(user) resolve(); else reject(new Error('No authenticated staging user.'));
+    });
+  });
   const authUser=services.auth.currentUser;
   if(!authUser) { window.location.replace('./staging-login.html'); return; }
   const m=await window.HAFStagingAuthSession.getCurrentMembership();
@@ -72,12 +102,6 @@ async function load(){
  }catch(e){show('Staging CRM blocked: '+(e.message||'Unknown error'),true);wrap.innerHTML='<div class="empty">No CRM data loaded.</div>'}
 }
 document.getElementById('logout').addEventListener('click',async function(){await window.HAFStagingAuthSession.signOut();window.location.replace('./staging-login.html')});
-authStateUnsubscribe=window.HAFStagingAuthSession.onAuthStateChanged(function(user){
-  if(!user){
-    if(authStateUnsubscribe) authStateUnsubscribe();
-    window.location.replace('./staging-login.html');
-  }
-});
 load();
 }());
 </script>
