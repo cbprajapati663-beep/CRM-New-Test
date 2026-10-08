@@ -48,6 +48,12 @@
       fail('Unexpected Firebase project.');
     }
 
+    if (global.firebase && global.firebase.auth && global.firebase.auth.Auth &&
+        global.firebase.auth.Auth.Persistence &&
+        services.auth && typeof services.auth.setPersistence === 'function') {
+      await services.auth.setPersistence(global.firebase.auth.Auth.Persistence.LOCAL);
+    }
+
     const credential = await services.auth.signInWithEmailAndPassword(
       String(email || '').trim(),
       password
