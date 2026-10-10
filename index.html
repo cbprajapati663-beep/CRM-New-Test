@@ -280,7 +280,7 @@
                     <div class="panel-title" id="pipelineTableTitle">Active Live Pipeline (In-Process Files Only)</div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div>
-                            <input type="month" id="liveMonthFilter" onchange="renderMetrics(); renderViews()" style="width:140px; padding:5px 8px;">
+                            <input type="month" id="liveMonthFilter" onchange="onReportingMonthChanged('liveMonthFilter')" style="width:140px; padding:5px 8px;">
                         </div>
                         <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0'); renderMetrics(); renderViews();" style="padding:5px 10px;">Current Month</button>
                         <button class="btn-action" onclick="clearPipelineFilters()" style="padding:5px 10px;">✕ Clear Filters</button>
@@ -372,7 +372,7 @@
             </div>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                 <div>
-                    <input type="month" id="disbursedMonthFilter" onchange="renderDisbursedHubTable()" style="width:150px; padding:5px 8px;">
+                    <input type="month" id="disbursedMonthFilter" onchange="onReportingMonthChanged('disbursedMonthFilter')" style="width:150px; padding:5px 8px;">
                 </div>
                 <button class="btn-action" onclick="document.getElementById('disbursedMonthFilter').value=''; renderDisbursedHubTable();">All Months</button>
                 <div style="background:#1e2433; border:1px solid var(--danger); padding:6px 14px; border-radius:8px;">
@@ -1476,7 +1476,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/app.js?v=staff-password-legacy-fix-20261010-21"></script>
+<script src="assets/js/app.js?v=nav-report-rerender-20261010-22"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', function () {

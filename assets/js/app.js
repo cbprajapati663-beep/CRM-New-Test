@@ -767,6 +767,7 @@
         if (viewKey === 'workflow') renderSmartWorkflow();
         if (viewKey === 'dealers') renderDealerLedgerTable();
         if (viewKey === 'payoutdesk') renderPayoutDeskTable();
+        rerenderActiveModule(viewKey);
         if (viewKey === 'followups') renderFollowups();
         if (viewKey === 'datahealth') renderDataHealth();
     };
@@ -1870,10 +1871,36 @@
     // Keep month selectors across reporting tabs aligned unless a user explicitly
     // picks a different month in that module.
     function syncReportingMonthSelectors(sourceId) {
-        const selected = selectedReportingMonth();
+        const liveEl = document.getElementById('liveMonthFilter');
         const disbursedEl = document.getElementById('disbursedMonthFilter');
-        if (disbursedEl && sourceId !== 'disbursedMonthFilter') disbursedEl.value = selected;
+        let selected = selectedReportingMonth();
+        if (sourceId === 'disbursedMonthFilter' && disbursedEl && disbursedEl.value) {
+            selected = disbursedEl.value;
+            if (liveEl) liveEl.value = selected;
+        } else if (disbursedEl) {
+            disbursedEl.value = selected;
+        }
         return selected;
+    }
+
+    window.onReportingMonthChanged = function(sourceId) {
+        const month = syncReportingMonthSelectors(sourceId);
+        const liveEl = document.getElementById('liveMonthFilter');
+        const disbursedEl = document.getElementById('disbursedMonthFilter');
+        if (liveEl && sourceId !== 'liveMonthFilter') liveEl.value = month;
+        if (disbursedEl && sourceId !== 'disbursedMonthFilter') disbursedEl.value = month;
+        renderMetrics();
+        renderViews();
+        renderDisbursedHubTable();
+        renderDealerLedgerTable();
+    };
+
+    function rerenderActiveModule(viewKey) {
+        window.setTimeout(() => {
+            if (viewKey === 'pipeline') { renderMetrics(); renderViews(); }
+            if (viewKey === 'disbursedhub') renderDisbursedHubTable();
+            if (viewKey === 'dealers') renderDealerLedgerTable();
+        }, 0);
     }
 
     function renderMetrics() {
@@ -2036,7 +2063,8 @@
         // A blank/stale select value must never filter every lead out after navigation.
         // This can happen when another view or a permission refresh rebuilds the filter options.
         let statusFilter = statusFilterEl ? String(statusFilterEl.value || '').trim() : 'All';
-        if (!statusFilter || (statusFilterEl && !Array.from(statusFilterEl.options).some(option => option.value === statusFilter))) {
+        const validStatusFilters = new Set(['All', 'Sanctioned', 'Login Done', 'Documents Pending', 'Contacted', 'New', 'Rejected']);
+        if (!validStatusFilters.has(statusFilter) || (statusFilterEl && !Array.from(statusFilterEl.options).some(option => option.value === statusFilter))) {
             statusFilter = 'All';
             if (statusFilterEl) statusFilterEl.value = 'All';
         }
@@ -2052,14 +2080,16 @@
             const branchMap = new Map(); branchRows.forEach(b => { const key=b.id || b.name; if (!branchMap.has(key)) branchMap.set(key,b.name || key); });
             const selected = branchFilterEl.value;
             branchFilterEl.innerHTML = '<option value="">All Branches</option>' + Array.from(branchMap.entries()).sort((a,b)=>a[1].localeCompare(b[1])).map(([id,name])=>'<option value="'+escapeHtml(id)+'">'+escapeHtml(name)+'</option>').join('');
-            if (branchMap.has(selected)) branchFilterEl.value = selected;
+            if (showBranchTools && branchMap.has(selected)) branchFilterEl.value = selected;
+            else branchFilterEl.value = '';
         }
         const csvButton = document.getElementById('btnViewerBranchCsv'); if (csvButton) csvButton.style.display = showBranchTools ? '' : 'none';
         let liveLeads = scopedLeads.filter(l => {
             if (window.showRejectedLeadsOnly) return l.status === 'Rejected';
             return !['Disbursed', 'Rejected'].includes(String(l.status || ''));
         });
-        const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
+        // Branch filtering is a Viewer-only tool. Ignore stale hidden selections for other roles.
+        const selectedBranch = showBranchTools && branchFilterEl ? branchFilterEl.value : '';
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
