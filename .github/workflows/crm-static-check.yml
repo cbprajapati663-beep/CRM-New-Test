@@ -57,7 +57,7 @@ jobs:
           assert.ok(js.includes("if (!hasStaffLeadPermission('Leads · Delete')) { alert('Aapko lead delete karne ki permission nahi hai.'); return; }"), 'Lead delete handler must enforce the delete permission');
           assert.ok(js.includes("const lead = getLeadScopedList().find(item => item.docId === docId);"), 'Lead mutations must resolve targets from the signed-in user's scoped list');
           assert.ok(js.includes("if (editDocId && !getLeadScopedList().some(item => item.docId === editDocId))"), 'Lead edit submit must reject leads outside the signed-in user's scope');
-          assert.ok(js.includes("const leadTenantId = String(l.tenantId || '').trim();"), 'Viewer reports must read explicit tenant ownership before legacy ownership');
+          assert.ok(js.includes('const leadTenantId=normalize(l.tenantId);'), 'Viewer reports must normalize explicit tenant ownership before legacy ownership');
           assert.ok(js.includes('if(leadTenantId) return leadTenantId===tenantId;'), 'Explicit tenant ownership must take precedence over legacy creator aliases');
           assert.ok(js.includes('function rerenderActiveModule(viewKey)'), 'Active CRM modules must re-render after tab navigation');
           assert.ok(js.includes("if (viewKey === 'pipeline') { renderMetrics(); renderViews(); }"), 'Pipeline navigation must refresh metrics and rows');
