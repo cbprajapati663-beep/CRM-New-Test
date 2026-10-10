@@ -1278,6 +1278,13 @@
             // modules remain hidden until their own navigation tab is opened.
             applyPlanFeatureGates();
             switchView('pipeline');
+            // Firestore may deliver the initial leads snapshot before login finishes.
+            // Re-render with the authenticated tenant scope immediately after portal setup
+            // so leads appear without requiring a manual browser refresh.
+            renderMetrics();
+            renderViews();
+            renderDisbursedHubTable();
+            renderDealerLedgerTable();
         }
     }
 
