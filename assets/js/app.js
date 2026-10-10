@@ -4281,7 +4281,7 @@
             if(error&&error.name==='AbortError')return;
             if(error&&/permission|not allowed|notallowed/i.test(String(error.message||error.name||''))&&shareFilesForFallback.length){
                 shareFilesForFallback.forEach(file=>downloadBlob(file,file.name));
-                alert('Direct share permission nahi mili. File(s) download kar di gayi hain; ab WhatsApp/chat mein attach kar dein.');
+                alert('Files download ho gayi hain, lekin browser ne direct sharing allow nahi ki. Downloads folder se ZIP/file ko WhatsApp chat mein manually attach karein. File send hona abhi confirm nahi hua hai.');
             }else alert('File share nahi ho paya. '+(error&&error.message?error.message:'Local file access ya ZIP library check karein.'));
         }
     };
