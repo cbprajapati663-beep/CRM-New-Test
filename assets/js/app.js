@@ -1094,7 +1094,12 @@
             const isActiveView = !!(tab && tab.classList.contains('active'));
             // The IT Master Admin desk is tenant-management only. Do not let
             // plan-gate rendering reveal the tenant operational CRM underneath it.
-            const visible = !isMasterAdminDesk && enabled && (!isView || isActiveView);
+            // The Master Admin tenant cards live inside #view-pipeline.
+            // Keep that parent layout visible for the admin deck, while its
+            // customer pipeline/form children remain hidden by admin permissions.
+            const visible = isMasterAdminDesk && id === 'view-pipeline'
+                ? true
+                : (!isMasterAdminDesk && enabled && (!isView || isActiveView));
             el.toggleAttribute('hidden', !visible);
             el.setAttribute('aria-hidden', visible ? 'false' : 'true');
             el.style.setProperty('display', visible ? (isView ? viewDisplayValues[id] : '') : 'none', 'important');
