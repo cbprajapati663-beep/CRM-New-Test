@@ -4866,18 +4866,29 @@
         // branch/assignment scope so the reporting screen cannot widen access.
         if(u && u.role==='staff' && getCurrentStaffRoleName(u)==='Viewer' &&
            hasStaffLeadPermission('Reports · View/Export')){
-            // Match legacy ownership fields independently because older records
-            // may store tenant ownership in createdBy rather than tenantId.
+            // Apply one authoritative ownership field per lead. Checking every
+            // legacy field independently can accidentally include a foreign-tenant
+            // lead when, for example, tenantId is foreign but createdBy matches.
             const normalize=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
             const tenantId=normalize(u.tenantId);
             const agencyName=normalize(u.agencyName);
             const tenantKeys=new Set([tenantId,agencyName].filter(Boolean));
             const isHeritage=tenantId.includes('heritage') || agencyName.includes('heritage auto finance');
             return leads.filter(l=>{
-                const owners=[l.tenantId,l.createdBy,l.updatedBy,l.agencyName,l.tenantName].map(normalize).filter(Boolean);
-                if(owners.some(owner=>tenantKeys.has(owner))) return true;
-                // Preserve older Heritage records that predate tenant ownership fields.
-                return isHeritage && (!owners.length || owners.every(owner=>owner==='admin' || owner==='system'));
+                const leadTenantId=normalize(l.tenantId);
+                const leadCreatedBy=normalize(l.createdBy);
+                const leadAgency=normalize(l.agencyName);
+                const leadTenantName=normalize(l.tenantName);
+                // Prefer explicit tenantId, then legacy createdBy, then legacy
+                // agency/tenant names. Conflicting secondary fields cannot override
+                // a foreign explicit tenantId.
+                if(leadTenantId) return leadTenantId===tenantId;
+                if(leadCreatedBy) return tenantKeys.has(leadCreatedBy);
+                const legacyOwner=leadAgency||leadTenantName;
+                if(legacyOwner) return tenantKeys.has(legacyOwner);
+                // Preserve only ownerless legacy Heritage records from admin/system.
+                return isHeritage && (!leadAgency && !leadTenantName) &&
+                    (!leadCreatedBy || leadCreatedBy==='admin' || leadCreatedBy==='system');
             });
         }
         return getLeadScopedList();
