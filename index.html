@@ -1477,5 +1477,13 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="assets/js/app.js?v=crm-audit-navigation-20261010-12"></script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .catch(function (error) { console.warn('CRM service worker registration failed:', error); });
+    });
+  }
+</script>
 </body>
 </html>
