@@ -1720,15 +1720,15 @@
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     }
     function reportingMonthOfLead(lead) {
-        const updated = lead && lead.updatedAt;
-        let updatedDate = '';
-        if (updated && typeof updated.toDate === 'function') updatedDate = updated.toDate().toISOString().slice(0, 10);
-        else if (updated) updatedDate = String(updated).slice(0, 10);
+        // Lead reporting month is anchored to its original lead date.
+        // Editing remarks, status, or a future follow-up must not move the lead
+        // into another month's lead list or change the Total Leads count.
+        const leadDate = String(lead && lead.leadDate || '').slice(0, 10);
         const created = lead && lead.createdAt;
         let createdDate = '';
         if (created && typeof created.toDate === 'function') createdDate = created.toDate().toISOString().slice(0, 10);
         else if (created) createdDate = String(created).slice(0, 10);
-        return (updatedDate || String(lead && lead.leadDate || '').slice(0, 10) || createdDate).slice(0, 7);
+        return (leadDate || createdDate).slice(0, 7);
     }
     function selectedReportingMonth() {
         const el = document.getElementById('liveMonthFilter');
