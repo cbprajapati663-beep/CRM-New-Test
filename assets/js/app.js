@@ -708,6 +708,7 @@
         if (viewKey === 'workflow') renderSmartWorkflow();
         if (viewKey === 'dealers') renderDealerLedgerTable();
         if (viewKey === 'payoutdesk') renderPayoutDeskTable();
+        rerenderActiveModule(viewKey);
         if (viewKey === 'followups') renderFollowups();
         if (viewKey === 'datahealth') renderDataHealth();
     };
@@ -1811,10 +1812,36 @@
     // Keep month selectors across reporting tabs aligned unless a user explicitly
     // picks a different month in that module.
     function syncReportingMonthSelectors(sourceId) {
-        const selected = selectedReportingMonth();
+        const liveEl = document.getElementById('liveMonthFilter');
         const disbursedEl = document.getElementById('disbursedMonthFilter');
-        if (disbursedEl && sourceId !== 'disbursedMonthFilter') disbursedEl.value = selected;
+        let selected = selectedReportingMonth();
+        if (sourceId === 'disbursedMonthFilter' && disbursedEl && disbursedEl.value) {
+            selected = disbursedEl.value;
+            if (liveEl) liveEl.value = selected;
+        } else if (disbursedEl) {
+            disbursedEl.value = selected;
+        }
         return selected;
+    }
+
+    window.onReportingMonthChanged = function(sourceId) {
+        const month = syncReportingMonthSelectors(sourceId);
+        if (sourceId !== 'disbursedMonthFilter') {
+            const disbursedEl = document.getElementById('disbursedMonthFilter');
+            if (disbursedEl) disbursedEl.value = month;
+        }
+        renderMetrics();
+        renderViews();
+        renderDisbursedHubTable();
+        renderDealerLedgerTable();
+    };
+
+    function rerenderActiveModule(viewKey) {
+        window.setTimeout(() => {
+            if (viewKey === 'pipeline') { renderMetrics(); renderViews(); }
+            if (viewKey === 'disbursedhub') renderDisbursedHubTable();
+            if (viewKey === 'dealers') renderDealerLedgerTable();
+        }, 0);
     }
 
     function renderMetrics() {
