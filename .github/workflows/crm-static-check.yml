@@ -1,0 +1,47 @@
+name: CRM Static Checks
+
+on:
+  push:
+    branches:
+      - main
+      - fix/crm-audit-navigation-20261010
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate JavaScript syntax
+        run: node --check assets/js/app.js
+      - name: Check navigation markup and cache version
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const js = fs.readFileSync('assets/js/app.js', 'utf8');
+          const required = [
+            'tabPipeline', 'tabRejected', 'tabDisbursed', 'tabDealers',
+            'tabSecretPayouts', 'tabFollowups', 'tabDataHealth', 'tabWorkflow',
+            'view-pipeline', 'view-disbursedhub', 'view-dealers',
+            'view-payoutdesk', 'view-followups', 'view-datahealth', 'view-workflow',
+            'clientPipelineTablePanel', 'leadsTableBody'
+          ];
+          for (const id of required) {
+            assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Missing HTML element: ' + id);
+          }
+          assert.ok(html.includes('assets/js/app.js?v=crm-audit-navigation-20261010-11'), 'app.js cache version not updated');
+          assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
+          assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
+          assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');
+          assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
+          console.log('CRM static navigation and export checks passed.');
+          NODE
