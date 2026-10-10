@@ -4237,30 +4237,43 @@
             alert('❌ Document save nahi hua. '+(error&&error.message||error)+'\nBrowser storage space aur permissions check karein.');
         }finally{setBusy(false);input.value='';}
     };
+    // File sharing is deliberately two-step: prepare/download bytes first, then
+    // invoke navigator.share directly from a fresh user click so transient user
+    // activation is not lost during Firebase fetch/ZIP preparation.
     window.shareChecklistDocuments=async function(){
         const leadId=document.getElementById('docTrackerLead').value,lead=getLeadScopedList().find(x=>x.docId===leadId);
         if(!lead){alert('Pehle customer select karein.');return;}
-        let checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName).filter(Boolean);
+        const pending=window.__heritagePendingDocumentShare;
+        if(pending&&pending.leadId===leadId&&pending.files&&pending.files.length){
+            if(navigator.share&&navigator.canShare&&navigator.canShare({files:pending.files})){
+                try{
+                    await navigator.share({title:pending.title,text:pending.message,files:pending.files});
+                    window.__heritagePendingDocumentShare=null;
+                    alert('Share dialog open/complete hua. WhatsApp mein recipient select karke Send zaroor karein.');
+                    return;
+                }catch(error){
+                    if(error&&error.name==='AbortError')return;
+                    console.warn('Native file share failed:',error);
+                    alert('Browser ne direct file sharing reject ki. Prepared file download kar di jayegi; WhatsApp chat mein manually attach karein.');
+                }
+            }else{
+                alert('Is browser/device par direct file sharing available nahi hai. Prepared file download kar di jayegi; WhatsApp chat mein manually attach karein.');
+            }
+            pending.files.forEach(file=>{const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);});
+            window.__heritagePendingDocumentShare=null;
+            return;
+        }
         const allDocs=Array.isArray(lead.documents)?lead.documents:[];
         const availableDocs=allDocs.filter(d=>Array.isArray(d.attachments)&&d.attachments.length);
         if(!availableDocs.length){alert('Is customer ke liye abhi koi document file upload nahi hai. Pehle Upload button se file upload karein.');return;}
-        // Convenience: when no category checkbox is selected, share every category
-        // that already has attachments instead of blocking with a confusing alert.
+        let checked=Array.from(document.querySelectorAll('#docTrackerRows .doc-share-check:checked')).map(el=>el.dataset.docName).filter(Boolean);
         if(!checked.length){
             checked=availableDocs.map(d=>d.name);
-            document.querySelectorAll('#docTrackerRows .doc-share-check').forEach(el=>{
-                if(checked.includes(el.dataset.docName))el.checked=true;
-            });
+            document.querySelectorAll('#docTrackerRows .doc-share-check').forEach(el=>{if(checked.includes(el.dataset.docName))el.checked=true;});
         }
-        const selectedNames=checked;
-        const selected=availableDocs.filter(d=>selectedNames.includes(d.name));
-        const chosen=selected.flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
+        const chosen=availableDocs.filter(d=>checked.includes(d.name)).flatMap(d=>(Array.isArray(d.attachments)?d.attachments:[]).map(f=>({...f,category:d.name})));
         if(!chosen.length){alert('Selected document ki file upload nahi hai. Pehle Upload button se file add karein.');return;}
-        const title='Customer Documents - '+(lead.name||'Customer');
-        const message='Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\nSelected document files attached.';
         const safeName=value=>String(value||'document').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
-        const downloadBlob=(blob,name)=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);};
-        let shareFilesForFallback=[];
         try{
             const files=[];
             for(const item of chosen){
@@ -4272,17 +4285,17 @@
                 files.push(new File([blob],safeName(item.name),{type:item.contentType||blob.type||'application/octet-stream'}));
             }
             let shareFiles=files;
-            if(files.length>1){if(!window.JSZip)throw new Error('ZIP library load nahi hui.');const zip=new JSZip();files.forEach((file,index)=>zip.file((index+1)+'_'+safeName(file.name),file));const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});shareFiles=[new File([blob],safeName((lead.name||'Customer')+'_Documents.zip'),{type:'application/zip'})];}
-            shareFilesForFallback=shareFiles;
-            if(navigator.share&&navigator.canShare&&navigator.canShare({files:shareFiles}))await navigator.share({title,text:message,files:shareFiles});
-            else{shareFiles.forEach(file=>downloadBlob(file,file.name));alert(files.length>1?'Selected files ki ZIP download ho gayi.':'Selected file original format mein download ho gayi. Ab attach karke bhej dein.');}
+            if(files.length>1){
+                if(!window.JSZip)throw new Error('ZIP library load nahi hui.');
+                const zip=new JSZip();files.forEach((file,index)=>zip.file((index+1)+'_'+safeName(file.name),file));
+                const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+                shareFiles=[new File([blob],safeName((lead.name||'Customer')+'_Documents.zip'),{type:'application/zip'})];
+            }
+            window.__heritagePendingDocumentShare={leadId,files:shareFiles,title:'Customer Documents - '+(lead.name||'Customer'),message:'Customer: '+(lead.name||'')+' ('+(lead.mobile||'')+')\\nSelected document files attached.'};
+            alert('Documents share ke liye ready hain. Ab Share Documents button par dobara click karein; doosre click se direct share dialog khulega.');
         }catch(error){
-            console.error('Document share failed:',error);
-            if(error&&error.name==='AbortError')return;
-            if(error&&/permission|not allowed|notallowed/i.test(String(error.message||error.name||''))&&shareFilesForFallback.length){
-                shareFilesForFallback.forEach(file=>downloadBlob(file,file.name));
-                alert('Files download ho gayi hain, lekin browser ne direct sharing allow nahi ki. Downloads folder se ZIP/file ko WhatsApp chat mein manually attach karein. File send hona abhi confirm nahi hua hai.');
-            }else alert('File share nahi ho paya. '+(error&&error.message?error.message:'Local file access ya ZIP library check karein.'));
+            console.error('Document share preparation failed:',error);
+            alert('File prepare nahi ho payi. '+(error&&error.message?error.message:'Local file access ya ZIP library check karein.'));
         }
     };
     const documentChecklistStatuses = ['Pending', 'Received'];
