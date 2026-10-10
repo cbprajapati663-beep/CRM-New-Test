@@ -40,6 +40,33 @@
     const todayStr = [nowLocal.getFullYear(), String(nowLocal.getMonth()+1).padStart(2,'0'), String(nowLocal.getDate()).padStart(2,'0')].join('-');
     document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
+    // Operational date fields must not allow back-dated entries.
+    // Historical reporting filters (type=month and report from/to) intentionally remain selectable.
+    function preventPastOperationalDates() {
+        ['followDate', 'followupEditDate', 't_expiryDate'].forEach(function(id) {
+            const input = document.getElementById(id);
+            if (!input) return;
+            input.min = todayStr;
+            input.addEventListener('change', function() {
+                if (input.value && input.value < todayStr) {
+                    input.value = '';
+                    alert('Past date select nahi kar sakte. Aaj ya future date select karein.');
+                }
+            });
+        });
+        ['disbursedDate', 'm_disbursedDate'].forEach(function(id) {
+            const input = document.getElementById(id);
+            if (!input) return;
+            input.addEventListener('change', function() {
+                if (input.value && input.value < todayStr) {
+                    input.value = '';
+                    alert('Back-date disbursement entry allowed nahi hai. Aaj ya future date select karein.');
+                }
+            });
+        });
+    }
+    preventPastOperationalDates();
+
     window.setAuthTab = function(mode) {
         currentAuthMode = mode;
         document.getElementById('loginError').style.display = 'none';
@@ -3439,6 +3466,17 @@
         let disbursedLoan = Number(document.getElementById('disbursedAmount').value) || approvedLoan;
         let formCut = Number(document.getElementById('formDealerCut').value) || 0;
         let disbursedDateVal = document.getElementById('disbursedDate').value || (currentStatus === 'Disbursed' ? todayStr : '');
+        const priorForDateCheck = editDocId ? (leads.find(item => item.docId === editDocId) || {}) : {};
+        const priorDisbursedDate = String(priorForDateCheck.disbursedDate || '').slice(0, 10);
+        if (disbursedDateVal && disbursedDateVal < todayStr && disbursedDateVal !== priorDisbursedDate) {
+            alert('Past disbursement date select nahi kar sakte. Aaj ya future date select karein.');
+            return;
+        }
+        const selectedFollowDate = document.getElementById('followDate').value;
+        if (selectedFollowDate && selectedFollowDate < todayStr) {
+            alert('Past follow-up date select nahi kar sakte. Aaj ya future date select karein.');
+            return;
+        }
 
         const sessionUser = getCurrentSessionUser();
         let tenantIdTag = "heritage auto finance";
@@ -3658,6 +3696,11 @@
         const docId = document.getElementById('followupEditDocId').value;
         const followDate = document.getElementById('followupEditDate').value;
         const lastConv = document.getElementById('followupEditRemarks').value.trim();
+        if (followDate && followDate < todayStr) {
+            errorBox.textContent = 'Past follow-up date allowed nahi hai. Aaj ya future date select karein.';
+            errorBox.style.display = 'block';
+            return;
+        }
         const saveBtn = document.getElementById('followupEditSaveBtn');
         const errorBox = document.getElementById('followupEditError');
         const sessionUser = getCurrentSessionUser();
