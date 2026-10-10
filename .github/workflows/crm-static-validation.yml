@@ -45,6 +45,10 @@ jobs:
               "Pipeline navigation handler exists": "window.switchView = function(viewKey)" in js,
               "CSV export handler exists": "window.exportToCSV = function()" in js,
               "Tenant report whitespace normalization is correct": r"replace(/\s+/g,' ')" in js,
+              "Follow-up edit modal checks staff permission": "if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko follow-up edit karne ki permission nahi hai.'); return; }" in js,
+              "Follow-up edit modal checks lead scope": "const lead = getLeadScopedList().find(item => item.docId === docId);" in js,
+              "Follow-up save rechecks staff permission": "if (!hasStaffLeadPermission('Leads · Create/Edit')) {" in js and "errorBox.textContent = 'Aapko follow-up edit karne ki permission nahi hai.'" in js,
+              "Follow-up save rechecks lead scope": "if (!getLeadScopedList().some(item => item.docId === docId)) {" in js,
           }
 
           for name, passed in checks.items():
