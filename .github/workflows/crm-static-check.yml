@@ -38,10 +38,14 @@ jobs:
           for (const id of required) {
             assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Missing HTML element: ' + id);
           }
-          assert.ok(html.includes('assets/js/app.js?v=crm-audit-navigation-20261010-11'), 'app.js cache version not updated');
+          assert.ok(html.includes('assets/js/app.js?v=crm-audit-navigation-20261010-12'), 'app.js cache version not updated');
           assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
           assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');
+          assert.ok(js.includes('window.installPWA = async function ()'), 'Install App button handler is missing');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          assert.ok(manifest.name && manifest.start_url && manifest.icons && manifest.icons.length, 'PWA manifest is incomplete');
+          assert.ok(html.includes('rel="manifest" href="manifest.json"'), 'PWA manifest link is missing');
           assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
           console.log('CRM static navigation and export checks passed.');
           NODE
