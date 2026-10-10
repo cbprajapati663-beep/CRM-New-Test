@@ -1,0 +1,18 @@
+{
+  "name": "Heritage Auto Finance CRM",
+  "short_name": "Heritage CRM",
+  "description": "Heritage FinTech Core — Auto Finance CRM",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#0b1728",
+  "icons": [
+    {
+      "src": "assets/icons/heritage-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
