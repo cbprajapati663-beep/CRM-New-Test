@@ -4646,12 +4646,14 @@
                 if(!linked.empty)staffAccountRef=linked.docs[0].ref;
             }
         }
-        const branchId=document.getElementById('mhStaffBranch').value,branch=managementBranches.find(x=>x.id===branchId);
+        const formPrefix=managementEditingStaffId?'mhStaffEdit':'mhStaff';
+        const field=id=>document.getElementById(formPrefix+id);
+        const branchId=String(field('Branch')?.value||''),branch=managementBranches.find(x=>x.id===branchId);
         const featureListSelector=managementEditingStaffId&&document.getElementById('mhStaffEditFeatureAccessList')
             ? '#mhStaffEditFeatureAccessList input[type="checkbox"]:checked'
             : '#mhStaffFeatureAccessList input[type="checkbox"]:checked';
         const checked=Array.from(document.querySelectorAll(featureListSelector)).map(el=>el.value),tenantAllowed=getManagementAllowedStaffFeatures(),featureAccess=checked.filter(key=>tenantAllowed.includes(key));
-        const payload={name,phone:String(document.getElementById('mhStaffPhone').value||'').trim(),email:String(document.getElementById('mhStaffEmail').value||'').trim(),role:document.getElementById('mhStaffRole').value,branchId:branchId||'',branchName:branch?branch.name:'',status:document.getElementById('mhStaffStatus').value,featureAccess,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        const payload={name,phone:String(field('Phone')?.value||'').trim(),email:String(field('Email')?.value||'').trim(),role:String(field('Role')?.value||'Sales Executive'),branchId:branchId||'',branchName:branch?branch.name:'',status:String(field('Status')?.value||'Active'),featureAccess,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
             let staffId=managementEditingStaffId;
             if(staffId) await ref.collection('staff').doc(staffId).set(payload,{merge:true});
