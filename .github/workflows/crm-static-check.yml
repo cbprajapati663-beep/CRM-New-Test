@@ -60,6 +60,9 @@ jobs:
           assert.ok(js.includes('const leadTenantId=normalize(l.tenantId);'), 'Viewer reports must normalize explicit tenant ownership first');
           assert.ok(js.includes('if(leadTenantId) return leadTenantId===tenantId;'), 'Explicit tenant ownership must precede legacy creator aliases');
           assert.ok(js.includes('function rerenderActiveModule(viewKey)'), 'Active CRM modules must re-render after tab navigation');
+          assert.ok(js.includes('const isActiveView = !!(tab && tab.classList.contains(\'active\'))'), 'Feature gating must preserve the selected tab view');
+          assert.ok(js.includes("el.style.setProperty('display', visible ? (isView ? viewDisplayValues[id] : '') : 'none', 'important');"), 'Feature gating must explicitly restore display for visible modules');
+          assert.ok(js.includes("el.setAttribute('aria-hidden', visible ? 'false' : 'true');"), 'Feature gating must keep view accessibility state synchronized');
           assert.ok(js.includes('rerenderActiveModule(viewKey);'), 'Tab navigation must invoke the active-module refresh');
           assert.ok(js.includes("if (viewKey === 'workflow') renderSmartWorkflow();"), 'Workflow tab must refresh its content when selected');
           assert.ok(js.includes("if (viewKey === 'followups') renderFollowups();"), 'Follow-ups tab must refresh its content when selected');
