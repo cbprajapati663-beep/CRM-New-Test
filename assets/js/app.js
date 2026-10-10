@@ -2017,7 +2017,13 @@
     function renderViews() {
         const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
         const statusFilterEl = document.getElementById('filterStatus');
-        let statusFilter = statusFilterEl ? statusFilterEl.value : 'All';
+        // A blank/stale select value must never filter every lead out after navigation.
+        // This can happen when another view or a permission refresh rebuilds the filter options.
+        let statusFilter = statusFilterEl ? String(statusFilterEl.value || '').trim() : 'All';
+        if (!statusFilter || (statusFilterEl && !Array.from(statusFilterEl.options).some(option => option.value === statusFilter))) {
+            statusFilter = 'All';
+            if (statusFilterEl) statusFilterEl.value = 'All';
+        }
         const liveMonthVal = selectedReportingMonth();
 
         const scopedLeads = getLeadScopedList();
