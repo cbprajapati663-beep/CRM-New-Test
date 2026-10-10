@@ -39,6 +39,7 @@ jobs:
             assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Missing HTML element: ' + id);
           }
           assert.match(html, /assets\/js\/app\.js\?v=[^"'\s]+/, 'app.js cache-busting version is missing');
+          assert.ok(js.includes('return Array.isArray(defaults[permission]) && defaults[permission].includes(role);'), 'Default staff permissions must be restricted to the current role');
           assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
           assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');

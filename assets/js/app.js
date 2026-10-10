@@ -1766,7 +1766,7 @@
             'Documents · Access': ['Administrator','Manager','Sales Executive'].includes(role),
             'Payouts · Access': ['Administrator'].includes(role)
         };
-        return !!defaults[permission];
+        return Array.isArray(defaults[permission]) && defaults[permission].includes(role);
     }
     function canStaffAccessLead(lead) {
         const user = getCurrentSessionUser();
