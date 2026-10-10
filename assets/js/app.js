@@ -1720,9 +1720,10 @@
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     }
     function reportingMonthOfLead(lead) {
-        // Lead reporting month is anchored to its original lead date.
-        // Editing remarks, status, or a future follow-up must not move the lead
-        // into another month's lead list or change the Total Leads count.
+        // activeReportingMonth is the operational month; leadDate remains the
+        // immutable original acquisition date for historical/audit purposes.
+        const activeMonth = String(lead && lead.activeReportingMonth || '').slice(0, 7);
+        if (activeMonth) return activeMonth;
         const leadDate = String(lead && lead.leadDate || '').slice(0, 10);
         const created = lead && lead.createdAt;
         let createdDate = '';
@@ -1968,6 +1969,10 @@
             const doButtonHtml = (l.status === 'Sanctioned' || l.status === 'Disbursed')
                 ? `<button class="btn-quick btn-do" onclick="generateDO('${escapeJsString(l.docId)}')" title="Print Delivery Order">📄 DO</button>`
                 : '';
+            const canForwardLead = !['Disbursed', 'Rejected', 'Not Interested', 'Cancelled'].includes(String(l.status || ''));
+            const forwardButtonHtml = canForwardLead
+                ? `<button class="btn-quick" style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);" onclick="forwardLeadToNextMonth('${escapeJsString(l.docId)}')" title="Move active pipeline to next month">➡️ Forward</button>`
+                : '';
 
             row.innerHTML = `
                 <td>
@@ -2000,12 +2005,55 @@
                             ${hasStaffLeadPermission('Leads · Delete') ? `<button class="btn-quick btn-del" onclick="deleteLead('${escapeJsString(l.docId)}')">🗑️</button>` : ''}
                         </div>
                         ${doButtonHtml}
+                        ${forwardButtonHtml}
                     </div>
                 </td>
             `;
             tbody.appendChild(row);
         });
     }
+
+    window.forwardLeadToNextMonth = async function(docId) {
+        const lead = getLeadScopedList().find(item => item.docId === docId);
+        if (!lead) { alert('Ye lead aapke access mein nahi hai.'); return; }
+        if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko lead forward karne ki permission nahi hai.'); return; }
+        if (['Disbursed', 'Rejected', 'Not Interested', 'Cancelled'].includes(String(lead.status || ''))) {
+            alert('Disbursed ya closed lead ko forward nahi kar sakte.');
+            return;
+        }
+        const fromMonth = reportingMonthOfLead(lead) || currentReportingMonth();
+        const parts = fromMonth.split('-').map(Number);
+        const nextDate = new Date(parts[0], parts[1], 1);
+        const toMonth = nextDate.getFullYear() + '-' + String(nextDate.getMonth() + 1).padStart(2, '0');
+        const reason = prompt('Forward karne ka reason likhein (Bank Delay / Customer Delay / Disbursement Pending / Other):', 'Disbursement Pending');
+        if (reason === null) return;
+        const cleanReason = reason.trim();
+        if (!cleanReason) { alert('Forward reason zaroori hai.'); return; }
+        const confirmText = (lead.name || 'Is lead') + ' ko ' + fromMonth + ' se ' + toMonth + ' mein forward karein?\n\nLead original date aur history safe rahegi.';
+        if (!confirm(confirmText)) return;
+        const user = getCurrentSessionUser() || {};
+        const forwardEvent = {
+            fromMonth: fromMonth,
+            toMonth: toMonth,
+            reason: cleanReason,
+            forwardedAt: new Date().toISOString(),
+            forwardedBy: user.displayName || user.name || user.email || user.uid || 'Unknown'
+        };
+        try {
+            await leadsCollection.doc(docId).update({
+                activeReportingMonth: toMonth,
+                forwardHistory: firebase.firestore.FieldValue.arrayUnion(forwardEvent),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await logLeadActivity(docId, 'month_forwarded', { fromMonth: fromMonth, toMonth: toMonth, reason: cleanReason });
+            alert('Lead ' + toMonth + ' mein forward ho gayi.');
+            renderMetrics();
+            renderViews();
+        } catch (error) {
+            console.error('Forward lead failed:', error);
+            alert('Lead forward nahi ho saki. Connection aur permissions check karein.');
+        }
+    };
 
     window.exportViewerBranchCSV = function() {
         const user = getCurrentSessionUser();
