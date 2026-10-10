@@ -4230,7 +4230,13 @@
                 storageRefs.length=0;
                 uploaded.length=0;
             }
-            await saveLocalFallback(cloudFailure&&cloudFailure.message||'Firebase Storage upload error');
+            const cloudMessage=String(cloudFailure&&cloudFailure.message||'Firebase Storage upload error');
+            console.error('Cloud document upload rejected; local fallback intentionally skipped for customer documents:',cloudFailure);
+            const userMessage=/storage\/unauthorized|unauthorized|permission/i.test(cloudMessage)
+                ? 'Firebase Storage permission denied. Customer document device par save nahi kiya gaya. Admin ko Storage Rules + Firebase Authentication setup verify karna hoga.'
+                : 'Cloud upload fail hua. Customer document device par save nahi kiya gaya; network, bucket aur Storage Rules check karke retry karein.';
+            setStatus('❌ '+userMessage+' Details: '+cloudMessage.slice(0,180),'#f87171');
+            alert('❌ '+userMessage+'\n\nDetails: '+cloudMessage.slice(0,240));
         }catch(error){
             console.error('Document upload failed:',error);
             setStatus('❌ Upload/save failed: '+(error&&error.message||error),'#f87171');
