@@ -4953,5 +4953,13 @@ window.installPWA = async function () {
         alert('Heritage CRM is already installed on this device.');
         return;
     }
-    alert('Install prompt abhi available nahi hai. Chrome ke menu (⋮) mein “Install app” ya “Add to Home screen” option check karein. Agar option nahi dikhe, page reload karke HTTPS connection check karein.');
+    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg|OPR|SamsungBrowser/.test(navigator.userAgent);
+    if (isStandalone) {
+        alert('Heritage CRM app mode mein already open hai.');
+    } else if (isChrome) {
+        alert('Chrome ne is page ke liye direct install prompt abhi nahi diya. Aapke screenshot mein address bar ke paas “Open in app” dikh raha hai—use click karke installed app khol sakte hain. Install option ke liye Chrome ⋮ menu → Cast, save, and share (ya Save and share) → Install page as app check karein. Agar app pehle se installed hai, Install option nahi dikhega.');
+    } else {
+        alert('Is browser mein install prompt available nahi hai. Browser menu mein “Install app” ya “Add to Home Screen” check karein. iPhone/iPad par Safari Share → Add to Home Screen use karein.');
+    }
 };
