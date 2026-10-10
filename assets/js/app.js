@@ -4883,13 +4883,13 @@
                 // agency/tenant names. Conflicting secondary fields cannot override
                 // a foreign explicit tenantId.
                 if(leadTenantId) return leadTenantId===tenantId;
-                const legacyOwner=leadAgency||leadTenantName;
-                if(legacyOwner) return tenantKeys.has(legacyOwner);
                 if(leadCreatedBy) {
                     if(tenantKeys.has(leadCreatedBy)) return true;
                     // Older Heritage records sometimes used admin/system as owner.
                     return isHeritage && (leadCreatedBy==='admin' || leadCreatedBy==='system');
                 }
+                const legacyOwner=leadAgency||leadTenantName;
+                if(legacyOwner) return tenantKeys.has(legacyOwner);
                 // Preserve ownerless legacy Heritage records only for Heritage.
                 return isHeritage;
             });
