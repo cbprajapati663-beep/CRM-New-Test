@@ -1216,6 +1216,9 @@
             document.getElementById('tabSecretPayouts').style.display = isFeatureEnabled('payoutDesk') ? 'flex' : 'none';
             refreshDealerDropdowns();
             switchView('pipeline');
+            // Reapply plan restrictions after tenant-view setup, because legacy
+            // setup code above may set some tabs/buttons visible unconditionally.
+            applyPlanFeatureGates();
             return;
         }
 
