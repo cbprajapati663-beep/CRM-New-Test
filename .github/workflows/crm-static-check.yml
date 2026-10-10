@@ -50,6 +50,8 @@ jobs:
           assert.ok(js.includes("staffAccountsCollection.where('staffId','==',staff.id).limit(2).get()"), 'Staff edit lookup must support legacy account documents linked by staffId');
           assert.ok(js.includes("String(account.staffId||'')!==String(managementEditingStaffId||'')"), 'Duplicate login check must not reject the current legacy staff account');
           assert.ok(js.includes("if(!staffAccountRef)staffAccountRef=staffAccountsCollection.doc(staffId);"), 'Staff edits must update an existing linked account before creating a canonical document');
+          assert.ok(js.includes('staffAccountDocId: staffDoc.id'), 'Staff login must retain the actual account document ID for password changes');
+          assert.ok(js.includes("staffAccountsCollection.where('staffId', '==', staffId).limit(2).get()"), 'Staff self-password change must support legacy linked accounts');
           assert.ok(js.includes("if(tenantKeys.has(leadCreatedBy)) return true;"), 'Viewer report legacy ownership check is missing');
           assert.ok(js.includes('const scoped = getLeadScopedList();'), 'Lead CSV export must use the signed-in user scope');
           const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));

@@ -512,6 +512,8 @@
                 role: 'staff',
                 staffRole: staffAccount.role || staffAccount.staffRole || staffAccount.designation || staffProfile.role || staffProfile.staffRole || 'Viewer',
                 staffId: staffAccount.staffId || staffProfile.staffId || staffDoc.id,
+                // Preserve the actual account document ID so legacy-linked staff can change their own password.
+                staffAccountDocId: staffDoc.id,
                 branchId: staffAccount.branchId || staffProfile.branchId || '',
                 branchName: staffAccount.branchName || staffProfile.branchName || '',
                 staffLoginId: staffAccount.loginId
@@ -597,10 +599,23 @@
                 if (u.role === 'staff') {
                     const staffId = String(u.staffId || '').trim();
                     if (!staffId) { document.getElementById('cmpError').style.display = 'block'; return; }
-                    const staffRef = staffAccountsCollection.doc(staffId);
-                    const staffSnap = await staffRef.get();
+                    // New sessions carry the real account document ID. Older saved sessions
+                    // fall back to the canonical staff ID, then search legacy staffId links.
+                    let staffRef = staffAccountsCollection.doc(String(u.staffAccountDocId || staffId));
+                    let staffSnap = await staffRef.get();
+                    if (!staffSnap.exists && u.staffAccountDocId) {
+                        staffRef = staffAccountsCollection.doc(staffId);
+                        staffSnap = await staffRef.get();
+                    }
+                    if (!staffSnap.exists) {
+                        const linked = await staffAccountsCollection.where('staffId', '==', staffId).limit(2).get();
+                        if (!linked.empty) {
+                            staffRef = linked.docs[0].ref;
+                            staffSnap = linked.docs[0];
+                        }
+                    }
                     if (!staffSnap.exists) { document.getElementById('cmpError').style.display = 'block'; return; }
-                    const account = staffSnap.data();
+                    const account = staffSnap.data() || {};
                     const validCurrent = await verifyStaffPassword(oldP, account);
                     if (!validCurrent) { document.getElementById('cmpError').style.display = 'block'; return; }
                     const hashed = await makeStaffPasswordHash(newP);
