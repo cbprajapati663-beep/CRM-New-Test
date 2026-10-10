@@ -1796,6 +1796,7 @@
         if (q) q.value = '';
         if (st) st.value = 'All';
         if (mo) mo.value = currentReportingMonth();
+        renderMetrics();
         renderViews();
     };
 
