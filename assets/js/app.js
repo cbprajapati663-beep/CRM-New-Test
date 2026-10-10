@@ -637,6 +637,10 @@
         window.showRejectedLeadsOnly = viewKey === 'rejected';
         if (viewKey === 'rejected') viewKey = 'pipeline';
         const activeUser = getCurrentSessionUser();
+        // A stale view callback can run during logout/reload. Do not evaluate
+        // tenant feature gates or show plan alerts when the login overlay is active.
+        const authOverlay = document.getElementById('authOverlay');
+        if (!activeUser || (authOverlay && authOverlay.style.display !== 'none')) return;
         const adminDashboardView = ADMIN_OPERATIONAL_VIEW_IDS.includes('view-' + viewKey);
         if (adminDashboardView && activeUser && activeUser.role === 'superadmin' && !inspectingTenantId) {
             setAdminOperationalDashboardHidden(true);
