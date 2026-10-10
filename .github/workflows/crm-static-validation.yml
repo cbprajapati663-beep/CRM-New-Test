@@ -44,6 +44,7 @@ jobs:
               "Manifest declares standalone display": '"display": "standalone"' in manifest,
               "Pipeline navigation handler exists": "window.switchView = function(viewKey)" in js,
               "CSV export handler exists": "window.exportToCSV = function()" in js,
+              "Tenant report whitespace normalization is correct": r"replace(/\s+/g,' ')" in js,
           }
 
           for name, passed in checks.items():
