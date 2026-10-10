@@ -1152,7 +1152,7 @@
             const enabled = isFeatureEnabled(feature);
             const isView = Object.prototype.hasOwnProperty.call(viewTabIds, id);
             const tab = isView ? document.getElementById(viewTabIds[id]) : null;
-            const isActiveView = !!(tab && tab.classList.contains('active'));
+            const isActiveView = !!(tab && tab.classList.contains('active')) || (id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active'));
             // The IT Master Admin desk is tenant-management only. Do not let
             // plan-gate rendering reveal the tenant operational CRM underneath it.
             // The Master Admin tenant cards live inside #view-pipeline.
@@ -2015,7 +2015,8 @@
     };
 
     function renderViews() {
-        const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
+        const searchInput = document.getElementById('searchQuery');
+        const q = String(searchInput && searchInput.value || '').trim().toLowerCase();
         const statusFilterEl = document.getElementById('filterStatus');
         // A blank/stale select value must never filter every lead out after navigation.
         // This can happen when another view or a permission refresh rebuilds the filter options.
@@ -2070,6 +2071,12 @@
         });
 
         const tbody = document.getElementById('leadsTableBody');
+        // A view can be mounted/unmounted by role/plan UI updates. Never let a
+        // missing table node abort navigation and leave the CRM looking blank.
+        if (!tbody) {
+            console.error('Pipeline render skipped: #leadsTableBody is not present in the DOM.');
+            return;
+        }
         tbody.innerHTML = '';
 
         if (filtered.length === 0) {
