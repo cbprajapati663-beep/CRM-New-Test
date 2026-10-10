@@ -4448,7 +4448,13 @@
             // non-sensitive Login ID into the tenant staff rows so Edit always loads it.
             const accountPairs=await Promise.all(staffRows.map(async staff=>{
                 try{
-                    const snap=await staffAccountsCollection.doc(staff.id).get();
+                    // Prefer the canonical staff-ID document, but support older accounts
+                    // whose document ID differs and are linked through their staffId field.
+                    let snap=await staffAccountsCollection.doc(staff.id).get();
+                    if(!snap.exists){
+                        const linked=await staffAccountsCollection.where('staffId','==',staff.id).limit(2).get();
+                        if(!linked.empty)snap=linked.docs[0];
+                    }
                     if(!snap.exists)return [staff.id,{}];
                     const account=snap.data()||{};
                     return [staff.id,{
@@ -4531,8 +4537,19 @@
         if(!loginId||!/^[-a-z0-9._@]+$/i.test(loginId)){alert('Staff Login ID required hai.');return;}
         if(!managementEditingStaffId&&!staffPasswordIsStrong(loginPassword)){alert('Naya password kam se kam 8 characters ka ho aur letter + number contain kare.');return;}
         if(managementEditingStaffId&&loginPassword&&!staffPasswordIsStrong(loginPassword)){alert('Password kam se kam 8 characters ka ho aur letter + number contain kare.');return;}
-        const duplicateSnap=await staffAccountsCollection.where('loginId','==',loginId).limit(5).get(),duplicate=duplicateSnap.docs.find(d=>d.id!==managementEditingStaffId);
+        const duplicateSnap=await staffAccountsCollection.where('loginId','==',loginId).limit(10).get(),duplicate=duplicateSnap.docs.find(d=>{
+            const account=d.data()||{};
+            return d.id!==managementEditingStaffId && String(account.staffId||'')!==String(managementEditingStaffId||'');
+        });
         if(duplicate){alert('Ye Staff Login ID already use ho rahi hai. Dusri ID choose karein.');return;}
+        let staffAccountRef=managementEditingStaffId?staffAccountsCollection.doc(managementEditingStaffId):null;
+        if(managementEditingStaffId){
+            const canonical=await staffAccountRef.get();
+            if(!canonical.exists){
+                const linked=await staffAccountsCollection.where('staffId','==',managementEditingStaffId).limit(1).get();
+                if(!linked.empty)staffAccountRef=linked.docs[0].ref;
+            }
+        }
         const branchId=document.getElementById('mhStaffBranch').value,branch=managementBranches.find(x=>x.id===branchId);
         const featureListSelector=managementEditingStaffId&&document.getElementById('mhStaffEditFeatureAccessList')
             ? '#mhStaffEditFeatureAccessList input[type="checkbox"]:checked'
@@ -4546,7 +4563,8 @@
             const accountPayload={staffId,tenantId:tenant.tenantId,loginId,name,role:payload.role,staffRole:payload.role,phone:payload.phone||'',email:payload.email||'',branchId:payload.branchId||'',branchName:payload.branchName||'',agencyName:tenant.agencyName||'',subscriptionPlan:tenant.subscriptionPlan||'Starter',featureAccess,status:payload.status,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
             if(!managementEditingStaffId)accountPayload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
             if(loginPassword){const hashed=await makeStaffPasswordHash(loginPassword);accountPayload.passwordHash=hashed.hash;accountPayload.salt=hashed.salt;}
-            await staffAccountsCollection.doc(staffId).set(accountPayload,{merge:true});
+            if(!staffAccountRef)staffAccountRef=staffAccountsCollection.doc(staffId);
+            await staffAccountRef.set(accountPayload,{merge:true});
             const wasEditing=!!managementEditingStaffId;
             await loadManagementData();
             if(wasEditing) window.closeManagementStaffEdit();
