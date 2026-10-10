@@ -1062,35 +1062,39 @@
             tabWorkflow:'smartWorkflow', 'view-workflow':'smartWorkflow'
         };
         const viewTabIds = {
-            'view-pipeline': 'tabPipeline',
-            'view-disbursedhub': 'tabDisbursed',
-            'view-dealers': 'tabDealers',
-            'view-payoutdesk': 'tabSecretPayouts',
-            'view-followups': 'tabFollowups',
-            'view-datahealth': 'tabDataHealth',
-            'view-workflow': 'tabWorkflow'
+            'view-pipeline':'tabPipeline',
+            'view-disbursedhub':'tabDisbursed',
+            'view-dealers':'tabDealers',
+            'view-payoutdesk':'tabSecretPayouts',
+            'view-followups':'tabFollowups',
+            'view-datahealth':'tabDataHealth',
+            'view-workflow':'tabWorkflow'
         };
         const viewDisplayValues = {
-            'view-pipeline': 'grid',
-            'view-disbursedhub': 'block',
-            'view-dealers': 'block',
-            'view-payoutdesk': 'block',
-            'view-followups': 'block',
-            'view-datahealth': 'block',
-            'view-workflow': 'block'
+            'view-pipeline':'grid',
+            'view-disbursedhub':'block',
+            'view-dealers':'block',
+            'view-payoutdesk':'block',
+            'view-followups':'block',
+            'view-datahealth':'block',
+            'view-workflow':'block'
         };
+
+        // Hide unavailable modules completely. Do not leave a clickable tab/button
+        // that produces a "plan not enabled" alert for the tenant.
         Object.entries(mappings).forEach(([id, feature]) => {
             const el = document.getElementById(id);
             if (!el) return;
             const enabled = isFeatureEnabled(feature);
-            if (viewTabIds[id]) {
-                const activeTab = document.getElementById(viewTabIds[id]);
-                const isActiveView = !!(activeTab && activeTab.classList.contains('active'));
-                el.style.display = enabled && isActiveView ? viewDisplayValues[id] : 'none';
-            } else {
-                el.style.display = enabled ? '' : 'none';
-            }
+            const isView = Object.prototype.hasOwnProperty.call(viewTabIds, id);
+            const tab = isView ? document.getElementById(viewTabIds[id]) : null;
+            const isActiveView = !!(tab && tab.classList.contains('active'));
+            const visible = enabled && (!isView || isActiveView);
+            el.toggleAttribute('hidden', !visible);
+            el.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            el.style.setProperty('display', visible ? (isView ? viewDisplayValues[id] : '') : 'none', 'important');
         });
+
         const selectorMappings = [
             ['#colAddLeadForm', 'pipeline'],
             ['#clientPipelineTablePanel', 'pipeline'],
@@ -1102,33 +1106,61 @@
             ['[onclick*="openDealerStatementModal"]', 'reports'],
             ['[onclick*="downloadCRMBackup"]', 'backupExport'],
             ['[onclick*="exportToCSV"]', 'reports'],
-            ['[onclick*="exportFollowupsCSV"]', 'followups']
+            ['[onclick*="exportFollowupsCSV"]', 'followups'],
+            ['[onclick*="openManagementHub"]', 'pipeline']
         ];
         selectorMappings.forEach(([selector, feature]) => {
+            const enabled = isFeatureEnabled(feature);
             document.querySelectorAll(selector).forEach(el => {
-                el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+                el.toggleAttribute('hidden', !enabled);
+                el.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+                el.style.setProperty('display', enabled ? '' : 'none', 'important');
             });
         });
-        // Reports are a paid module and must be gated in both the hub navigation
-        // and the report panel itself (not only the CSV buttons).
-        const reportsEnabled = isFeatureEnabled('reports');
-        document.querySelectorAll('[data-management-module="reports"]').forEach(el => {
-            el.style.display = reportsEnabled ? '' : 'none';
-            el.setAttribute('aria-hidden', reportsEnabled ? 'false' : 'true');
+
+        // Plan-specific controls in Management & Reports.
+        const moduleFeatureMap = {
+            staff:'pipeline', branches:'pipeline', leads:'pipeline',
+            reports:'reports', permissions:'pipeline'
+        };
+        document.querySelectorAll('[data-management-module]').forEach(el => {
+            const key = el.getAttribute('data-management-module');
+            const enabled = isFeatureEnabled(moduleFeatureMap[key] || 'pipeline');
+            el.toggleAttribute('hidden', !enabled);
+            el.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+            el.style.setProperty('display', enabled ? '' : 'none', 'important');
         });
+        const reportsEnabled = isFeatureEnabled('reports');
         const reportsPanel = document.getElementById('managementPanelReports');
         if (reportsPanel && !reportsEnabled) {
-            reportsPanel.style.display = 'none';
+            reportsPanel.style.setProperty('display', 'none', 'important');
+            reportsPanel.setAttribute('hidden', '');
             reportsPanel.setAttribute('aria-hidden', 'true');
         }
-        // Disbursement dashboard totals are part of the Disbursed feature.
+
+        // Calculator, documents and backup containers may be opened by more than
+        // one button, so hide their entry points consistently for the active plan.
+        const extraFeatureSelectors = [
+            ['#documentTrackerModal, #documentTrackerModal button', 'documents'],
+            ['#emiCalculatorModal, #emiCalculatorModal button', 'emiCalculator'],
+            ['#affordabilityCalculatorModal, #affordabilityCalculatorModal button', 'affordability'],
+            ['#dealerStatementModal, #dealerStatementModal button', 'reports']
+        ];
+        extraFeatureSelectors.forEach(([selector, feature]) => {
+            if (isFeatureEnabled(feature)) return;
+            document.querySelectorAll(selector).forEach(el => {
+                el.style.setProperty('display', 'none', 'important');
+                el.setAttribute('aria-hidden', 'true');
+            });
+        });
+
         ['lbl-disburse-leads', 'lbl-month-business'].forEach(id => {
             const label = document.getElementById(id);
             const card = label && label.closest('.metric-card');
-            if (card) card.style.display = isFeatureEnabled('disbursed') ? '' : 'none';
+            if (card) card.style.setProperty('display', isFeatureEnabled('disbursed') ? '' : 'none', 'important');
         });
         const exportBtn = document.getElementById('btnExportExcel');
-        if (exportBtn) exportBtn.style.display = isFeatureEnabled('reports') ? '' : 'none';
+        if (exportBtn) exportBtn.style.setProperty('display', isFeatureEnabled('reports') ? '' : 'none', 'important');
     }
     window.handleSubscriptionPlanChange = function() {
         const plan = document.getElementById('t_subscriptionPlan').value;
@@ -1894,7 +1926,8 @@
 
     function renderViews() {
         const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
-        const statusFilter = document.getElementById('filterStatus').value;
+        const statusFilterEl = document.getElementById('filterStatus');
+        let statusFilter = statusFilterEl ? statusFilterEl.value : 'All';
         const liveMonthVal = selectedReportingMonth();
 
         const scopedLeads = getLeadScopedList();
@@ -1918,8 +1951,13 @@
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
-        if (window.showRejectedLeadsOnly && statusFilter) statusFilter.value = 'Rejected';
-        else if (!window.showRejectedLeadsOnly && statusFilter && statusFilter.value === 'Rejected') statusFilter.value = 'All';
+        if (window.showRejectedLeadsOnly && statusFilterEl) {
+            statusFilterEl.value = 'Rejected';
+            statusFilter = 'Rejected';
+        } else if (!window.showRejectedLeadsOnly && statusFilterEl && statusFilterEl.value === 'Rejected') {
+            statusFilterEl.value = 'All';
+            statusFilter = 'All';
+        }
 
         const filtered = liveLeads.filter(l => {
             const matchesQuery = (l.name || '').toLowerCase().includes(q) || 
