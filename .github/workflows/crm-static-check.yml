@@ -46,12 +46,12 @@ jobs:
           const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
           assert.ok(manifest.name && manifest.start_url && manifest.icons && manifest.icons.length, 'PWA manifest is incomplete');
           assert.ok(html.includes('rel="manifest" href="manifest.json"'), 'PWA manifest link is missing');
-          const ids = [...html.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
           assert.equal(new Set(ids).size, ids.length, 'Duplicate HTML IDs found');
-          const handlers = [...new Set([...html.matchAll(/\\bon(?:click|change|submit)\\s*=\\s*["']\\s*([A-Za-z_$][\\w$]*)\\s*\\(/g)].map(match => match[1]))];
+          const handlers = [...new Set([...html.matchAll(/\bon(?:click|change|submit)\s*=\s*["']\s*([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1]))];
           const declared = new Set([
-            ...[...js.matchAll(/window\\s*\\.\\s*([A-Za-z_$][\\w$]*)\\s*=/g)].map(match => match[1]),
-            ...[...js.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)].map(match => match[1])
+            ...[...js.matchAll(/window\s*\.\s*([A-Za-z_$][\w$]*)\s*=/g)].map(match => match[1]),
+            ...[...js.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(match => match[1])
           ]);
           const missingHandlers = handlers.filter(name => !declared.has(name));
           assert.deepEqual(missingHandlers, [], 'Inline event handlers missing from app.js: ' + missingHandlers.join(', '));
