@@ -60,6 +60,10 @@ jobs:
           assert.ok(js.includes('const leadTenantId=normalize(l.tenantId);'), 'Viewer reports must normalize explicit tenant ownership first');
           assert.ok(js.includes('if(leadTenantId) return leadTenantId===tenantId;'), 'Explicit tenant ownership must precede legacy creator aliases');
           assert.ok(js.includes('function rerenderActiveModule(viewKey)'), 'Active CRM modules must re-render after tab navigation');
+          assert.ok(js.includes('rerenderActiveModule(viewKey);'), 'Tab navigation must invoke the active-module refresh');
+          assert.ok(js.includes("if (viewKey === 'workflow') renderSmartWorkflow();"), 'Workflow tab must refresh its content when selected');
+          assert.ok(js.includes("if (viewKey === 'followups') renderFollowups();"), 'Follow-ups tab must refresh its content when selected');
+          assert.ok(js.includes("if (viewKey === 'datahealth') renderDataHealth();"), 'Data health tab must refresh its content when selected');
           assert.ok(js.includes("if (viewKey === 'pipeline') { renderMetrics(); renderViews(); }"), 'Pipeline navigation must refresh metrics and rows');
           assert.ok(js.includes('window.onReportingMonthChanged = function(sourceId)'), 'Reporting month controls must have a shared change handler');
           assert.ok(html.includes("onchange=\"onReportingMonthChanged('liveMonthFilter')\""), 'Pipeline month changes must use the shared reporting handler');
