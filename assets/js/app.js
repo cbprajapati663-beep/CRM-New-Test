@@ -694,7 +694,9 @@
             view.setAttribute('aria-hidden', visible ? 'false' : 'true');
         });
 
-        if (viewKey === 'pipeline') renderViews();
+        // Re-render the selected module after every navigation event so it
+        // uses the authenticated tenant scope and current reporting month.
+        if (viewKey === 'pipeline') { renderMetrics(); renderViews(); }
         if (viewKey === 'disbursedhub') renderDisbursedHubTable();
         if (viewKey === 'workflow') renderSmartWorkflow();
         if (viewKey === 'dealers') renderDealerLedgerTable();
@@ -2152,10 +2154,15 @@
     function renderDisbursedHubTable() {
         const scopedLeads = getLeadScopedList();
         let disbursedLeads = scopedLeads.filter(l => l.status === 'Disbursed');
-        const monthVal = document.getElementById('disbursedMonthFilter').value;
+        const monthEl = document.getElementById('disbursedMonthFilter');
+        const monthVal = monthEl ? (monthEl.value || selectedReportingMonth()) : selectedReportingMonth();
+        if (monthEl && !monthEl.value) monthEl.value = monthVal;
 
         if (monthVal) {
-            disbursedLeads = disbursedLeads.filter(l => (l.disbursedDate || '').startsWith(monthVal));
+            disbursedLeads = disbursedLeads.filter(l =>
+                String(l.disbursedDate || '').startsWith(monthVal) ||
+                (!l.disbursedDate && reportingMonthOfLead(l) === monthVal)
+            );
         }
 
         const tbody = document.getElementById('disbursedHubTableBody');
@@ -2313,7 +2320,8 @@
     };
 
     function renderDealerLedgerTable() {
-        const scopedLeads = getLeadScopedList();
+        const selectedMonth = selectedReportingMonth();
+        const scopedLeads = getLeadScopedList().filter(l => reportingMonthOfLead(l) === selectedMonth);
         const dealerSet = new Set(["Direct Customer"]);
         scopedLeads.forEach(l => {
             const dName = (l.dealerName || 'Direct Customer').trim();
