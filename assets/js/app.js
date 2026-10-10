@@ -1974,6 +1974,11 @@
         const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
         const statusFilterEl = document.getElementById('filterStatus');
         let statusFilter = statusFilterEl ? statusFilterEl.value : 'All';
+        const validStatusFilters = new Set(['All', 'Sanctioned', 'Login Done', 'Documents Pending', 'Contacted', 'New', 'Rejected']);
+        if (!validStatusFilters.has(statusFilter)) {
+            statusFilter = 'All';
+            if (statusFilterEl) statusFilterEl.value = 'All';
+        }
         const liveMonthVal = selectedReportingMonth();
 
         const scopedLeads = getLeadScopedList();
@@ -1986,14 +1991,15 @@
             const branchMap = new Map(); branchRows.forEach(b => { const key=b.id || b.name; if (!branchMap.has(key)) branchMap.set(key,b.name || key); });
             const selected = branchFilterEl.value;
             branchFilterEl.innerHTML = '<option value="">All Branches</option>' + Array.from(branchMap.entries()).sort((a,b)=>a[1].localeCompare(b[1])).map(([id,name])=>'<option value="'+escapeHtml(id)+'">'+escapeHtml(name)+'</option>').join('');
-            if (branchMap.has(selected)) branchFilterEl.value = selected;
+            if (showBranchTools && branchMap.has(selected)) branchFilterEl.value = selected;
+            else branchFilterEl.value = '';
         }
         const csvButton = document.getElementById('btnViewerBranchCsv'); if (csvButton) csvButton.style.display = showBranchTools ? '' : 'none';
         let liveLeads = scopedLeads.filter(l => {
             if (window.showRejectedLeadsOnly) return l.status === 'Rejected';
             return !['Disbursed', 'Rejected'].includes(String(l.status || ''));
         });
-        const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
+        const selectedBranch = showBranchTools && branchFilterEl ? branchFilterEl.value : '';
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
