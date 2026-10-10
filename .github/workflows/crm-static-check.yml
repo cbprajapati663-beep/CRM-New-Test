@@ -42,6 +42,6 @@ jobs:
           assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
           assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');
-          assert.match(js, /typeof value !== 'number'.*\[\^\\s\]\*\[=\+@\\-\]/s, 'CSV export formula sanitization is missing');
+          assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
           console.log('CRM static navigation and export checks passed.');
           NODE
