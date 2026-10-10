@@ -4804,7 +4804,7 @@
         if(u && u.role==='staff' && hasStaffLeadPermission('Reports · View/Export')){
             // Match each legacy ownership field independently. Older records may
             // have a non-empty tenantId but the correct tenant stored in createdBy.
-            const normalize=value=>String(value||'').trim().toLowerCase().replace(/\\s+/g,' ');
+            const normalize=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
             const tenantId=normalize(u.tenantId);
             const agencyName=normalize(u.agencyName);
             const tenantKeys=new Set([tenantId,agencyName].filter(Boolean));
