@@ -1984,16 +1984,19 @@
             branchFilterEl.style.display = showBranchTools ? '' : 'none';
             const branchRows = scopedLeads.map(l => ({ id:String(l.branchId || l.branch || l.branchName || '').trim(), name:String(l.branchName || l.branch || l.branchId || '').trim() })).filter(b => b.id || b.name);
             const branchMap = new Map(); branchRows.forEach(b => { const key=b.id || b.name; if (!branchMap.has(key)) branchMap.set(key,b.name || key); });
-            const selected = branchFilterEl.value;
+            const selected = showBranchTools ? branchFilterEl.value : '';
             branchFilterEl.innerHTML = '<option value="">All Branches</option>' + Array.from(branchMap.entries()).sort((a,b)=>a[1].localeCompare(b[1])).map(([id,name])=>'<option value="'+escapeHtml(id)+'">'+escapeHtml(name)+'</option>').join('');
-            if (branchMap.has(selected)) branchFilterEl.value = selected;
+            if (showBranchTools && branchMap.has(selected)) branchFilterEl.value = selected;
+            else branchFilterEl.value = '';
         }
         const csvButton = document.getElementById('btnViewerBranchCsv'); if (csvButton) csvButton.style.display = showBranchTools ? '' : 'none';
         let liveLeads = scopedLeads.filter(l => {
             if (window.showRejectedLeadsOnly) return l.status === 'Rejected';
             return !['Disbursed', 'Rejected'].includes(String(l.status || ''));
         });
-        const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
+        // Branch filtering is a Viewer-only tool. Never let a hidden stale
+        // selection filter tenant/admin pipeline results after tab navigation.
+        const selectedBranch = showBranchTools && branchFilterEl ? branchFilterEl.value : '';
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
