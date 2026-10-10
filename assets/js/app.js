@@ -1017,6 +1017,7 @@
         'view-workflow'
     ];
     const ADMIN_OPERATIONAL_METRIC_IDS = [
+        'dashboardOperationalMetrics',
         'adminMetricOverdue',
         'adminMetricDueToday',
         'adminMetricNoFollowup',
