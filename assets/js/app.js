@@ -4178,13 +4178,28 @@
                     const file=files[index];
                     setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · 0%','#fbbf24');
                     const path='customer-documents/'+safeSegment(tenantId)+'/'+safeSegment(leadId)+'/'+Date.now()+'_'+index+'_'+safeDocumentFileName(file.name);
-                    const storage=firebase.storage();
+                    // Use the explicitly configured bucket; the default SDK bucket can
+                    // otherwise point at a different/legacy bucket and remain at 0%.
+                    const storage=firebase.app().storage('gs://'+bucket);
                     const ref=storage.ref().child(path);
                     const task=ref.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{tenantId:String(tenantId),leadId:String(leadId),category:String(name),originalName:String(file.name)}});
-                    await new Promise((resolve,reject)=>task.on('state_changed',snapshot=>{
-                        const percent=snapshot.totalBytes?Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100):0;
-                        setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · '+percent+'%','#fbbf24');
-                    },reject,resolve));
+                    await new Promise((resolve,reject)=>{
+                        let settled=false;
+                        const finish=(error)=>{
+                            if(settled)return;
+                            settled=true;
+                            clearTimeout(uploadTimeout);
+                            if(error)reject(error);else resolve();
+                        };
+                        const uploadTimeout=setTimeout(()=>{
+                            try{task.cancel();}catch(e){}
+                            finish(new Error('Firebase Storage upload 60 seconds se respond nahi kar raha. Storage bucket/API/rules aur network check karein.'));
+                        },60000);
+                        task.on('state_changed',snapshot=>{
+                            const percent=snapshot.totalBytes?Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100):0;
+                            setStatus('☁️ Uploading '+(index+1)+'/'+files.length+' · '+file.name+' · '+percent+'%','#fbbf24');
+                        },error=>finish(error),()=>finish());
+                    });
                     storageRefs.push(ref);
                     const url=await ref.getDownloadURL();
                     uploaded.push({name:file.name,url,path:ref.fullPath,bucket:ref.bucket,contentType:file.type||'application/octet-stream',size:file.size,uploadedAt:new Date().toISOString(),uploadedBy:tenantId,storageType:'firebase-storage'});
