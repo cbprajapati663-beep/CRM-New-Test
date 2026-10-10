@@ -696,10 +696,54 @@
 
         // Re-render the selected module after every navigation event so it
         // uses the authenticated tenant scope and current reporting month.
+        // Pipeline visibility is reasserted here because plan/permission refreshes
+        // can run after a tab click and leave the parent or its child panels hidden.
         if (viewKey === 'pipeline') {
-            renderMetrics();
-            renderViews();
-            syncReportingMonthSelectors('liveMonthFilter');
+            const pipelineView = document.getElementById('view-pipeline');
+            const canViewPipeline = isFeatureEnabled('pipeline');
+            const canCreateLeads = canViewPipeline && hasStaffLeadPermission('Leads · Create/Edit');
+            const canViewLeads = canViewPipeline && hasStaffLeadPermission('Leads · View');
+
+            if (pipelineView) {
+                pipelineView.toggleAttribute('hidden', !canViewPipeline);
+                pipelineView.setAttribute('aria-hidden', canViewPipeline ? 'false' : 'true');
+                pipelineView.style.setProperty('display', canViewPipeline ? 'grid' : 'none', 'important');
+            }
+            const leadForm = document.getElementById('colAddLeadForm');
+            if (leadForm) {
+                leadForm.toggleAttribute('hidden', !canCreateLeads);
+                leadForm.setAttribute('aria-hidden', canCreateLeads ? 'false' : 'true');
+                leadForm.style.setProperty('display', canCreateLeads ? 'block' : 'none', 'important');
+            }
+            const leadPanel = document.getElementById('clientPipelineTablePanel');
+            if (leadPanel) {
+                leadPanel.toggleAttribute('hidden', !canViewLeads);
+                leadPanel.setAttribute('aria-hidden', canViewLeads ? 'false' : 'true');
+                leadPanel.style.setProperty('display', canViewLeads ? 'block' : 'none', 'important');
+            }
+
+            if (canViewPipeline) {
+                syncReportingMonthSelectors('liveMonthFilter');
+                renderMetrics();
+                renderViews();
+
+                // One post-layout refresh covers tab switches that race with a
+                // Firestore/plan visibility update. Never render into an inactive tab.
+                window.requestAnimationFrame(() => {
+                    const pipelineTab = document.getElementById(
+                        window.showRejectedLeadsOnly ? 'tabRejected' : 'tabPipeline'
+                    );
+                    if (!pipelineTab || !pipelineTab.classList.contains('active')) return;
+                    const view = document.getElementById('view-pipeline');
+                    if (view && isFeatureEnabled('pipeline')) {
+                        view.hidden = false;
+                        view.setAttribute('aria-hidden', 'false');
+                        view.style.setProperty('display', 'grid', 'important');
+                        renderMetrics();
+                        renderViews();
+                    }
+                });
+            }
         }
         if (viewKey === 'disbursedhub') {
             syncReportingMonthSelectors('liveMonthFilter');
