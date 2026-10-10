@@ -36,10 +36,10 @@ jobs:
             'clientPipelineTablePanel', 'leadsTableBody'
           ];
           for (const id of required) {
-            assert.match(html, new RegExp('id=["\\']' + id + '["\\']'), 'Missing HTML element: ' + id);
+            assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Missing HTML element: ' + id);
           }
-          assert.match(html, /assets\\/js\\/app\\.js\\?v=crm-audit-navigation-20261010-11/, 'app.js cache version not updated');
-          assert.match(js, /tabRejected.*classList\\.contains\\('active'\\)/s, 'Pipeline visibility does not account for Rejected tab');
+          assert.ok(html.includes('assets/js/app.js?v=crm-audit-navigation-20261010-11'), 'app.js cache version not updated');
+          assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
           console.log('CRM static navigation checks passed.');
           NODE
