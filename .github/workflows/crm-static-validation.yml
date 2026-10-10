@@ -49,6 +49,11 @@ jobs:
               "Follow-up edit modal checks lead scope": "const lead = getLeadScopedList().find(item => item.docId === docId);" in js,
               "Follow-up save rechecks staff permission": "if (!hasStaffLeadPermission('Leads · Create/Edit')) {" in js and "errorBox.textContent = 'Aapko follow-up edit karne ki permission nahi hai.'" in js,
               "Follow-up save rechecks lead scope": "if (!getLeadScopedList().some(item => item.docId === docId)) {" in js,
+              "Lead assignment requires an authenticated non-staff actor": "if (!actor || actor.role === 'staff')" in js,
+              "Lead assignment requires an active tenant context": "const tenantRef = managementTenantRef();" in js and "if (!tenantRef)" in js,
+              "Lead assignment lead must be in current scoped list": "const lead = getLeadScopedList().find(item => item.docId === id);" in js,
+              "Lead assignment validates selected staff in tenant": "if (staffId && !staff)" in js,
+              "Lead assignment validates selected branch in tenant": "if (branchId && !branch)" in js,
           }
 
           for name, passed in checks.items():

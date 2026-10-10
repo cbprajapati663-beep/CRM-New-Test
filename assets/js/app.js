@@ -4790,11 +4790,63 @@
         const sum=document.getElementById('mhLeadSummary');if(sum)sum.textContent='Showing '+list.length+' of '+all.length+' lead(s). Filtered lead list export karein.';
     }
     document.getElementById('mhLeadSelect')?.addEventListener('change',renderManagementLeadOptions);
-    window.saveManagementLeadAssignment=async function(){
-        const id=document.getElementById('mhLeadSelect').value;const lead=leads.find(x=>x.docId===id);if(!id||!lead){alert('Pehle customer / lead select karein.');return;}
-        const staffId=document.getElementById('mhLeadStaff').value;const branchId=document.getElementById('mhLeadBranch').value;const staff=managementStaff.find(x=>x.id===staffId);const branch=managementBranches.find(x=>x.id===branchId);
-        try{await leadsCollection.doc(id).update({assignedStaffId:staffId||'',assignedStaffName:staff?staff.name:'',branchId:branchId||'',branchName:branch?branch.name:'',assignmentUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});const local=leads.find(x=>x.docId===id);if(local)Object.assign(local,{assignedStaffId:staffId||'',assignedStaffName:staff?staff.name:'',branchId:branchId||'',branchName:branch?branch.name:''});managementNotice('Lead assignment save ho gaya.');window.generateManagementReport();}
-        catch(error){console.error(error);managementNotice('Lead assignment save nahi hua: '+(error.message||''),true);}
+    window.saveManagementLeadAssignment = async function () {
+        // Lead assignment is a tenant-admin operation, not a staff action.
+        const actor = getCurrentSessionUser();
+        if (!actor || actor.role === 'staff') {
+            managementNotice('Lead assignment change karne ke liye tenant administrator login zaroori hai.', true);
+            return;
+        }
+
+        const tenantRef = managementTenantRef();
+        if (!tenantRef) {
+            managementNotice('Active tenant select nahi hai. Lead assignment save nahi hua.', true);
+            return;
+        }
+
+        const id = String(document.getElementById('mhLeadSelect')?.value || '').trim();
+        const lead = getLeadScopedList().find(item => item.docId === id);
+        if (!id || !lead) {
+            alert('Selected lead current tenant/access mein nahi mili. Lead list refresh karke dobara try karein.');
+            return;
+        }
+
+        const staffId = String(document.getElementById('mhLeadStaff')?.value || '').trim();
+        const branchId = String(document.getElementById('mhLeadBranch')?.value || '').trim();
+        const staff = staffId ? managementStaff.find(item => item.id === staffId) : null;
+        const branch = branchId ? managementBranches.find(item => item.id === branchId) : null;
+
+        if (staffId && !staff) {
+            alert('Selected staff account current tenant mein nahi mila. Staff list refresh karein.');
+            return;
+        }
+        if (branchId && !branch) {
+            alert('Selected branch current tenant mein nahi mili. Branch list refresh karein.');
+            return;
+        }
+
+        try {
+            await leadsCollection.doc(id).update({
+                assignedStaffId: staffId,
+                assignedStaffName: staff ? staff.name : '',
+                branchId,
+                branchName: branch ? branch.name : '',
+                assignmentUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            const local = leads.find(item => item.docId === id);
+            if (local) Object.assign(local, {
+                assignedStaffId: staffId,
+                assignedStaffName: staff ? staff.name : '',
+                branchId,
+                branchName: branch ? branch.name : ''
+            });
+            managementNotice('Lead assignment save ho gaya.');
+            window.generateManagementReport();
+        } catch (error) {
+            console.error('Lead assignment save failed:', error);
+            managementNotice('Lead assignment save nahi hua: ' + (error.message || ''), true);
+        }
     };
     function managementDateKey(value){
         try{
