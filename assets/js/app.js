@@ -1824,7 +1824,7 @@
         // Resolve ownership using one authoritative field. A matching legacy
         // createdBy/agency value must never override a conflicting explicit tenantId.
         const belongsToTenant = (lead, aliases, isHeritage) => {
-            const normalize = value => String(value || '').trim().toLowerCase().replace(/\\s+/g, ' ');
+            const normalize = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
             const leadTenantId = normalize(lead.tenantId);
             const leadCreatedBy = normalize(lead.createdBy);
             const leadAgency = normalize(lead.agencyName);
