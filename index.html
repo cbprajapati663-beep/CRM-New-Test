@@ -279,7 +279,7 @@
                     <div class="panel-title" id="pipelineTableTitle">Active Live Pipeline (In-Process Files Only)</div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div>
-                            <input type="month" id="liveMonthFilter" onchange="renderViews()" style="width:140px; padding:5px 8px;">
+                            <input type="month" id="liveMonthFilter" onchange="renderMetrics(); renderViews()" style="width:140px; padding:5px 8px;">
                         </div>
                         <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0'); renderMetrics(); renderViews();" style="padding:5px 10px;">Current Month</button>
                         <button class="btn-action" onclick="clearPipelineFilters()" style="padding:5px 10px;">✕ Clear Filters</button>
