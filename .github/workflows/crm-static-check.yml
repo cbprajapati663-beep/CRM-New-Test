@@ -44,6 +44,8 @@ jobs:
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
           assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');
           assert.ok(js.includes('window.installPWA = async function ()'), 'Install App button handler is missing');
+          assert.ok(js.includes("'Leads · View': ['Administrator','Manager','Branch Manager','Sales Executive','Viewer'].includes(role)"), 'Branch Manager default lead-view permission is missing');
+          assert.ok(js.includes("'Leads · Create/Edit': ['Administrator','Manager','Branch Manager','Sales Executive'].includes(role)"), 'Branch Manager default lead-edit permission is missing');
           const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
           assert.ok(manifest.name && manifest.start_url && manifest.icons && manifest.icons.length, 'PWA manifest is incomplete');
           assert.ok(html.includes('rel="manifest" href="manifest.json"'), 'PWA manifest link is missing');
