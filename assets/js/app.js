@@ -637,6 +637,10 @@
         window.showRejectedLeadsOnly = viewKey === 'rejected';
         if (viewKey === 'rejected') viewKey = 'pipeline';
         const activeUser = getCurrentSessionUser();
+        // A stale view callback can run during logout/reload. Do not evaluate
+        // tenant feature gates or show plan alerts when the login overlay is active.
+        const authOverlay = document.getElementById('authOverlay');
+        if (!activeUser || (authOverlay && authOverlay.style.display !== 'none')) return;
         const adminDashboardView = ADMIN_OPERATIONAL_VIEW_IDS.includes('view-' + viewKey);
         if (adminDashboardView && activeUser && activeUser.role === 'superadmin' && !inspectingTenantId) {
             setAdminOperationalDashboardHidden(true);
@@ -991,9 +995,13 @@
         return tenantAllowed.includes(featureKey);
     }
     function requireFeatureAccess(featureKey, featureLabel) {
+        // Do not show plan alerts on the login screen or after logout. A plan
+        // warning is only meaningful during an authenticated tenant session.
+        const user = getCurrentSessionUser();
+        if (!user) return false;
         if (isFeatureEnabled(featureKey)) return true;
         const tenant = resolveFeatureTenant();
-        const plan = String(tenant && tenant.subscriptionPlan || 'Starter');
+        const plan = String(tenant && tenant.subscriptionPlan || user.subscriptionPlan || 'Starter');
         alert('Aapka current plan ' + plan + ' hai. ' + (featureLabel || 'Ye feature') + ' is plan mein enabled nahi hai. Is feature ke liye subscription plan upgrade karein ya administrator se sampark karein.');
         return false;
     }
