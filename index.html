@@ -80,6 +80,10 @@
 <!-- Operational Stats Bar -->
 <div class="dashboard-grid">
     <div class="metric-card">
+        <div class="metric-title">Total Leads (Selected Month)</div>
+        <div class="metric-value" id="m-total-leads">0</div>
+    </div>
+    <div class="metric-card">
         <div class="metric-title" id="lbl-live-leads">Live Open Files</div>
         <div class="metric-value" id="m-live-leads">0</div>
     </div>
@@ -275,9 +279,9 @@
                     <div class="panel-title" id="pipelineTableTitle">Active Live Pipeline (In-Process Files Only)</div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div>
-                            <input type="month" id="liveMonthFilter" onchange="renderViews()" style="width:140px; padding:5px 8px;">
+                            <input type="month" id="liveMonthFilter" onchange="renderMetrics(); renderViews()" style="width:140px; padding:5px 8px;">
                         </div>
-                        <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=''; renderViews();" style="padding:5px 10px;">All Months</button>
+                        <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0'); renderMetrics(); renderViews();" style="padding:5px 10px;">Current Month</button>
                         <button class="btn-action" onclick="clearPipelineFilters()" style="padding:5px 10px;">✕ Clear Filters</button>
                         <select id="dashboardBranchFilter" onchange="renderViews()" style="width:160px;padding:5px 8px;display:none;"><option value="">All Branches</option></select>
                         <button class="btn-action" id="btnViewerBranchCsv" onclick="exportViewerBranchCSV()" style="padding:5px 10px;display:none;">📥 Export CSV</button>

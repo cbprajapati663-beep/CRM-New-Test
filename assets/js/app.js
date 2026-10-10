@@ -40,6 +40,33 @@
     const todayStr = [nowLocal.getFullYear(), String(nowLocal.getMonth()+1).padStart(2,'0'), String(nowLocal.getDate()).padStart(2,'0')].join('-');
     document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
+    // Operational date fields must not allow back-dated entries.
+    // Historical reporting filters (type=month and report from/to) intentionally remain selectable.
+    function preventPastOperationalDates() {
+        ['followDate', 'followupEditDate', 't_expiryDate'].forEach(function(id) {
+            const input = document.getElementById(id);
+            if (!input) return;
+            input.min = todayStr;
+            input.addEventListener('change', function() {
+                if (input.value && input.value < todayStr) {
+                    input.value = '';
+                    alert('Past date select nahi kar sakte. Aaj ya future date select karein.');
+                }
+            });
+        });
+        ['disbursedDate', 'm_disbursedDate'].forEach(function(id) {
+            const input = document.getElementById(id);
+            if (!input) return;
+            input.addEventListener('change', function() {
+                if (input.value && input.value < todayStr) {
+                    input.value = '';
+                    alert('Back-date disbursement entry allowed nahi hai. Aaj ya future date select karein.');
+                }
+            });
+        });
+    }
+    preventPastOperationalDates();
+
     window.setAuthTab = function(mode) {
         currentAuthMode = mode;
         document.getElementById('loginError').style.display = 'none';
@@ -1686,8 +1713,32 @@
         return tenantLeads;
     }
 
+    // Monthly reporting: a lead belongs to the month it was last created/edited.
+    // Editing an older lead therefore brings it into the month of that edit.
+    function currentReportingMonth() {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+    function reportingMonthOfLead(lead) {
+        // Lead reporting month is anchored to its original lead date.
+        // Editing remarks, status, or a future follow-up must not move the lead
+        // into another month's lead list or change the Total Leads count.
+        const leadDate = String(lead && lead.leadDate || '').slice(0, 10);
+        const created = lead && lead.createdAt;
+        let createdDate = '';
+        if (created && typeof created.toDate === 'function') createdDate = created.toDate().toISOString().slice(0, 10);
+        else if (created) createdDate = String(created).slice(0, 10);
+        return (leadDate || createdDate).slice(0, 7);
+    }
+    function selectedReportingMonth() {
+        const el = document.getElementById('liveMonthFilter');
+        if (el && !el.value) el.value = currentReportingMonth();
+        return el ? (el.value || currentReportingMonth()) : currentReportingMonth();
+    }
+
     function renderMetrics() {
-        const scopedLeads = getLeadScopedList();
+        const selectedMonth = selectedReportingMonth();
+        const scopedLeads = getLeadScopedList().filter(l => reportingMonthOfLead(l) === selectedMonth);
         const u = getCurrentSessionUser();
         const isAdmin = (u && u.role === 'superadmin' && !inspectingTenantId);
         ['adminMetricOverdue','adminMetricDueToday','adminMetricNoFollowup','adminMetricDocsPending'].forEach(id => { const card = document.getElementById(id); if (card) card.style.display = isAdmin ? 'none' : ''; });
@@ -1703,7 +1754,7 @@
             const amt = Number(String(l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             if (isOpen(l)) {
-                liveCount++; loginCount++; loginAmount += amt;
+                liveCount++;
                 const followKey = safeDateKey(l.followDate || l.followUpDate || '');
                 if (!followKey) noFollowUpCount++;
                 else {
@@ -1714,6 +1765,10 @@
                     }
                 }
                 if (String(l.status || '') === 'Documents Pending') docsPendingCount++;
+            }
+            if (['Login Done', 'Sanctioned', 'Disbursed'].includes(String(l.status || ''))) {
+                loginCount++;
+                loginAmount += amt;
             }
             if (l.status === 'Disbursed') {
                 disburseCount++; disbursedAmount += disAmt;
@@ -1726,7 +1781,7 @@
         setText('lbl-login-amount', isAdmin ? 'All Users Login Amt (₹)' : 'Total Login Amt (₹)');
         setText('lbl-disburse-leads', isAdmin ? 'All Users Disbursed (No)' : 'Disbursed (Closed)');
         setText('lbl-month-business', isAdmin ? 'All Users Disbursed Amt (₹)' : 'Total Disbursed (₹)');
-        setText('m-live-leads', liveCount); setText('badge-live-count', liveCount);
+        setText('m-live-leads', liveCount); setText('badge-live-count', liveCount); setText('m-total-leads', scopedLeads.length);
         setText('m-login-leads', loginCount); setText('m-login-amount', formatINR(loginAmount));
         setText('m-disburse-leads', disburseCount); setText('badge-disbursed-count', disburseCount);
         setText('m-month-business', formatINR(disbursedAmount));
@@ -1740,7 +1795,8 @@
         const mo = document.getElementById('liveMonthFilter');
         if (q) q.value = '';
         if (st) st.value = 'All';
-        if (mo) mo.value = '';
+        if (mo) mo.value = currentReportingMonth();
+        renderMetrics();
         renderViews();
     };
 
@@ -1836,7 +1892,7 @@
     function renderViews() {
         const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
         const statusFilter = document.getElementById('filterStatus').value;
-        const liveMonthVal = document.getElementById('liveMonthFilter') ? document.getElementById('liveMonthFilter').value : '';
+        const liveMonthVal = selectedReportingMonth();
 
         const scopedLeads = getLeadScopedList();
         const branchFilterEl = document.getElementById('dashboardBranchFilter');
@@ -1855,15 +1911,7 @@
         const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
-        if (liveMonthVal) {
-            liveLeads = liveLeads.filter(l => {
-                let dateStr = l.leadDate || '';
-                if (!dateStr && l.updatedAt && typeof l.updatedAt.toDate === 'function') {
-                    dateStr = l.updatedAt.toDate().toISOString().split('T')[0];
-                }
-                return dateStr.startsWith(liveMonthVal);
-            });
-        }
+        liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
 
         const filtered = liveLeads.filter(l => {
             const matchesQuery = (l.name || '').toLowerCase().includes(q) || 
@@ -1965,13 +2013,13 @@
         const selectedBranch = document.getElementById('dashboardBranchFilter')?.value || '';
         const query = (document.getElementById('searchQuery')?.value || '').trim().toLowerCase();
         const status = document.getElementById('filterStatus')?.value || 'All';
-        const month = document.getElementById('liveMonthFilter')?.value || '';
+        const month = selectedReportingMonth();
         const rows = getLeadScopedList().filter(l => {
             if (l.status === 'Disbursed') return false;
             const branchKey = String(l.branchId || l.branch || l.branchName || '').trim();
             if (selectedBranch && branchKey !== selectedBranch && String(l.branchName || '').trim() !== selectedBranch) return false;
             if (status !== 'All' && l.status !== status) return false;
-            if (month) { let date=String(l.leadDate || ''); if(!date && l.updatedAt && typeof l.updatedAt.toDate==='function') date=l.updatedAt.toDate().toISOString().slice(0,10); if(!date.startsWith(month)) return false; }
+            if (reportingMonthOfLead(l) !== month) return false;
             const hay=[l.name,l.mobile,l.dealerName,l.bankNbfc,l.city,l.vehRegNo,l.vehModel,l.doNo,l.applicationNo].join(' ').toLowerCase();
             return !query || hay.includes(query);
         });
@@ -3419,6 +3467,17 @@
         let disbursedLoan = Number(document.getElementById('disbursedAmount').value) || approvedLoan;
         let formCut = Number(document.getElementById('formDealerCut').value) || 0;
         let disbursedDateVal = document.getElementById('disbursedDate').value || (currentStatus === 'Disbursed' ? todayStr : '');
+        const priorForDateCheck = editDocId ? (leads.find(item => item.docId === editDocId) || {}) : {};
+        const priorDisbursedDate = String(priorForDateCheck.disbursedDate || '').slice(0, 10);
+        if (disbursedDateVal && disbursedDateVal < todayStr && disbursedDateVal !== priorDisbursedDate) {
+            alert('Past disbursement date select nahi kar sakte. Aaj ya future date select karein.');
+            return;
+        }
+        const selectedFollowDate = document.getElementById('followDate').value;
+        if (selectedFollowDate && selectedFollowDate < todayStr) {
+            alert('Past follow-up date select nahi kar sakte. Aaj ya future date select karein.');
+            return;
+        }
 
         const sessionUser = getCurrentSessionUser();
         let tenantIdTag = "heritage auto finance";
@@ -3640,6 +3699,11 @@
         const lastConv = document.getElementById('followupEditRemarks').value.trim();
         const saveBtn = document.getElementById('followupEditSaveBtn');
         const errorBox = document.getElementById('followupEditError');
+        if (followDate && followDate < todayStr) {
+            errorBox.textContent = 'Past follow-up date allowed nahi hai. Aaj ya future date select karein.';
+            errorBox.style.display = 'block';
+            return;
+        }
         const sessionUser = getCurrentSessionUser();
         if (!docId) return;
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
