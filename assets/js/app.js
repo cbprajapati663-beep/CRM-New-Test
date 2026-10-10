@@ -1822,19 +1822,42 @@
         const u = getCurrentSessionUser();
         let tenantLeads = [];
         if (inspectingTenantId) {
+            const inspected = String(inspectingTenantId).trim().toLowerCase();
+            const inspectedTenant = getStoredTenants().find(t =>
+                String(t.tenantId || '').trim().toLowerCase() === inspected ||
+                String(t.agencyName || '').trim().toLowerCase() === inspected
+            );
+            const aliases = new Set([
+                inspected,
+                String(inspectedTenant && inspectedTenant.tenantId || '').trim().toLowerCase(),
+                String(inspectedTenant && inspectedTenant.agencyName || '').trim().toLowerCase()
+            ].filter(Boolean));
+            const isHeritage = Array.from(aliases).some(value => value.includes('heritage'));
             tenantLeads = leads.filter(l => {
-                const c = String(l.tenantId || l.createdBy || '').toLowerCase();
-                return (c === inspectingTenantId.toLowerCase()) ||
-                       (inspectingTenantId.toLowerCase().includes('heritage') && (!c || c === 'admin'));
+                const ids = [l.tenantId, l.createdBy].map(value => String(value || '').trim().toLowerCase());
+                return ids.some(value => value && aliases.has(value)) ||
+                       (isHeritage && ids.some(value => !value || value === 'admin'));
             });
         } else if (u && u.role === 'superadmin') {
             tenantLeads = leads;
         } else if (u) {
-            const userTenant = String(u.tenantId || '').toLowerCase();
+            const userTenant = String(u.tenantId || '').trim().toLowerCase();
+            const userAgency = String(u.agencyName || '').trim().toLowerCase();
+            const tenantRecord = getStoredTenants().find(t =>
+                String(t.tenantId || '').trim().toLowerCase() === userTenant ||
+                String(t.agencyName || '').trim().toLowerCase() === userAgency
+            );
+            const aliases = new Set([
+                userTenant,
+                userAgency,
+                String(tenantRecord && tenantRecord.tenantId || '').trim().toLowerCase(),
+                String(tenantRecord && tenantRecord.agencyName || '').trim().toLowerCase()
+            ].filter(Boolean));
+            const isHeritage = Array.from(aliases).some(value => value.includes('heritage'));
             tenantLeads = leads.filter(l => {
-                const c = String(l.tenantId || l.createdBy || '').toLowerCase();
-                const isHeritage = userTenant.includes('heritage');
-                return c === userTenant || (isHeritage && (!c || c === 'admin'));
+                const ids = [l.tenantId, l.createdBy].map(value => String(value || '').trim().toLowerCase());
+                return ids.some(value => value && aliases.has(value)) ||
+                       (isHeritage && ids.some(value => !value || value === 'admin'));
             });
         }
         if (u && u.role === 'staff') {
