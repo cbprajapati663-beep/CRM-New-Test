@@ -4798,12 +4798,13 @@
     }
     function getManagementReportBaseRows(){
         const u=getCurrentSessionUser();
-        // Reports permission is intentionally broader than normal staff lead scope:
-        // a Viewer with Reports · View/Export can inspect the complete tenant report
-        // across all branches, while the rest of the CRM remains access-scoped.
-        if(u && u.role==='staff' && hasStaffLeadPermission('Reports · View/Export')){
-            // Match each legacy ownership field independently. Older records may
-            // have a non-empty tenantId but the correct tenant stored in createdBy.
+        // Viewers with Reports · View/Export may see the complete tenant report
+        // across branches. Managers and other staff remain within their normal
+        // branch/assignment scope so the reporting screen cannot widen access.
+        if(u && u.role==='staff' && getCurrentStaffRoleName(u)==='Viewer' &&
+           hasStaffLeadPermission('Reports · View/Export')){
+            // Match legacy ownership fields independently because older records
+            // may store tenant ownership in createdBy rather than tenantId.
             const normalize=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
             const tenantId=normalize(u.tenantId);
             const agencyName=normalize(u.agencyName);
