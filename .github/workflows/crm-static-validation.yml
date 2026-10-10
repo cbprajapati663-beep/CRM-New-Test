@@ -1,0 +1,60 @@
+name: CRM Static Validation
+
+on:
+  push:
+    branches: [main, "security/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate JavaScript syntax
+        run: node --check assets/js/app.js
+      - name: Validate CRM structure and PWA install UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path("index.html").read_text(encoding="utf-8")
+          css = Path("assets/css/styles.css").read_text(encoding="utf-8")
+          js = Path("assets/js/app.js").read_text(encoding="utf-8")
+          manifest = Path("manifest.json").read_text(encoding="utf-8")
+          sw = Path("sw.js").read_text(encoding="utf-8")
+
+          checks = {
+              "Install button exists in HTML": 'id="btnInstallApp"' in html,
+              "Install button calls installPWA": 'onclick="installPWA()"' in html,
+              "Install button is not hidden by its primary CSS rule": bool(re.search(r"\.btn-install\s*\{[^}]*display\s*:\s*(?:inline-flex|inline-block|block)", css, re.S)),
+              "Install handler exists": "window.installPWA = async function" in js,
+              "PWA manifest is linked": 'rel="manifest" href="manifest.json"' in html,
+              "Service worker registration exists": "navigator.serviceWorker.register('./sw.js'" in html,
+              "Service worker file exists": "self.addEventListener('fetch'" in sw,
+              "Manifest declares standalone display": '"display": "standalone"' in manifest,
+              "Pipeline navigation handler exists": "window.switchView = function(viewKey)" in js,
+              "CSV export handler exists": "window.exportToCSV = function()" in js,
+          }
+
+          for name, passed in checks.items():
+              print(f"{'PASS' if passed else 'FAIL'}: {name}")
+          if not all(checks.values()):
+              raise SystemExit(1)
+
+          ids = re.findall(r'\bid="([^"]+)"', html)
+          duplicates = sorted({item for item in ids if ids.count(item) > 1})
+          if duplicates:
+              print("WARN: duplicate HTML IDs:", ", ".join(duplicates))
+          else:
+              print("PASS: no duplicate static HTML IDs")
+          PY
