@@ -634,6 +634,8 @@
     };
 
     window.switchView = function(viewKey) {
+        window.showRejectedLeadsOnly = viewKey === 'rejected';
+        if (viewKey === 'rejected') viewKey = 'pipeline';
         const activeUser = getCurrentSessionUser();
         const adminDashboardView = ADMIN_OPERATIONAL_VIEW_IDS.includes('view-' + viewKey);
         if (adminDashboardView && activeUser && activeUser.role === 'superadmin' && !inspectingTenantId) {
@@ -655,7 +657,7 @@
         document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('active'));
         
         const targetBtn = document.getElementById(
-            viewKey === 'pipeline' ? 'tabPipeline' :
+            viewKey === 'pipeline' ? (window.showRejectedLeadsOnly ? 'tabRejected' : 'tabPipeline') :
             viewKey === 'disbursedhub' ? 'tabDisbursed' :
             viewKey === 'dealers' ? 'tabDealers' :
             viewKey === 'payoutdesk' ? 'tabSecretPayouts' :
@@ -1908,11 +1910,17 @@
             if (branchMap.has(selected)) branchFilterEl.value = selected;
         }
         const csvButton = document.getElementById('btnViewerBranchCsv'); if (csvButton) csvButton.style.display = showBranchTools ? '' : 'none';
-        let liveLeads = scopedLeads.filter(l => l.status !== 'Disbursed');
+        let liveLeads = scopedLeads.filter(l => {
+            if (window.showRejectedLeadsOnly) return l.status === 'Rejected';
+            return !['Disbursed', 'Rejected'].includes(String(l.status || ''));
+        });
         const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
+        const statusFilter = document.getElementById('filterStatus');
+        if (window.showRejectedLeadsOnly && statusFilter) statusFilter.value = 'Rejected';
+        else if (!window.showRejectedLeadsOnly && statusFilter && statusFilter.value === 'Rejected') statusFilter.value = 'All';
 
         const filtered = liveLeads.filter(l => {
             const matchesQuery = (l.name || '').toLowerCase().includes(q) || 
