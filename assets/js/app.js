@@ -4838,11 +4838,11 @@
         // Quote every field and neutralize spreadsheet formula prefixes in text values.
         const encodeCell = value => {
             let text = String(value ?? '');
-            if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text)) text = "'" + text;
+            if (typeof value !== 'number' && /^[\s]*[=+@\-]/.test(text)) text = "'" + text;
             return '"' + text.replace(/"/g, '""') + '"';
         };
-        const csv=rows.map(row=>row.map(encodeCell).join(',')).join('\\r\\n');
-        const blob=new Blob(['\\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
+        const csv=rows.map(row=>row.map(encodeCell).join(',')).join('\r\n');
+        const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
     }
     window.exportManagementReport=function(){
         if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
