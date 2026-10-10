@@ -47,6 +47,9 @@ jobs:
           assert.ok(js.includes("'Leads · View': ['Administrator','Manager','Branch Manager','Sales Executive','Viewer'].includes(role)"), 'Branch Manager default lead-view permission is missing');
           assert.ok(js.includes("'Leads · Create/Edit': ['Administrator','Manager','Branch Manager','Sales Executive'].includes(role)"), 'Branch Manager default lead-edit permission is missing');
           assert.ok(js.includes('if(leadTenantId) return leadTenantId===tenantId;'), 'Viewer reports must prioritize explicit tenant ownership');
+          assert.ok(js.includes("staffAccountsCollection.where('staffId','==',staff.id).limit(2).get()"), 'Staff edit lookup must support legacy account documents linked by staffId');
+          assert.ok(js.includes("String(account.staffId||'')!==String(managementEditingStaffId||'')"), 'Duplicate login check must not reject the current legacy staff account');
+          assert.ok(js.includes("if(!staffAccountRef)staffAccountRef=staffAccountsCollection.doc(staffId);"), 'Staff edits must update an existing linked account before creating a canonical document');
           assert.ok(js.includes("if(tenantKeys.has(leadCreatedBy)) return true;"), 'Viewer report legacy ownership check is missing');
           assert.ok(js.includes('const scoped = getLeadScopedList();'), 'Lead CSV export must use the signed-in user scope');
           const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
