@@ -3461,6 +3461,15 @@
         });
         tenantsReady = true;
         renderAdminMasterUserCards();
+
+        // The first permission pass can run before Firestore returns tenant plans.
+        // Re-apply plan visibility as soon as the tenant cache is ready, without
+        // requiring the user to refresh the page.
+        if (getCurrentSessionUser()) {
+            applyPlanFeatureGates();
+            renderMetrics();
+            renderViews();
+        }
     }, (error) => {
         console.error("Tenant sync error:", error);
     });
