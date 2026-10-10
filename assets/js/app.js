@@ -991,9 +991,13 @@
         return tenantAllowed.includes(featureKey);
     }
     function requireFeatureAccess(featureKey, featureLabel) {
+        // Do not show plan alerts on the login screen or after logout. A plan
+        // warning is only meaningful during an authenticated tenant session.
+        const user = getCurrentSessionUser();
+        if (!user) return false;
         if (isFeatureEnabled(featureKey)) return true;
         const tenant = resolveFeatureTenant();
-        const plan = String(tenant && tenant.subscriptionPlan || 'Starter');
+        const plan = String(tenant && tenant.subscriptionPlan || user.subscriptionPlan || 'Starter');
         alert('Aapka current plan ' + plan + ' hai. ' + (featureLabel || 'Ye feature') + ' is plan mein enabled nahi hai. Is feature ke liye subscription plan upgrade karein ya administrator se sampark karein.');
         return false;
     }
