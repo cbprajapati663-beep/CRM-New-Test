@@ -3906,8 +3906,9 @@
     };
 
     window.openFollowupEditModal = function(docId) {
-        const lead = leads.find(item => item.docId === docId);
-        if (!lead) { alert('Lead record nahi mili.'); return; }
+        if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko follow-up edit karne ki permission nahi hai.'); return; }
+        const lead = getLeadScopedList().find(item => item.docId === docId);
+        if (!lead) { alert('Ye lead aapke access mein nahi hai.'); return; }
         document.getElementById('followupEditDocId').value = docId;
         document.getElementById('followupEditCustomer').textContent = (lead.name || 'Customer') + (lead.mobile ? ' · ' + lead.mobile : '');
         document.getElementById('followupEditDate').value = lead.followDate || '';
@@ -3934,6 +3935,16 @@
         }
         const sessionUser = getCurrentSessionUser();
         if (!docId) return;
+        if (!hasStaffLeadPermission('Leads · Create/Edit')) {
+            errorBox.textContent = 'Aapko follow-up edit karne ki permission nahi hai.';
+            errorBox.style.display = 'block';
+            return;
+        }
+        if (!getLeadScopedList().some(item => item.docId === docId)) {
+            errorBox.textContent = 'Ye lead aapke access mein nahi hai.';
+            errorBox.style.display = 'block';
+            return;
+        }
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
         errorBox.style.display = 'none';
         try {
