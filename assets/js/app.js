@@ -1686,8 +1686,32 @@
         return tenantLeads;
     }
 
+    // Monthly reporting: a lead belongs to the month it was last created/edited.
+    // Editing an older lead therefore brings it into the month of that edit.
+    function currentReportingMonth() {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+    function reportingMonthOfLead(lead) {
+        const updated = lead && lead.updatedAt;
+        let updatedDate = '';
+        if (updated && typeof updated.toDate === 'function') updatedDate = updated.toDate().toISOString().slice(0, 10);
+        else if (updated) updatedDate = String(updated).slice(0, 10);
+        const created = lead && lead.createdAt;
+        let createdDate = '';
+        if (created && typeof created.toDate === 'function') createdDate = created.toDate().toISOString().slice(0, 10);
+        else if (created) createdDate = String(created).slice(0, 10);
+        return (updatedDate || String(lead && lead.leadDate || '').slice(0, 10) || createdDate).slice(0, 7);
+    }
+    function selectedReportingMonth() {
+        const el = document.getElementById('liveMonthFilter');
+        if (el && !el.value) el.value = currentReportingMonth();
+        return el ? (el.value || currentReportingMonth()) : currentReportingMonth();
+    }
+
     function renderMetrics() {
-        const scopedLeads = getLeadScopedList();
+        const selectedMonth = selectedReportingMonth();
+        const scopedLeads = getLeadScopedList().filter(l => reportingMonthOfLead(l) === selectedMonth);
         const u = getCurrentSessionUser();
         const isAdmin = (u && u.role === 'superadmin' && !inspectingTenantId);
         ['adminMetricOverdue','adminMetricDueToday','adminMetricNoFollowup','adminMetricDocsPending'].forEach(id => { const card = document.getElementById(id); if (card) card.style.display = isAdmin ? 'none' : ''; });
@@ -1740,7 +1764,7 @@
         const mo = document.getElementById('liveMonthFilter');
         if (q) q.value = '';
         if (st) st.value = 'All';
-        if (mo) mo.value = '';
+        if (mo) mo.value = currentReportingMonth();
         renderViews();
     };
 
@@ -1836,7 +1860,7 @@
     function renderViews() {
         const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
         const statusFilter = document.getElementById('filterStatus').value;
-        const liveMonthVal = document.getElementById('liveMonthFilter') ? document.getElementById('liveMonthFilter').value : '';
+        const liveMonthVal = selectedReportingMonth();
 
         const scopedLeads = getLeadScopedList();
         const branchFilterEl = document.getElementById('dashboardBranchFilter');
@@ -1855,15 +1879,7 @@
         const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
-        if (liveMonthVal) {
-            liveLeads = liveLeads.filter(l => {
-                let dateStr = l.leadDate || '';
-                if (!dateStr && l.updatedAt && typeof l.updatedAt.toDate === 'function') {
-                    dateStr = l.updatedAt.toDate().toISOString().split('T')[0];
-                }
-                return dateStr.startsWith(liveMonthVal);
-            });
-        }
+        liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
 
         const filtered = liveLeads.filter(l => {
             const matchesQuery = (l.name || '').toLowerCase().includes(q) || 
@@ -1965,13 +1981,13 @@
         const selectedBranch = document.getElementById('dashboardBranchFilter')?.value || '';
         const query = (document.getElementById('searchQuery')?.value || '').trim().toLowerCase();
         const status = document.getElementById('filterStatus')?.value || 'All';
-        const month = document.getElementById('liveMonthFilter')?.value || '';
+        const month = selectedReportingMonth();
         const rows = getLeadScopedList().filter(l => {
             if (l.status === 'Disbursed') return false;
             const branchKey = String(l.branchId || l.branch || l.branchName || '').trim();
             if (selectedBranch && branchKey !== selectedBranch && String(l.branchName || '').trim() !== selectedBranch) return false;
             if (status !== 'All' && l.status !== status) return false;
-            if (month) { let date=String(l.leadDate || ''); if(!date && l.updatedAt && typeof l.updatedAt.toDate==='function') date=l.updatedAt.toDate().toISOString().slice(0,10); if(!date.startsWith(month)) return false; }
+            if (reportingMonthOfLead(l) !== month) return false;
             const hay=[l.name,l.mobile,l.dealerName,l.bankNbfc,l.city,l.vehRegNo,l.vehModel,l.doNo,l.applicationNo].join(' ').toLowerCase();
             return !query || hay.includes(query);
         });
