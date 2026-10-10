@@ -1393,11 +1393,11 @@
    <button type="button" class="btn-quick" onclick="closeManagementHub()" aria-label="Close management hub">✕</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));gap:10px;margin-bottom:16px;">
-   <button type="button" class="btn-action" data-management-module="staff" onclick="showManagementModule('staff')" style="background:#075985;color:#e0f2fe;padding:14px;text-align:left;">👥 Staff Accounts <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
-   <button type="button" class="btn-action" data-management-module="branches" onclick="showManagementModule('branches')" style="background:#065f46;color:#d1fae5;padding:14px;text-align:left;">🏢 Branches <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
-   <button type="button" class="btn-action" data-management-module="leads" onclick="showManagementModule('leads')" style="background:#92400e;color:#fef3c7;padding:14px;text-align:left;">📋 Lead Management <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
-   <button type="button" class="btn-action" data-management-module="reports" onclick="showManagementModule('reports')" style="background:#5b21b6;color:#ede9fe;padding:14px;text-align:left;">📊 Reports <small style="display:block;margin-top:5px;">Basic + Advanced Reports</small></button>
-   <button type="button" class="btn-action" data-management-module="permissions" onclick="showManagementModule('permissions')" style="background:#9f1239;color:#ffe4e6;padding:14px;text-align:left;">🔐 User Permissions <small style="display:block;margin-top:5px;">Standard Roles + Detailed Access</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="staff" onclick="showManagementModule('staff')" style="background:#075985;color:#e0f2fe;padding:14px;text-align:left;">👥 Staff Accounts <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="branches" onclick="showManagementModule('branches')" style="background:#065f46;color:#d1fae5;padding:14px;text-align:left;">🏢 Branches <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="leads" onclick="showManagementModule('leads')" style="background:#92400e;color:#fef3c7;padding:14px;text-align:left;">📋 Lead Management <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="reports" onclick="showManagementModule('reports')" style="background:#5b21b6;color:#ede9fe;padding:14px;text-align:left;">📊 Reports <small style="display:block;margin-top:5px;">Basic + Advanced Reports</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="permissions" onclick="showManagementModule('permissions')" style="background:#9f1239;color:#ffe4e6;padding:14px;text-align:left;">🔐 User Permissions <small style="display:block;margin-top:5px;">Standard Roles + Detailed Access</small></button>
   </div>
   <!-- Staff editor opens inline for create and in a modal for edit. -->
 <div id="managementPanelStaff" role="region" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #38bdf8;">
@@ -1476,6 +1476,34 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* Management Hub module controls must remain clickable above nested panels. */
+#managementHubModal { pointer-events: auto; }
+#managementHubModal .management-module-tab {
+  position: relative;
+  z-index: 1001005;
+  pointer-events: auto;
+  cursor: pointer;
+}
+</style>
+<script>
+/* Route module clicks in capture phase, but preserve app-level access checks. */
+(function () {
+  document.addEventListener('click', function (event) {
+    var button = event.target && event.target.closest
+      ? event.target.closest('#managementHubModal .management-module-tab')
+      : null;
+    if (!button) return;
+    var module = button.getAttribute('data-management-module');
+    if (!module || typeof window.showManagementModule !== 'function') return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    window.showManagementModule(module);
+  }, true);
+})();
+</script>
+
 <script src="assets/js/app.js?v=nav-report-rerender-20261010-22"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
