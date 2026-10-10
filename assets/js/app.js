@@ -4910,3 +4910,47 @@
             checkCurrentTenantExpiry();
         }
     }, 60000);
+
+
+// Progressive Web App install action. Keep the button functional even when the
+// browser does not expose an install prompt (e.g. unsupported browser/context).
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function (event) {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    const button = document.getElementById('btnInstallApp');
+    if (button) {
+        button.disabled = false;
+        button.title = 'Install Heritage Auto Finance CRM';
+    }
+});
+window.addEventListener('appinstalled', function () {
+    deferredInstallPrompt = null;
+    const button = document.getElementById('btnInstallApp');
+    if (button) {
+        button.textContent = '✓ App Installed';
+        button.disabled = true;
+        button.title = 'Heritage CRM is installed on this device';
+    }
+});
+window.installPWA = async function () {
+    const button = document.getElementById('btnInstallApp');
+    if (deferredInstallPrompt) {
+        const promptEvent = deferredInstallPrompt;
+        deferredInstallPrompt = null;
+        try {
+            await promptEvent.prompt();
+            const choice = await promptEvent.userChoice;
+            if (button) button.textContent = choice && choice.outcome === 'accepted' ? '✓ App Installed' : '📲 Install App';
+        } catch (error) {
+            console.error('PWA install prompt failed:', error);
+            alert('App install prompt open nahi hua. Browser menu se Install App / Add to Home Screen try karein.');
+        }
+        return;
+    }
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+        alert('Heritage CRM is already installed on this device.');
+        return;
+    }
+    alert('Install prompt abhi available nahi hai. Chrome ke menu (⋮) mein “Install app” ya “Add to Home screen” option check karein. Agar option nahi dikhe, page reload karke HTTPS connection check karein.');
+};
