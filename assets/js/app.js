@@ -1727,7 +1727,7 @@
             const amt = Number(String(l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             if (isOpen(l)) {
-                liveCount++; loginCount++; loginAmount += amt;
+                liveCount++;
                 const followKey = safeDateKey(l.followDate || l.followUpDate || '');
                 if (!followKey) noFollowUpCount++;
                 else {
@@ -1738,6 +1738,10 @@
                     }
                 }
                 if (String(l.status || '') === 'Documents Pending') docsPendingCount++;
+            }
+            if (['Login Done', 'Sanctioned', 'Disbursed'].includes(String(l.status || ''))) {
+                loginCount++;
+                loginAmount += amt;
             }
             if (l.status === 'Disbursed') {
                 disburseCount++; disbursedAmount += disAmt;
@@ -1750,7 +1754,7 @@
         setText('lbl-login-amount', isAdmin ? 'All Users Login Amt (₹)' : 'Total Login Amt (₹)');
         setText('lbl-disburse-leads', isAdmin ? 'All Users Disbursed (No)' : 'Disbursed (Closed)');
         setText('lbl-month-business', isAdmin ? 'All Users Disbursed Amt (₹)' : 'Total Disbursed (₹)');
-        setText('m-live-leads', liveCount); setText('badge-live-count', liveCount);
+        setText('m-live-leads', liveCount); setText('badge-live-count', liveCount); setText('m-total-leads', scopedLeads.length);
         setText('m-login-leads', loginCount); setText('m-login-amount', formatINR(loginAmount));
         setText('m-disburse-leads', disburseCount); setText('badge-disbursed-count', disburseCount);
         setText('m-month-business', formatINR(disbursedAmount));
