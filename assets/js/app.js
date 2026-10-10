@@ -1052,6 +1052,8 @@
     }
 
     function applyPlanFeatureGates() {
+        const activeUser = getCurrentSessionUser();
+        const isMasterAdminDesk = !!(activeUser && activeUser.role === 'superadmin' && !inspectingTenantId);
         const mappings = {
             tabPipeline:'pipeline', 'view-pipeline':'pipeline',
             tabDisbursed:'disbursed', 'view-disbursedhub':'disbursed',
@@ -1089,7 +1091,9 @@
             const isView = Object.prototype.hasOwnProperty.call(viewTabIds, id);
             const tab = isView ? document.getElementById(viewTabIds[id]) : null;
             const isActiveView = !!(tab && tab.classList.contains('active'));
-            const visible = enabled && (!isView || isActiveView);
+            // The IT Master Admin desk is tenant-management only. Do not let
+            // plan-gate rendering reveal the tenant operational CRM underneath it.
+            const visible = !isMasterAdminDesk && enabled && (!isView || isActiveView);
             el.toggleAttribute('hidden', !visible);
             el.setAttribute('aria-hidden', visible ? 'false' : 'true');
             el.style.setProperty('display', visible ? (isView ? viewDisplayValues[id] : '') : 'none', 'important');
@@ -1110,7 +1114,7 @@
             ['[onclick*="openManagementHub"]', 'pipeline']
         ];
         selectorMappings.forEach(([selector, feature]) => {
-            const enabled = isFeatureEnabled(feature);
+            const enabled = !isMasterAdminDesk && isFeatureEnabled(feature);
             document.querySelectorAll(selector).forEach(el => {
                 el.toggleAttribute('hidden', !enabled);
                 el.setAttribute('aria-hidden', enabled ? 'false' : 'true');
@@ -1160,7 +1164,7 @@
             if (card) card.style.setProperty('display', isFeatureEnabled('disbursed') ? '' : 'none', 'important');
         });
         const exportBtn = document.getElementById('btnExportExcel');
-        if (exportBtn) exportBtn.style.setProperty('display', isFeatureEnabled('reports') ? '' : 'none', 'important');
+        if (exportBtn) exportBtn.style.setProperty('display', !isMasterAdminDesk && isFeatureEnabled('reports') ? '' : 'none', 'important');
     }
     window.handleSubscriptionPlanChange = function() {
         const plan = document.getElementById('t_subscriptionPlan').value;
