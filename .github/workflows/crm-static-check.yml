@@ -41,5 +41,7 @@ jobs:
           assert.ok(html.includes('assets/js/app.js?v=crm-audit-navigation-20261010-11'), 'app.js cache version not updated');
           assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
-          console.log('CRM static navigation checks passed.');
+          assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');
+          assert.match(js, /typeof value !== 'number'.*\[\^\\s\]\*\[=\+@\\-\]/s, 'CSV export formula sanitization is missing');
+          console.log('CRM static navigation and export checks passed.');
           NODE
