@@ -1757,8 +1757,8 @@
         if (role === 'Viewer' && permission === 'Reports · View/Export') return true;
         if (Array.isArray(matrix[role])) return matrix[role].includes(permission);
         const defaults = {
-            'Leads · View': ['Administrator','Manager','Sales Executive','Viewer'].includes(role),
-            'Leads · Create/Edit': ['Administrator','Manager','Sales Executive'].includes(role),
+            'Leads · View': ['Administrator','Manager','Branch Manager','Sales Executive','Viewer'].includes(role),
+            'Leads · Create/Edit': ['Administrator','Manager','Branch Manager','Sales Executive'].includes(role),
             'Leads · Delete': ['Administrator'].includes(role),
             'Staff · Manage': ['Administrator'].includes(role),
             'Branches · Manage': ['Administrator','Manager'].includes(role),
