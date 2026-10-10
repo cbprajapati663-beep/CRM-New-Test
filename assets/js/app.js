@@ -696,8 +696,15 @@
 
         // Re-render the selected module after every navigation event so it
         // uses the authenticated tenant scope and current reporting month.
-        if (viewKey === 'pipeline') { renderMetrics(); renderViews(); }
-        if (viewKey === 'disbursedhub') renderDisbursedHubTable();
+        if (viewKey === 'pipeline') {
+            renderMetrics();
+            renderViews();
+            syncReportingMonthSelectors('liveMonthFilter');
+        }
+        if (viewKey === 'disbursedhub') {
+            syncReportingMonthSelectors('liveMonthFilter');
+            renderDisbursedHubTable();
+        }
         if (viewKey === 'workflow') renderSmartWorkflow();
         if (viewKey === 'dealers') renderDealerLedgerTable();
         if (viewKey === 'payoutdesk') renderPayoutDeskTable();
@@ -1801,6 +1808,15 @@
         return el ? (el.value || currentReportingMonth()) : currentReportingMonth();
     }
 
+    // Keep month selectors across reporting tabs aligned unless a user explicitly
+    // picks a different month in that module.
+    function syncReportingMonthSelectors(sourceId) {
+        const selected = selectedReportingMonth();
+        const disbursedEl = document.getElementById('disbursedMonthFilter');
+        if (disbursedEl && sourceId !== 'disbursedMonthFilter') disbursedEl.value = selected;
+        return selected;
+    }
+
     function renderMetrics() {
         const selectedMonth = selectedReportingMonth();
         const scopedLeads = getLeadScopedList().filter(l => reportingMonthOfLead(l) === selectedMonth);
@@ -2155,8 +2171,9 @@
         const scopedLeads = getLeadScopedList();
         let disbursedLeads = scopedLeads.filter(l => l.status === 'Disbursed');
         const monthEl = document.getElementById('disbursedMonthFilter');
-        const monthVal = monthEl ? (monthEl.value || selectedReportingMonth()) : selectedReportingMonth();
-        if (monthEl && !monthEl.value) monthEl.value = monthVal;
+        const sharedMonth = selectedReportingMonth();
+        const monthVal = monthEl ? (monthEl.value || sharedMonth) : sharedMonth;
+        if (monthEl && !monthEl.value) monthEl.value = sharedMonth;
 
         if (monthVal) {
             disbursedLeads = disbursedLeads.filter(l =>
