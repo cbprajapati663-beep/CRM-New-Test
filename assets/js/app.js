@@ -634,6 +634,8 @@
     };
 
     window.switchView = function(viewKey) {
+        window.showRejectedLeadsOnly = viewKey === 'rejected';
+        if (viewKey === 'rejected') viewKey = 'pipeline';
         const activeUser = getCurrentSessionUser();
         const adminDashboardView = ADMIN_OPERATIONAL_VIEW_IDS.includes('view-' + viewKey);
         if (adminDashboardView && activeUser && activeUser.role === 'superadmin' && !inspectingTenantId) {
@@ -655,7 +657,7 @@
         document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('active'));
         
         const targetBtn = document.getElementById(
-            viewKey === 'pipeline' ? 'tabPipeline' :
+            viewKey === 'pipeline' ? (window.showRejectedLeadsOnly ? 'tabRejected' : 'tabPipeline') :
             viewKey === 'disbursedhub' ? 'tabDisbursed' :
             viewKey === 'dealers' ? 'tabDealers' :
             viewKey === 'payoutdesk' ? 'tabSecretPayouts' :
@@ -1060,35 +1062,39 @@
             tabWorkflow:'smartWorkflow', 'view-workflow':'smartWorkflow'
         };
         const viewTabIds = {
-            'view-pipeline': 'tabPipeline',
-            'view-disbursedhub': 'tabDisbursed',
-            'view-dealers': 'tabDealers',
-            'view-payoutdesk': 'tabSecretPayouts',
-            'view-followups': 'tabFollowups',
-            'view-datahealth': 'tabDataHealth',
-            'view-workflow': 'tabWorkflow'
+            'view-pipeline':'tabPipeline',
+            'view-disbursedhub':'tabDisbursed',
+            'view-dealers':'tabDealers',
+            'view-payoutdesk':'tabSecretPayouts',
+            'view-followups':'tabFollowups',
+            'view-datahealth':'tabDataHealth',
+            'view-workflow':'tabWorkflow'
         };
         const viewDisplayValues = {
-            'view-pipeline': 'grid',
-            'view-disbursedhub': 'block',
-            'view-dealers': 'block',
-            'view-payoutdesk': 'block',
-            'view-followups': 'block',
-            'view-datahealth': 'block',
-            'view-workflow': 'block'
+            'view-pipeline':'grid',
+            'view-disbursedhub':'block',
+            'view-dealers':'block',
+            'view-payoutdesk':'block',
+            'view-followups':'block',
+            'view-datahealth':'block',
+            'view-workflow':'block'
         };
+
+        // Hide unavailable modules completely. Do not leave a clickable tab/button
+        // that produces a "plan not enabled" alert for the tenant.
         Object.entries(mappings).forEach(([id, feature]) => {
             const el = document.getElementById(id);
             if (!el) return;
             const enabled = isFeatureEnabled(feature);
-            if (viewTabIds[id]) {
-                const activeTab = document.getElementById(viewTabIds[id]);
-                const isActiveView = !!(activeTab && activeTab.classList.contains('active'));
-                el.style.display = enabled && isActiveView ? viewDisplayValues[id] : 'none';
-            } else {
-                el.style.display = enabled ? '' : 'none';
-            }
+            const isView = Object.prototype.hasOwnProperty.call(viewTabIds, id);
+            const tab = isView ? document.getElementById(viewTabIds[id]) : null;
+            const isActiveView = !!(tab && tab.classList.contains('active'));
+            const visible = enabled && (!isView || isActiveView);
+            el.toggleAttribute('hidden', !visible);
+            el.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            el.style.setProperty('display', visible ? (isView ? viewDisplayValues[id] : '') : 'none', 'important');
         });
+
         const selectorMappings = [
             ['#colAddLeadForm', 'pipeline'],
             ['#clientPipelineTablePanel', 'pipeline'],
@@ -1100,33 +1106,61 @@
             ['[onclick*="openDealerStatementModal"]', 'reports'],
             ['[onclick*="downloadCRMBackup"]', 'backupExport'],
             ['[onclick*="exportToCSV"]', 'reports'],
-            ['[onclick*="exportFollowupsCSV"]', 'followups']
+            ['[onclick*="exportFollowupsCSV"]', 'followups'],
+            ['[onclick*="openManagementHub"]', 'pipeline']
         ];
         selectorMappings.forEach(([selector, feature]) => {
+            const enabled = isFeatureEnabled(feature);
             document.querySelectorAll(selector).forEach(el => {
-                el.style.display = isFeatureEnabled(feature) ? '' : 'none';
+                el.toggleAttribute('hidden', !enabled);
+                el.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+                el.style.setProperty('display', enabled ? '' : 'none', 'important');
             });
         });
-        // Reports are a paid module and must be gated in both the hub navigation
-        // and the report panel itself (not only the CSV buttons).
-        const reportsEnabled = isFeatureEnabled('reports');
-        document.querySelectorAll('[data-management-module="reports"]').forEach(el => {
-            el.style.display = reportsEnabled ? '' : 'none';
-            el.setAttribute('aria-hidden', reportsEnabled ? 'false' : 'true');
+
+        // Plan-specific controls in Management & Reports.
+        const moduleFeatureMap = {
+            staff:'pipeline', branches:'pipeline', leads:'pipeline',
+            reports:'reports', permissions:'pipeline'
+        };
+        document.querySelectorAll('[data-management-module]').forEach(el => {
+            const key = el.getAttribute('data-management-module');
+            const enabled = isFeatureEnabled(moduleFeatureMap[key] || 'pipeline');
+            el.toggleAttribute('hidden', !enabled);
+            el.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+            el.style.setProperty('display', enabled ? '' : 'none', 'important');
         });
+        const reportsEnabled = isFeatureEnabled('reports');
         const reportsPanel = document.getElementById('managementPanelReports');
         if (reportsPanel && !reportsEnabled) {
-            reportsPanel.style.display = 'none';
+            reportsPanel.style.setProperty('display', 'none', 'important');
+            reportsPanel.setAttribute('hidden', '');
             reportsPanel.setAttribute('aria-hidden', 'true');
         }
-        // Disbursement dashboard totals are part of the Disbursed feature.
+
+        // Calculator, documents and backup containers may be opened by more than
+        // one button, so hide their entry points consistently for the active plan.
+        const extraFeatureSelectors = [
+            ['#documentTrackerModal, #documentTrackerModal button', 'documents'],
+            ['#emiCalculatorModal, #emiCalculatorModal button', 'emiCalculator'],
+            ['#affordabilityCalculatorModal, #affordabilityCalculatorModal button', 'affordability'],
+            ['#dealerStatementModal, #dealerStatementModal button', 'reports']
+        ];
+        extraFeatureSelectors.forEach(([selector, feature]) => {
+            if (isFeatureEnabled(feature)) return;
+            document.querySelectorAll(selector).forEach(el => {
+                el.style.setProperty('display', 'none', 'important');
+                el.setAttribute('aria-hidden', 'true');
+            });
+        });
+
         ['lbl-disburse-leads', 'lbl-month-business'].forEach(id => {
             const label = document.getElementById(id);
             const card = label && label.closest('.metric-card');
-            if (card) card.style.display = isFeatureEnabled('disbursed') ? '' : 'none';
+            if (card) card.style.setProperty('display', isFeatureEnabled('disbursed') ? '' : 'none', 'important');
         });
         const exportBtn = document.getElementById('btnExportExcel');
-        if (exportBtn) exportBtn.style.display = isFeatureEnabled('reports') ? '' : 'none';
+        if (exportBtn) exportBtn.style.setProperty('display', isFeatureEnabled('reports') ? '' : 'none', 'important');
     }
     window.handleSubscriptionPlanChange = function() {
         const plan = document.getElementById('t_subscriptionPlan').value;
@@ -1720,9 +1754,10 @@
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     }
     function reportingMonthOfLead(lead) {
-        // Lead reporting month is anchored to its original lead date.
-        // Editing remarks, status, or a future follow-up must not move the lead
-        // into another month's lead list or change the Total Leads count.
+        // activeReportingMonth is the operational month; leadDate remains the
+        // immutable original acquisition date for historical/audit purposes.
+        const activeMonth = String(lead && lead.activeReportingMonth || '').slice(0, 7);
+        if (activeMonth) return activeMonth;
         const leadDate = String(lead && lead.leadDate || '').slice(0, 10);
         const created = lead && lead.createdAt;
         let createdDate = '';
@@ -1891,7 +1926,8 @@
 
     function renderViews() {
         const q = (document.getElementById('searchQuery').value || '').trim().toLowerCase();
-        const statusFilter = document.getElementById('filterStatus').value;
+        const statusFilterEl = document.getElementById('filterStatus');
+        let statusFilter = statusFilterEl ? statusFilterEl.value : 'All';
         const liveMonthVal = selectedReportingMonth();
 
         const scopedLeads = getLeadScopedList();
@@ -1907,11 +1943,21 @@
             if (branchMap.has(selected)) branchFilterEl.value = selected;
         }
         const csvButton = document.getElementById('btnViewerBranchCsv'); if (csvButton) csvButton.style.display = showBranchTools ? '' : 'none';
-        let liveLeads = scopedLeads.filter(l => l.status !== 'Disbursed');
+        let liveLeads = scopedLeads.filter(l => {
+            if (window.showRejectedLeadsOnly) return l.status === 'Rejected';
+            return !['Disbursed', 'Rejected'].includes(String(l.status || ''));
+        });
         const selectedBranch = branchFilterEl ? branchFilterEl.value : '';
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
+        if (window.showRejectedLeadsOnly && statusFilterEl) {
+            statusFilterEl.value = 'Rejected';
+            statusFilter = 'Rejected';
+        } else if (!window.showRejectedLeadsOnly && statusFilterEl && statusFilterEl.value === 'Rejected') {
+            statusFilterEl.value = 'All';
+            statusFilter = 'All';
+        }
 
         const filtered = liveLeads.filter(l => {
             const matchesQuery = (l.name || '').toLowerCase().includes(q) || 
@@ -1968,6 +2014,10 @@
             const doButtonHtml = (l.status === 'Sanctioned' || l.status === 'Disbursed')
                 ? `<button class="btn-quick btn-do" onclick="generateDO('${escapeJsString(l.docId)}')" title="Print Delivery Order">📄 DO</button>`
                 : '';
+            const canForwardLead = !['Disbursed', 'Rejected', 'Not Interested', 'Cancelled'].includes(String(l.status || ''));
+            const forwardButtonHtml = canForwardLead
+                ? `<button class="btn-quick" style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);" onclick="forwardLeadToNextMonth('${escapeJsString(l.docId)}')" title="Move active pipeline to next month">➡️ Forward</button>`
+                : '';
 
             row.innerHTML = `
                 <td>
@@ -2000,12 +2050,55 @@
                             ${hasStaffLeadPermission('Leads · Delete') ? `<button class="btn-quick btn-del" onclick="deleteLead('${escapeJsString(l.docId)}')">🗑️</button>` : ''}
                         </div>
                         ${doButtonHtml}
+                        ${forwardButtonHtml}
                     </div>
                 </td>
             `;
             tbody.appendChild(row);
         });
     }
+
+    window.forwardLeadToNextMonth = async function(docId) {
+        const lead = getLeadScopedList().find(item => item.docId === docId);
+        if (!lead) { alert('Ye lead aapke access mein nahi hai.'); return; }
+        if (!hasStaffLeadPermission('Leads · Create/Edit')) { alert('Aapko lead forward karne ki permission nahi hai.'); return; }
+        if (['Disbursed', 'Rejected', 'Not Interested', 'Cancelled'].includes(String(lead.status || ''))) {
+            alert('Disbursed ya closed lead ko forward nahi kar sakte.');
+            return;
+        }
+        const fromMonth = reportingMonthOfLead(lead) || currentReportingMonth();
+        const parts = fromMonth.split('-').map(Number);
+        const nextDate = new Date(parts[0], parts[1], 1);
+        const toMonth = nextDate.getFullYear() + '-' + String(nextDate.getMonth() + 1).padStart(2, '0');
+        const reason = prompt('Forward karne ka reason likhein (Bank Delay / Customer Delay / Disbursement Pending / Other):', 'Disbursement Pending');
+        if (reason === null) return;
+        const cleanReason = reason.trim();
+        if (!cleanReason) { alert('Forward reason zaroori hai.'); return; }
+        const confirmText = (lead.name || 'Is lead') + ' ko ' + fromMonth + ' se ' + toMonth + ' mein forward karein?\n\nLead original date aur history safe rahegi.';
+        if (!confirm(confirmText)) return;
+        const user = getCurrentSessionUser() || {};
+        const forwardEvent = {
+            fromMonth: fromMonth,
+            toMonth: toMonth,
+            reason: cleanReason,
+            forwardedAt: new Date().toISOString(),
+            forwardedBy: user.displayName || user.name || user.email || user.uid || 'Unknown'
+        };
+        try {
+            await leadsCollection.doc(docId).update({
+                activeReportingMonth: toMonth,
+                forwardHistory: firebase.firestore.FieldValue.arrayUnion(forwardEvent),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await logLeadActivity(docId, 'month_forwarded', { fromMonth: fromMonth, toMonth: toMonth, reason: cleanReason });
+            alert('Lead ' + toMonth + ' mein forward ho gayi.');
+            renderMetrics();
+            renderViews();
+        } catch (error) {
+            console.error('Forward lead failed:', error);
+            alert('Lead forward nahi ho saki. Connection aur permissions check karein.');
+        }
+    };
 
     window.exportViewerBranchCSV = function() {
         const user = getCurrentSessionUser();
