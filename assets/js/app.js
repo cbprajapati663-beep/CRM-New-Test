@@ -1821,6 +1821,23 @@
     function getLeadScopedList() {
         const u = getCurrentSessionUser();
         let tenantLeads = [];
+        // Resolve ownership using one authoritative field. A matching legacy
+        // createdBy/agency value must never override a conflicting explicit tenantId.
+        const belongsToTenant = (lead, aliases, isHeritage) => {
+            const normalize = value => String(value || '').trim().toLowerCase().replace(/\\s+/g, ' ');
+            const leadTenantId = normalize(lead.tenantId);
+            const leadCreatedBy = normalize(lead.createdBy);
+            const leadAgency = normalize(lead.agencyName);
+            const leadTenantName = normalize(lead.tenantName);
+            if (leadTenantId) return aliases.has(leadTenantId);
+            if (leadCreatedBy) {
+                if (aliases.has(leadCreatedBy)) return true;
+                return isHeritage && (leadCreatedBy === 'admin' || leadCreatedBy === 'system');
+            }
+            const legacyOwner = leadAgency || leadTenantName;
+            if (legacyOwner) return aliases.has(legacyOwner);
+            return isHeritage;
+        };
         if (inspectingTenantId) {
             const inspected = String(inspectingTenantId).trim().toLowerCase();
             const inspectedTenant = getStoredTenants().find(t =>
@@ -1833,11 +1850,7 @@
                 String(inspectedTenant && inspectedTenant.agencyName || '').trim().toLowerCase()
             ].filter(Boolean));
             const isHeritage = Array.from(aliases).some(value => value.includes('heritage'));
-            tenantLeads = leads.filter(l => {
-                const ids = [l.tenantId, l.createdBy].map(value => String(value || '').trim().toLowerCase());
-                return ids.some(value => value && aliases.has(value)) ||
-                       (isHeritage && ids.some(value => !value || value === 'admin'));
-            });
+            tenantLeads = leads.filter(l => belongsToTenant(l, aliases, isHeritage));
         } else if (u && u.role === 'superadmin') {
             tenantLeads = leads;
         } else if (u) {
@@ -1854,11 +1867,7 @@
                 String(tenantRecord && tenantRecord.agencyName || '').trim().toLowerCase()
             ].filter(Boolean));
             const isHeritage = Array.from(aliases).some(value => value.includes('heritage'));
-            tenantLeads = leads.filter(l => {
-                const ids = [l.tenantId, l.createdBy].map(value => String(value || '').trim().toLowerCase());
-                return ids.some(value => value && aliases.has(value)) ||
-                       (isHeritage && ids.some(value => !value || value === 'admin'));
-            });
+            tenantLeads = leads.filter(l => belongsToTenant(l, aliases, isHeritage));
         }
         if (u && u.role === 'staff') {
             if (!hasStaffLeadPermission('Leads · View')) return [];
