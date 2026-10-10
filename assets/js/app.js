@@ -3564,6 +3564,22 @@
         document.body.removeChild(link);
     };
 
+    // The header Export Excel button must export only the signed-in user's allowed lead scope.
+    // Do not route this button to exportAllClientsToCSV, which is intended for master-level exports.
+    window.exportToCSV = function() {
+        if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
+        const scoped = getLeadScopedList();
+        const headers = ['Customer Name','Mobile Number','City','Vehicle Registration','Vehicle Model','Vehicle Type','Dealer / Partner','Lead Date','Requested Loan','Approved Loan','Disbursed Loan','Bank / NBFC','Status','Branch','Assigned Staff','Follow-up Date','Remarks'];
+        const rows = scoped.map(l => [
+            l.name || '', l.mobile || '', l.city || '', l.vehRegNo || '', l.vehModel || '',
+            l.vehType || '', l.dealerName || 'Direct Customer', l.leadDate || '',
+            l.loanAmount || 0, l.approvedAmount || l.loanAmount || 0, l.disbursedAmount || 0,
+            l.bankNbfc || '', l.status || '', l.branchName || l.branchId || '',
+            l.assignedStaffName || '', l.followDate || l.followUpDate || '', l.lastConv || ''
+        ]);
+        downloadManagementCsv('heritage-crm-leads-' + todayStr + '.csv', [headers, ...rows]);
+    };
+
     tenantsCollection.onSnapshot((snapshot) => {
         tenantsCache = [];
         snapshot.forEach(doc => {
@@ -4819,8 +4835,14 @@
         box.innerHTML=total?'<table style="width:100%;border-collapse:collapse;min-width:720px;"><thead><tr>'+['Customer','Mobile','Status','Loan Amount','Assigned Staff','Branch','Follow-up'].map(x=>'<th align="left" style="padding:8px;border-bottom:1px solid var(--card-border);">'+x+'</th>').join('')+'</tr></thead><tbody>'+managementReportRows.slice(0,250).map(l=>'<tr>'+[l.name||'',l.mobile||'',l.status||'',formatINR(Number(l.loanAmount)||0),l.assignedStaffName||'',l.branchName||'',l.followDate||l.followUpDate||''].map(x=>'<td style="padding:8px;border-bottom:1px solid var(--card-border);">'+managementEscape(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'+(total>250?'<p>First 250 records shown; CSV mein all filtered records honge.</p>':''):'<p style="color:var(--text-muted);">Filter ke liye koi record nahi mila.</p>';
     };
     function downloadManagementCsv(filename,rows){
-        const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
-        const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
+        // Quote every field and neutralize spreadsheet formula prefixes in text values.
+        const encodeCell = value => {
+            let text = String(value ?? '');
+            if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text)) text = "'" + text;
+            return '"' + text.replace(/"/g, '""') + '"';
+        };
+        const csv=rows.map(row=>row.map(encodeCell).join(',')).join('\\r\\n');
+        const blob=new Blob(['\\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
     }
     window.exportManagementReport=function(){
         if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
