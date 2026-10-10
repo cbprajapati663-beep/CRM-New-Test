@@ -1918,7 +1918,6 @@
         if (selectedBranch) liveLeads = liveLeads.filter(l => String(l.branchId || l.branch || l.branchName || '').trim() === selectedBranch || String(l.branchName || '').trim() === selectedBranch);
 
         liveLeads = liveLeads.filter(l => reportingMonthOfLead(l) === liveMonthVal);
-        const statusFilter = document.getElementById('filterStatus');
         if (window.showRejectedLeadsOnly && statusFilter) statusFilter.value = 'Rejected';
         else if (!window.showRejectedLeadsOnly && statusFilter && statusFilter.value === 'Rejected') statusFilter.value = 'All';
 
