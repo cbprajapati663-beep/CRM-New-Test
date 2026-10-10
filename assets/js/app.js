@@ -3696,13 +3696,13 @@
         const docId = document.getElementById('followupEditDocId').value;
         const followDate = document.getElementById('followupEditDate').value;
         const lastConv = document.getElementById('followupEditRemarks').value.trim();
+        const saveBtn = document.getElementById('followupEditSaveBtn');
+        const errorBox = document.getElementById('followupEditError');
         if (followDate && followDate < todayStr) {
             errorBox.textContent = 'Past follow-up date allowed nahi hai. Aaj ya future date select karein.';
             errorBox.style.display = 'block';
             return;
         }
-        const saveBtn = document.getElementById('followupEditSaveBtn');
-        const errorBox = document.getElementById('followupEditError');
         const sessionUser = getCurrentSessionUser();
         if (!docId) return;
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
