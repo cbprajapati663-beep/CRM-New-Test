@@ -998,7 +998,7 @@
     const PLAN_FEATURES = {
         Starter: ['pipeline', 'followups', 'documents'],
         Professional: ['pipeline', 'disbursed', 'dealerLedger', 'followups', 'documents', 'emiCalculator', 'affordability', 'reports'],
-        Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport'],
+        Business: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports'],
         Enterprise: ['pipeline', 'disbursed', 'dealerLedger', 'payoutDesk', 'followups', 'dataHealth', 'smartWorkflow', 'documents', 'emiCalculator', 'affordability', 'reports', 'backupExport']
     };
     const FEATURE_CATALOG = [
@@ -2283,6 +2283,7 @@
     window.exportViewerBranchCSV = function() {
         const user = getCurrentSessionUser();
         if (!user || user.role !== 'staff' || getCurrentStaffRoleName(user) !== 'Viewer') { alert('CSV export is available for Viewer dashboard only.'); return; }
+        if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
         const selectedBranch = document.getElementById('dashboardBranchFilter')?.value || '';
         const query = (document.getElementById('searchQuery')?.value || '').trim().toLowerCase();
         const status = document.getElementById('filterStatus')?.value || 'All';
