@@ -92,6 +92,8 @@ jobs:
           assert.ok(js.includes("Master Admin password is not configured. Secure recovery is unavailable in this browser-only build; contact the system owner to restore access safely."), 'Unconfigured master admin password must fail closed with a clear message');
           assert.ok(js.includes('if (pass === configuredAdminPassword) {'), 'Master admin login must compare against an explicitly configured password');
           assert.ok(js.includes("Master Admin self-service password reset is disabled because browser-only recovery is not secure."), 'Master admin reset must fail closed without server-side verification');
+          assert.ok(!js.includes("localStorage.setItem('haf_master_admin_pass', newPass)"), 'Master admin reset must not persist a new password from an unverified browser-only reset flow');
+          assert.ok(js.includes("if (role === 'admin') {") && js.includes('contact the system owner to restore access safely.'), 'Admin recovery failure must provide the safe owner-controlled recovery path');
           assert.ok(!js.includes("phone === '7600211085'") && !js.includes("phone === '917600211085'"), 'Master admin reset must not trust a public hardcoded phone number');
           assert.ok(!js.includes('password: "123"') && !js.includes("password: '123'"), 'Default tenant must not be auto-provisioned with a public password');
           assert.ok(js.includes('Refusing to create an account with a public default password'), 'Missing default tenant must fail closed and require secure provisioning');
