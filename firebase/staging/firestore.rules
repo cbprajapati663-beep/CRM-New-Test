@@ -16,7 +16,7 @@ service cloud.firestore {
     function canReadLead(data) {
       return sameTenant(data.tenantId) && (
         isOwner()
-        || (membership().role in ['manager', 'viewer'] && branchAllowed(data.branchId))
+        || (membership().role in ['manager', 'branchManager', 'viewer'] && branchAllowed(data.branchId))
         || (membership().role == 'sales' &&
             (data.createdByUserId == request.auth.uid || data.assignedStaffId == request.auth.uid))
       );
@@ -25,7 +25,7 @@ service cloud.firestore {
       return sameTenant(data.tenantId)
         && data.createdByUserId == request.auth.uid
         && branchAllowed(data.branchId)
-        && membership().role in ['owner', 'manager', 'sales'];
+        && membership().role in ['owner', 'manager', 'branchManager', 'sales'];
     }
     function canUpdateLead(before, after) {
       return canReadLead(before)
@@ -33,7 +33,7 @@ service cloud.firestore {
         && after.tenantId == before.tenantId
         && after.createdByUserId == before.createdByUserId
         && (isOwner()
-             || (membership().role == 'manager' && branchAllowed(after.branchId))
+             || (membership().role in ['manager', 'branchManager'] && branchAllowed(after.branchId))
              || (membership().role == 'sales'
                  && (before.createdByUserId == request.auth.uid || before.assignedStaffId == request.auth.uid)
                  && after.branchId == before.branchId));
