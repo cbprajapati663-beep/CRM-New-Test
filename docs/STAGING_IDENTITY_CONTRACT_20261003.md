@@ -19,6 +19,10 @@ The browser must never establish these values from localStorage, URL parameters,
 
 These are logical test labels only. Do not create them in production.
 
+## Role scope note
+
+The staging authorization rules recognize `branchManager` as a branch-scoped lead role: it may read/create/update leads only in `branchIds`. It must not gain tenant-wide access. The `viewer` role is read-only and must be rejected by trusted lead-creation callables as well as Firestore rules.
+
 ## Authorization invariants
 1. request.auth.uid is the only authenticated identity accepted by rules.
 2. Tenant membership must resolve from a trusted, client-unmodifiable mapping.

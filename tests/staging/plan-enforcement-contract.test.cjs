@@ -44,7 +44,7 @@ test('trusted plan functions enforce role and branch boundaries', () => {
   assert.match(source, /createPlanEnforcedLead[\s\S]*?loadMembership/);
   assert.match(source, /Owner role required for branch creation/);
   assert.match(source, /Manager or owner role required for staff creation/);
-  assert.match(source, /\['owner', 'manager', 'sales', 'viewer'\]\.includes\(m\.role\)/);
+  assert.match(source, /\['owner', 'manager', 'branchManager', 'sales', 'viewer'\]\.includes\(m\.role\)/);
   assert.match(source, /branchAllowedForMembership/);
   assert.match(source, /Lead branch is outside the caller membership/);
 });

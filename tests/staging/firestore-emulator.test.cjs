@@ -26,6 +26,7 @@ async function seed() {
     const db = ctx.firestore();
     await db.doc('memberships/owner-a').set({tenantId:'tenant-a',role:'owner',status:'Active',tenantStatus:'Active',branchIds:['branch-a1','branch-a2']});
     await db.doc('memberships/manager-a').set({tenantId:'tenant-a',role:'manager',status:'Active',tenantStatus:'Active',branchIds:['branch-a1']});
+    await db.doc('memberships/branch-manager-a').set({tenantId:'tenant-a',role:'branchManager',status:'Active',tenantStatus:'Active',branchIds:['branch-a1']});
     await db.doc('memberships/viewer-a').set({tenantId:'tenant-a',role:'viewer',status:'Active',tenantStatus:'Active',branchIds:['branch-a1']});
     await db.doc('memberships/sales-a').set({tenantId:'tenant-a',role:'sales',status:'Active',tenantStatus:'Active',branchIds:['branch-a1']});
     await db.doc('memberships/owner-b').set({tenantId:'tenant-b',role:'owner',status:'Active',tenantStatus:'Active',branchIds:['branch-b1']});
@@ -53,6 +54,21 @@ test('manager and viewer are branch scoped and cross-tenant denied', async () =>
   await assertFails(viewer.doc('leads/lead-a2').get());
   await assertFails(manager.doc('leads/lead-b').get());
   await assertFails(viewer.doc('leads/lead-b').get());
+});
+
+test('Branch Manager is branch-scoped and Viewer cannot create leads', async () => {
+  await seed();
+  const branchManager=(await env).authenticatedContext('branch-manager-a').firestore();
+  const viewer=(await env).authenticatedContext('viewer-a').firestore();
+  await assertSucceeds(branchManager.doc('leads/branch-manager-created').set({
+    tenantId:'tenant-a', branchId:'branch-a1', createdByUserId:'branch-manager-a', assignedStaffId:'branch-manager-a'
+  }));
+  await assertFails(branchManager.doc('leads/branch-manager-forbidden-branch').set({
+    tenantId:'tenant-a', branchId:'branch-a2', createdByUserId:'branch-manager-a', assignedStaffId:'branch-manager-a'
+  }));
+  await assertFails(viewer.doc('leads/viewer-created').set({
+    tenantId:'tenant-a', branchId:'branch-a1', createdByUserId:'viewer-a', assignedStaffId:'viewer-a'
+  }));
 });
 
 test('manager cannot move a lead into an unauthorized branch', async () => {

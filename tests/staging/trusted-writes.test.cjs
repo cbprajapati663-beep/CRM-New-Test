@@ -18,6 +18,12 @@ test('trusted staging write adapter is staging-only and callable-backed',()=>{
   assert.doesNotMatch(p,/localStorage/);
 });
 
+test('trusted lead creation rejects Viewer and accepts only scoped creator roles',()=> {
+  const source=fs.readFileSync('functions/index.js','utf8');
+  assert.match(source,/\!\['owner', 'manager', 'branchManager', 'sales', 'viewer'\]\.includes\(m\.role\)/);
+  assert.match(source,/\!\['owner', 'manager', 'branchManager', 'sales'\]\.includes\(m\.role\)\) throw new HttpsError\('permission-denied', 'Role cannot create leads\.'\)/);
+});
+
 test('staging Auth bridge exposes trusted current membership only',()=>{
   const p=fs.readFileSync('assets/js/staging/auth-session.js','utf8');
   assert.match(p,/getCurrentMembership/);
