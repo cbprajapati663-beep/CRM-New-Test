@@ -253,7 +253,7 @@
     }
 
     function getAdminPassword() {
-        return localStorage.getItem('haf_master_admin_pass') || 'admin123';
+        return localStorage.getItem('haf_master_admin_pass') || '';
     }
 
     function getCurrentSessionUser() {
@@ -356,7 +356,16 @@
             }
 
             try {
-                if (pass === getAdminPassword()) {
+                const configuredAdminPassword = getAdminPassword();
+            if (!configuredAdminPassword) {
+                if (loginError) {
+                    loginError.textContent = 'Master Admin password is not configured in this browser. Use the password reset flow before logging in.';
+                    loginError.style.display = 'block';
+                }
+                return;
+            }
+
+            if (pass === configuredAdminPassword) {
                     if (loginError) loginError.style.display = 'none';
                     const overlay = document.getElementById('authOverlay');
                     if (overlay) overlay.style.display = 'none';
