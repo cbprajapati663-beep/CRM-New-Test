@@ -89,7 +89,9 @@ jobs:
           assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
           assert.ok(js.includes("return localStorage.getItem('haf_master_admin_pass') || '';"), 'Master admin password must not use a public default fallback');
           assert.ok(!js.includes("return localStorage.getItem('haf_master_admin_pass') || 'admin123';"), 'Public default admin password must not be present');
-          assert.ok(js.includes("Master Admin password is not configured in this browser. Use the password reset flow before logging in."), 'Unconfigured master admin password must fail closed with a clear message');
+          assert.ok(js.includes("Master Admin password is not configured. Secure recovery is unavailable in this browser-only build; contact the system owner to restore access safely."), 'Unconfigured master admin password must fail closed with a clear message');
           assert.ok(js.includes('if (pass === configuredAdminPassword) {'), 'Master admin login must compare against an explicitly configured password');
+          assert.ok(js.includes("Master Admin self-service password reset is disabled because browser-only recovery is not secure."), 'Master admin reset must fail closed without server-side verification');
+          assert.ok(!js.includes("phone === '7600211085'") && !js.includes("phone === '917600211085'"), 'Master admin reset must not trust a public hardcoded phone number');
           console.log('CRM static navigation, export, and master-password checks passed.');
           NODE
