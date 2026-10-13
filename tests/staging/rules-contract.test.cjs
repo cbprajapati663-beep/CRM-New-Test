@@ -14,6 +14,12 @@ test('staging Firestore rules are default-deny and membership-backed', () => {
   assert.match(firestore, /membership\(\)\.status == 'Active'/);
   assert.match(firestore, /membership\(\)\.tenantStatus == 'Active'/);
 });
+test('Branch Manager is branch-scoped and Viewer is not allowed to create leads', () => {
+  assert.match(firestore, /membership\(\)\.role in \['manager', 'branchManager', 'viewer'\]/);
+  assert.match(firestore, /membership\(\)\.role in \['owner', 'manager', 'branchManager', 'sales'\]/);
+  assert.match(firestore, /membership\(\)\.role in \['manager', 'branchManager'\]/);
+});
+
 test('credential and payout collections are client-denied', () => {
   assert.match(firestore, /match \/tenants\/\{tenantId\} \{ allow read, write: if false; \}/);
   assert.match(firestore, /match \/staffAccounts\/\{staffId\} \{ allow read, write: if false; \}/);
