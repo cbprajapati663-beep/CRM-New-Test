@@ -57,6 +57,15 @@ jobs:
           assert.ok(js.includes("if (!hasStaffLeadPermission('Leads · Delete')) { alert('Aapko lead delete karne ki permission nahi hai.'); return; }"), 'Lead delete handler must enforce the delete permission');
           assert.ok(js.includes("const lead = getLeadScopedList().find(item => item.docId === docId);"), 'Lead mutations must resolve targets from the signed-in user scope');
           assert.ok(js.includes("if (editDocId && !getLeadScopedList().some(item => item.docId === editDocId))"), 'Lead edit submit must reject out-of-scope leads');
+          const assignmentStart = js.indexOf('window.saveManagementLeadAssignment = async function ()');
+          const assignmentEnd = js.indexOf('function managementDateKey', assignmentStart);
+          assert.ok(assignmentStart >= 0 && assignmentEnd > assignmentStart, 'Lead assignment handler boundaries are missing');
+          const assignmentHandler = js.slice(assignmentStart, assignmentEnd);
+          assert.ok(assignmentHandler.includes("if (!actor || actor.role === 'staff')"), 'Staff must not change lead assignments');
+          assert.ok(assignmentHandler.includes('getLeadScopedList().find(item => item.docId === id)'), 'Lead assignment must resolve the target from the signed-in user scope');
+          assert.ok(assignmentHandler.includes('if (staffId && !staff)'), 'Lead assignment must reject staff IDs outside the active tenant');
+          assert.ok(assignmentHandler.includes('if (branchId && !branch)'), 'Lead assignment must reject branch IDs outside the active tenant');
+          assert.ok(assignmentHandler.includes('assignmentUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()'), 'Lead assignment must record its update timestamp');
           assert.ok(js.includes('const leadTenantId=normalize(l.tenantId);'), 'Viewer reports must normalize explicit tenant ownership first');
           assert.ok(js.includes('if(leadTenantId) return leadTenantId===tenantId;'), 'Explicit tenant ownership must precede legacy creator aliases');
           assert.ok(js.includes('function rerenderActiveModule(viewKey)'), 'Active CRM modules must re-render after tab navigation');
