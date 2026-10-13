@@ -48,6 +48,13 @@ jobs:
           assert.ok(viewerCsvStart >= 0 && viewerCsvEnd > viewerCsvStart, 'Viewer branch CSV handler boundaries are missing');
           const viewerCsvHandler = js.slice(viewerCsvStart, viewerCsvEnd);
           assert.ok(viewerCsvHandler.includes("if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;"), 'Viewer branch CSV export must enforce the reports plan entitlement');
+          assert.ok(viewerCsvHandler.includes('const rows = getLeadScopedList().filter(l => {'), 'Viewer branch CSV must start from the signed-in user scoped leads');
+          assert.ok(viewerCsvHandler.includes("if (l.status === 'Disbursed') return false;"), 'Viewer branch CSV must exclude disbursed files');
+          assert.ok(viewerCsvHandler.includes("if (selectedBranch && branchKey !== selectedBranch && String(l.branchName || '').trim() !== selectedBranch) return false;"), 'Viewer branch CSV must respect the selected branch');
+          assert.ok(viewerCsvHandler.includes("if (status !== 'All' && l.status !== status) return false;"), 'Viewer branch CSV must respect the selected status');
+          assert.ok(viewerCsvHandler.includes('if (reportingMonthOfLead(l) !== month) return false;'), 'Viewer branch CSV must respect the selected reporting month');
+          assert.ok(viewerCsvHandler.includes('return !query || hay.includes(query);'), 'Viewer branch CSV must respect the search query');
+          assert.ok(viewerCsvHandler.includes("if (/^[\\t\\r ]*[=+\\-@]/.test(s)) s=\"'\"+s;"), 'Viewer branch CSV must sanitize spreadsheet formula prefixes');
           assert.ok(js.includes('window.installPWA = async function ()'), 'Install App button handler is missing');
           assert.ok(js.includes("'Leads · View': ['Administrator','Manager','Branch Manager','Sales Executive','Viewer'].includes(role)"), 'Branch Manager default lead-view permission is missing');
           assert.ok(js.includes("'Leads · Create/Edit': ['Administrator','Manager','Branch Manager','Sales Executive'].includes(role)"), 'Branch Manager default lead-edit permission is missing');
