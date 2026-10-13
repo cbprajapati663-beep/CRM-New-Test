@@ -43,6 +43,14 @@ jobs:
           assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
           assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');
+          const planStart = js.indexOf('Starter: [');
+          const planEnd = js.indexOf('const FEATURE_CATALOG', planStart);
+          assert.ok(planStart >= 0 && planEnd > planStart, 'Subscription plan matrix boundaries are missing');
+          const planBlock = js.slice(planStart, planEnd);
+          const businessPlan = planBlock.match(/Business:\s*\[([^\]]*)\]/);
+          const enterprisePlan = planBlock.match(/Enterprise:\s*\[([^\]]*)\]/);
+          assert.ok(businessPlan && !businessPlan[1].includes("'backupExport'"), 'Business plan must not include backupExport');
+          assert.ok(enterprisePlan && enterprisePlan[1].includes("'backupExport'"), 'Enterprise plan must retain backupExport');
           const viewerCsvStart = js.indexOf('window.exportViewerBranchCSV = function()');
           const viewerCsvEnd = js.indexOf('\n    };', viewerCsvStart);
           assert.ok(viewerCsvStart >= 0 && viewerCsvEnd > viewerCsvStart, 'Viewer branch CSV handler boundaries are missing');
