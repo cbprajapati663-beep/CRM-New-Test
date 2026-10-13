@@ -230,20 +230,12 @@
             const existingIds = new Set();
             snapshot.forEach(doc => existingIds.add((doc.data().tenantId || doc.id).toLowerCase()));
 
-            const defaultTenant = {
-                tenantId: "heritage auto finance",
-                agencyName: "Heritage Auto Finance (Chirag Prajapati)",
-                headOffice: "Mehsana, Gujarat",
-                contactPhone: "+91 7600211085",
-                role: "client",
-                password: "123",
-                rentAmount: 3500,
-                expiryDate: "2029-12-31",
-                status: "Active"
-            };
-
-            if (!existingIds.has(defaultTenant.tenantId)) {
-                await tenantsCollection.doc(defaultTenant.tenantId).set(defaultTenant);
+            // Do not auto-provision a tenant with a public, hardcoded password.
+            // Existing tenant records are preserved; a missing default tenant must be
+            // created through a verified owner-controlled provisioning process.
+            const defaultTenantId = "heritage auto finance";
+            if (!existingIds.has(defaultTenantId)) {
+                console.warn("Default tenant is not provisioned. Refusing to create an account with a public default password; secure owner-controlled setup is required.");
             }
             await loadTenantsFromFirestore();
         } catch (error) {
@@ -253,7 +245,7 @@
     }
 
     function getAdminPassword() {
-        return localStorage.getItem('haf_master_admin_pass') || 'admin123';
+        return localStorage.getItem('haf_master_admin_pass') || '';
     }
 
     function getCurrentSessionUser() {
@@ -356,7 +348,16 @@
             }
 
             try {
-                if (pass === getAdminPassword()) {
+                const configuredAdminPassword = getAdminPassword();
+            if (!configuredAdminPassword) {
+                if (loginError) {
+                    loginError.textContent = 'Master Admin password is not configured. Secure recovery is unavailable in this browser-only build; contact the system owner to restore access safely.';
+                    loginError.style.display = 'block';
+                }
+                return;
+            }
+
+            if (pass === configuredAdminPassword) {
                     if (loginError) loginError.style.display = 'none';
                     const overlay = document.getElementById('authOverlay');
                     if (overlay) overlay.style.display = 'none';
@@ -1706,14 +1707,10 @@
         resetError.textContent = 'Verification failed. Please check the registered phone number.';
 
         if (role === 'admin') {
-            // Admin reset keeps the existing master verification number.
-            if (phone === '7600211085' || phone === '917600211085') {
-                localStorage.setItem('haf_master_admin_pass', newPass);
-                alert("✓ IT Admin Master Password successfully reset ho gaya!");
-                closeResetPasswordModal();
-            } else {
-                resetError.style.display = 'block';
-            }
+            // A public phone number in browser JavaScript is not a secure recovery factor.
+            // Fail closed until Master Admin recovery is implemented with server-side identity verification.
+            resetError.textContent = 'Master Admin self-service password reset is disabled because browser-only recovery is not secure. Contact the system owner to restore access safely.';
+            resetError.style.display = 'block';
             return;
         }
 
