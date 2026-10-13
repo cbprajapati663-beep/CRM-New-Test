@@ -87,5 +87,9 @@ jobs:
           assert.deepEqual(missingHandlers, [], 'Inline event handlers missing from app.js: ' + missingHandlers.join(', '));
           assert.ok(manifest.icons.some(icon => icon.src === 'assets/icons/heritage-app-icon.svg'), 'PWA app icon is missing from manifest');
           assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
-          console.log('CRM static navigation and export checks passed.');
+          assert.ok(js.includes("return localStorage.getItem('haf_master_admin_pass') || '';"), 'Master admin password must not use a public default fallback');
+          assert.ok(!js.includes("return localStorage.getItem('haf_master_admin_pass') || 'admin123';"), 'Public default admin password must not be present');
+          assert.ok(js.includes("Master Admin password is not configured in this browser. Use the password reset flow before logging in."), 'Unconfigured master admin password must fail closed with a clear message');
+          assert.ok(js.includes('if (pass === configuredAdminPassword) {'), 'Master admin login must compare against an explicitly configured password');
+          console.log('CRM static navigation, export, and master-password checks passed.');
           NODE
