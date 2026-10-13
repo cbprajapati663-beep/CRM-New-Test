@@ -5074,6 +5074,14 @@
         const note=document.getElementById('mhPermissionNote');if(note)note.textContent='Role policy config load ho gaya. Role checks app/server security ke saath enforce karna abhi zaroori hai.';
     }
     window.saveManagementPermissions=async function(){
+        // Defense in depth: report-enabled staff can open the read-only Reports view,
+        // but must not save tenant-wide role policy from a direct handler call.
+        // Firestore Security Rules must independently enforce this on the server.
+        const activeUser = getCurrentSessionUser();
+        if (!activeUser || activeUser.role === 'staff') {
+            managementNotice('Sirf tenant administrator ya IT Master Admin role permissions save kar sakta hai.', true);
+            return;
+        }
         const ref=managementTenantRef();if(!ref){managementNotice('Tenant select nahi hua.',true);return;}
         const matrix={};managementRoleNames.forEach(role=>matrix[role]=[]);
         document.querySelectorAll('#mhPermissionBody input[type="checkbox"]').forEach(el=>{if(el.checked)matrix[el.dataset.mhRole].push(el.dataset.mhModule);});

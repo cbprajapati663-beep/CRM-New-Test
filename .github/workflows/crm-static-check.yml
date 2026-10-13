@@ -87,5 +87,14 @@ jobs:
           assert.deepEqual(missingHandlers, [], 'Inline event handlers missing from app.js: ' + missingHandlers.join(', '));
           assert.ok(manifest.icons.some(icon => icon.src === 'assets/icons/heritage-app-icon.svg'), 'PWA app icon is missing from manifest');
           assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
+          const savePermissionsStart = js.indexOf('window.saveManagementPermissions=async function(){');
+          const savePermissionsEnd = js.indexOf('window.openManagementHub', savePermissionsStart);
+          assert.ok(savePermissionsStart >= 0 && savePermissionsEnd > savePermissionsStart, 'Management permission save handler boundaries are missing');
+          const savePermissionsHandler = js.slice(savePermissionsStart, savePermissionsEnd);
+          assert.ok(savePermissionsHandler.includes("if (!activeUser || activeUser.role === 'staff')"), 'Staff sessions must not save tenant-wide role permissions');
+          const permissionGuardIndex = savePermissionsHandler.indexOf("if (!activeUser || activeUser.role === 'staff')");
+          const tenantRefIndex = savePermissionsHandler.indexOf('const ref=managementTenantRef()');
+          assert.ok(permissionGuardIndex >= 0 && tenantRefIndex > permissionGuardIndex, 'Permission guard must run before resolving or writing tenant permission data');
+          assert.ok(savePermissionsHandler.includes('Firestore Security Rules must independently enforce this on the server.'), 'Client-side permission guard must document server-side enforcement requirement');
           console.log('CRM static navigation and export checks passed.');
           NODE
