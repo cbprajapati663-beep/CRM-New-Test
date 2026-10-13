@@ -43,6 +43,11 @@ jobs:
           assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
           assert.ok(js.includes('window.exportToCSV = function()'), 'Export button handler is missing');
+          const viewerCsvStart = js.indexOf('window.exportViewerBranchCSV = function()');
+          const viewerCsvEnd = js.indexOf('\n    };', viewerCsvStart);
+          assert.ok(viewerCsvStart >= 0 && viewerCsvEnd > viewerCsvStart, 'Viewer branch CSV handler boundaries are missing');
+          const viewerCsvHandler = js.slice(viewerCsvStart, viewerCsvEnd);
+          assert.ok(viewerCsvHandler.includes("if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;"), 'Viewer branch CSV export must enforce the reports plan entitlement');
           assert.ok(js.includes('window.installPWA = async function ()'), 'Install App button handler is missing');
           assert.ok(js.includes("'Leads · View': ['Administrator','Manager','Branch Manager','Sales Executive','Viewer'].includes(role)"), 'Branch Manager default lead-view permission is missing');
           assert.ok(js.includes("'Leads · Create/Edit': ['Administrator','Manager','Branch Manager','Sales Executive'].includes(role)"), 'Branch Manager default lead-edit permission is missing');
