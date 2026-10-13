@@ -47,7 +47,7 @@ jobs:
           assert.ok(enterprisePlan, 'Enterprise plan entitlement list is missing');
           assert.doesNotMatch(businessPlan[1], /['"]backupExport['"]/, 'Backup Export must not be enabled for Business');
           assert.match(enterprisePlan[1], /['"]backupExport['"]/, 'Backup Export must remain enabled for Enterprise');
-          assert.match(js, /window\\.downloadCRMBackup = function\\(\\)\\s*\\{\\s*if \\(!isFeatureEnabled\\('backupExport'\\)\\)/, 'Backup download must check Enterprise plan entitlement before exporting');
+          assert.match(js, /window\.downloadCRMBackup = function\(\)\s*\{\s*if \(!isFeatureEnabled\('backupExport'\)\)/, 'Backup download must check Enterprise plan entitlement before exporting');
           assert.ok(js.includes('const scoped = getLeadScopedList();'), "Backup must use the signed-in user's scoped leads");
           assert.ok(js.includes('leads: scoped'), 'Backup payload must contain only the scoped lead list');
           assert.ok(js.includes('return Array.isArray(defaults[permission]) && defaults[permission].includes(role);'), 'Default staff permissions must be restricted to the current role');
