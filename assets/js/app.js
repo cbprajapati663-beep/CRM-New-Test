@@ -359,7 +359,7 @@
                 const configuredAdminPassword = getAdminPassword();
             if (!configuredAdminPassword) {
                 if (loginError) {
-                    loginError.textContent = 'Master Admin password is not configured in this browser. Use the password reset flow before logging in.';
+                    loginError.textContent = 'Master Admin password is not configured. Secure recovery is unavailable in this browser-only build; contact the system owner to restore access safely.';
                     loginError.style.display = 'block';
                 }
                 return;
@@ -1715,14 +1715,10 @@
         resetError.textContent = 'Verification failed. Please check the registered phone number.';
 
         if (role === 'admin') {
-            // Admin reset keeps the existing master verification number.
-            if (phone === '7600211085' || phone === '917600211085') {
-                localStorage.setItem('haf_master_admin_pass', newPass);
-                alert("✓ IT Admin Master Password successfully reset ho gaya!");
-                closeResetPasswordModal();
-            } else {
-                resetError.style.display = 'block';
-            }
+            // A public phone number in browser JavaScript is not a secure recovery factor.
+            // Fail closed until Master Admin recovery is implemented with server-side identity verification.
+            resetError.textContent = 'Master Admin self-service password reset is disabled because browser-only recovery is not secure. Contact the system owner to restore access safely.';
+            resetError.style.display = 'block';
             return;
         }
 
