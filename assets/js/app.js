@@ -230,20 +230,12 @@
             const existingIds = new Set();
             snapshot.forEach(doc => existingIds.add((doc.data().tenantId || doc.id).toLowerCase()));
 
-            const defaultTenant = {
-                tenantId: "heritage auto finance",
-                agencyName: "Heritage Auto Finance (Chirag Prajapati)",
-                headOffice: "Mehsana, Gujarat",
-                contactPhone: "+91 7600211085",
-                role: "client",
-                password: "123",
-                rentAmount: 3500,
-                expiryDate: "2029-12-31",
-                status: "Active"
-            };
-
-            if (!existingIds.has(defaultTenant.tenantId)) {
-                await tenantsCollection.doc(defaultTenant.tenantId).set(defaultTenant);
+            // Do not auto-provision a tenant with a public, hardcoded password.
+            // Existing tenant records are preserved; a missing default tenant must be
+            // created through a verified owner-controlled provisioning process.
+            const defaultTenantId = "heritage auto finance";
+            if (!existingIds.has(defaultTenantId)) {
+                console.warn("Default tenant is not provisioned. Refusing to create an account with a public default password; secure owner-controlled setup is required.");
             }
             await loadTenantsFromFirestore();
         } catch (error) {
