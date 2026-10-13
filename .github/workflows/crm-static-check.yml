@@ -39,6 +39,14 @@ jobs:
             assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Missing HTML element: ' + id);
           }
           assert.match(html, /assets\/js\/app\.js\?v=[^"'\s]+/, 'app.js cache-busting version is missing');
+          const planFeaturesMatch = js.match(/const PLAN_FEATURES = \\{([\\s\\S]*?)\\n    \\};/);
+          assert.ok(planFeaturesMatch, 'Plan feature matrix is missing');
+          const businessPlan = planFeaturesMatch[1].match(/Business:\\s*\\[([^\\]]*)\\]/);
+          const enterprisePlan = planFeaturesMatch[1].match(/Enterprise:\\s*\\[([^\\]]*)\\]/);
+          assert.ok(businessPlan, 'Business plan entitlement list is missing');
+          assert.ok(enterprisePlan, 'Enterprise plan entitlement list is missing');
+          assert.doesNotMatch(businessPlan[1], /['"]backupExport['"]/, 'Backup Export must not be enabled for Business');
+          assert.match(enterprisePlan[1], /['"]backupExport['"]/, 'Backup Export must remain enabled for Enterprise');
           assert.ok(js.includes('return Array.isArray(defaults[permission]) && defaults[permission].includes(role);'), 'Default staff permissions must be restricted to the current role');
           assert.ok(js.includes("id === 'view-pipeline' && !!document.getElementById('tabRejected')?.classList.contains('active')"), 'Pipeline visibility does not account for Rejected tab');
           assert.match(js, /Pipeline render skipped: #leadsTableBody is not present in the DOM/);
