@@ -16,7 +16,7 @@ async function loadMembership(uid) {
   if (!snap.exists) throw new HttpsError('permission-denied', 'Active membership required.');
   const m = snap.data() || {};
   if (m.status !== 'Active' || m.tenantStatus !== 'Active') throw new HttpsError('permission-denied', 'Inactive membership or tenant.');
-  if (!m.tenantId || !['owner', 'manager', 'sales', 'viewer'].includes(m.role)) throw new HttpsError('permission-denied', 'Unsupported membership role.');
+  if (!m.tenantId || !['owner', 'manager', 'branchManager', 'sales', 'viewer'].includes(m.role)) throw new HttpsError('permission-denied', 'Unsupported membership role.');
   return m;
 }
 async function loadTenant(tenantId) {
@@ -60,6 +60,7 @@ exports.createPlanEnforcedLead = onCall(async request => {
     const uid = requireAuth(request), m = await loadMembership(uid), tenantId = m.tenantId, tenant = await loadTenant(tenantId);
     const input = request.data && typeof request.data === 'object' ? request.data : {};
     if (String(input.tenantId || '') !== tenantId) throw new HttpsError('permission-denied', 'Cross-tenant request denied.');
+    if (!['owner', 'manager', 'branchManager', 'sales'].includes(m.role)) throw new HttpsError('permission-denied', 'Role cannot create leads.');
     if (!branchAllowedForMembership(m, input.branchId)) throw new HttpsError('permission-denied', 'Lead branch is outside the caller membership.');
     const { tenantId: _tenantId, createdByUserId: _createdByUserId, createdAt: _createdAt, ...safeInput } = input;
     const ref = db.collection('leads').doc();
