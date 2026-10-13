@@ -2283,6 +2283,7 @@
     window.exportViewerBranchCSV = function() {
         const user = getCurrentSessionUser();
         if (!user || user.role !== 'staff' || getCurrentStaffRoleName(user) !== 'Viewer') { alert('CSV export is available for Viewer dashboard only.'); return; }
+        if (!requireFeatureAccess('reports', 'Reports & CSV Export')) return;
         const selectedBranch = document.getElementById('dashboardBranchFilter')?.value || '';
         const query = (document.getElementById('searchQuery')?.value || '').trim().toLowerCase();
         const status = document.getElementById('filterStatus')?.value || 'All';
