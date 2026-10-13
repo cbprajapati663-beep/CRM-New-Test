@@ -1762,7 +1762,9 @@
     }
     function hasStaffLeadPermission(permission) {
         const user = getCurrentSessionUser();
-        if (!user || user.role !== 'staff') return true;
+        // Fail closed before login; tenant/admin sessions keep their existing policy.
+        if (!user) return false;
+        if (user.role !== 'staff') return true;
         const tenantId = String(user.tenantId || '').toLowerCase();
         const tenant = tenantsCache.find(t => String(t.tenantId || '').toLowerCase() === tenantId) || {};
         const matrix = (user.rolePermissions && typeof user.rolePermissions === 'object')
@@ -1786,7 +1788,9 @@
     }
     function canStaffAccessLead(lead) {
         const user = getCurrentSessionUser();
-        if (!user || user.role !== 'staff') return true;
+        // A missing session must never be treated as a privileged/non-staff role.
+        if (!user) return false;
+        if (user.role !== 'staff') return true;
 
         const staffId = String(user.staffId || user.docId || '');
         const role = getCurrentStaffRoleName(user);

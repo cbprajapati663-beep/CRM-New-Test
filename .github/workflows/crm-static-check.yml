@@ -87,5 +87,7 @@ jobs:
           assert.deepEqual(missingHandlers, [], 'Inline event handlers missing from app.js: ' + missingHandlers.join(', '));
           assert.ok(manifest.icons.some(icon => icon.src === 'assets/icons/heritage-app-icon.svg'), 'PWA app icon is missing from manifest');
           assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
-          console.log('CRM static navigation and export checks passed.');
+          assert.ok(js.includes("function hasStaffLeadPermission(permission) {\n        const user = getCurrentSessionUser();\n        // Fail closed before login; tenant/admin sessions keep their existing policy.\n        if (!user) return false;\n        if (user.role !== 'staff') return true;"), 'Lead permissions must fail closed when no session exists');
+          assert.ok(js.includes("function canStaffAccessLead(lead) {\n        const user = getCurrentSessionUser();\n        // A missing session must never be treated as a privileged/non-staff role.\n        if (!user) return false;\n        if (user.role !== 'staff') return true;"), 'Lead access checks must fail closed when no session exists');
+          console.log('CRM static navigation, export, and unauthenticated permission checks passed.');
           NODE
