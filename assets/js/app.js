@@ -550,7 +550,16 @@
                         projectId: firebaseConfig.projectId,
                         authMode: currentAuthMode
                     });
-                    loginError.textContent = 'Login service error (' + firebaseCode + '). Firebase project: ' + firebaseConfig.projectId + '. Please share this code with support.';
+                    const normalizedCode = firebaseCode.toLowerCase();
+                    if (normalizedCode.includes('permission-denied')) {
+                        loginError.textContent = 'Firebase access denied (permission-denied). Check Firestore Security Rules and confirm they have not expired. Project: ' + firebaseConfig.projectId + '.';
+                    } else if (normalizedCode.includes('unavailable') || normalizedCode.includes('network')) {
+                        loginError.textContent = 'Firebase is temporarily unreachable. Check your connection and retry. Project: ' + firebaseConfig.projectId + '.';
+                    } else if (normalizedCode.includes('failed-precondition')) {
+                        loginError.textContent = 'Firebase query/configuration issue (failed-precondition). Check Firestore indexes and project configuration. Project: ' + firebaseConfig.projectId + '.';
+                    } else {
+                        loginError.textContent = 'Login service error (' + firebaseCode + '). Firebase project: ' + firebaseConfig.projectId + '. Please share this code with support.';
+                    }
                 }
                 loginError.style.display = 'block';
             }
