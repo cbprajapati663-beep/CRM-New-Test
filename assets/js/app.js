@@ -225,35 +225,18 @@
     }
 
     async function ensureDefaultTenantAndMigrateLocalData() {
+        // Never create a tenant with a public/default password during page startup.
+        // Preserve all existing records and only refresh the tenant cache.
         try {
-            const snapshot = await tenantsCollection.get();
-            const existingIds = new Set();
-            snapshot.forEach(doc => existingIds.add((doc.data().tenantId || doc.id).toLowerCase()));
-
-            const defaultTenant = {
-                tenantId: "heritage auto finance",
-                agencyName: "Heritage Auto Finance (Chirag Prajapati)",
-                headOffice: "Mehsana, Gujarat",
-                contactPhone: "+91 7600211085",
-                role: "client",
-                password: "123",
-                rentAmount: 3500,
-                expiryDate: "2029-12-31",
-                status: "Active"
-            };
-
-            if (!existingIds.has(defaultTenant.tenantId)) {
-                await tenantsCollection.doc(defaultTenant.tenantId).set(defaultTenant);
-            }
             await loadTenantsFromFirestore();
         } catch (error) {
             console.error("Tenant initialization error:", error);
-            await loadTenantsFromFirestore();
         }
     }
 
     function getAdminPassword() {
-        return localStorage.getItem('haf_master_admin_pass') || 'admin123';
+        // A master password must be explicitly configured by the owner on this browser.
+        return localStorage.getItem('haf_master_admin_pass') || '';
     }
 
     function getCurrentSessionUser() {
@@ -410,10 +393,28 @@
                 .limit(1)
                 .get();
 
+            // Older tenant records may use the tenant ID as the Firestore document ID
+            // without storing a tenantId field. Check that legacy shape without creating
+            // a new account or weakening the password check.
+            let matched = null;
+            let matchedDocRef = null;
             if (!snapshot.empty) {
-                const doc = snapshot.docs[0];
-                const matched = { docId: doc.id, ...doc.data() };
+                const tenantDoc = snapshot.docs[0];
+                matched = { docId: tenantDoc.id, ...tenantDoc.data() };
+                matchedDocRef = tenantDoc.ref;
+            } else {
+                const legacyDoc = await tenantsCollection.doc(uid).get();
+                if (legacyDoc.exists) {
+                    const candidate = { docId: legacyDoc.id, ...legacyDoc.data() };
+                    const canonicalId = String(candidate.tenantId || legacyDoc.id).trim().toLowerCase();
+                    if (canonicalId === uid) {
+                        matched = candidate;
+                        matchedDocRef = legacyDoc.ref;
+                    }
+                }
+            }
 
+            if (matched) {
                 if (matched.password !== pass) {
                     throw new Error('INVALID_CREDENTIALS');
                 }
@@ -421,7 +422,7 @@
                 const licenseDays = getLicenseDaysRemaining(matched);
                 if (licenseDays !== null && licenseDays < 0 && matched.status !== 'Suspended') {
                     try {
-                        await doc.ref.update({
+                        await matchedDocRef.update({
                             status: 'Suspended',
                             suspensionReason: 'License expired',
                             suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -3663,6 +3664,7 @@
             tenantsCache.push({ docId: doc.id, ...doc.data() });
         });
         tenantsReady = true;
+        setFirestoreReadNotice('crmTenantReadNotice', '');
         renderAdminMasterUserCards();
 
         // The first permission pass can run before Firestore returns tenant plans.
@@ -3675,16 +3677,45 @@
         }
     }, (error) => {
         console.error("Tenant sync error:", error);
+        setFirestoreReadNotice('crmTenantReadNotice', 'Workspace data load nahi ho raha. Firebase project aur Firestore Rules/permissions check karein.');
     });
 
     ensureDefaultTenantAndMigrateLocalData();
 
-    leadsCollection.orderBy('updatedAt', 'desc').onSnapshot((snapshot) => {
+    function setFirestoreReadNotice(id, message) {
+        let notice = document.getElementById(id);
+        if (!message) {
+            if (notice) notice.style.display = 'none';
+            return;
+        }
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = id;
+            notice.setAttribute('role', 'status');
+            notice.style.cssText = 'margin:10px 14px;padding:12px 16px;border:1px solid #f59e0b;border-radius:10px;background:#451a03;color:#fff;font-weight:700;line-height:1.5;';
+            const header = document.querySelector('header');
+            if (header && header.parentNode) header.parentNode.insertBefore(notice, header.nextSibling);
+            else document.body.prepend(notice);
+        }
+        notice.textContent = message;
+        notice.style.display = 'block';
+    }
+
+    // Do not order at the Firestore query level: legacy leads without updatedAt
+    // are excluded by orderBy and can make a populated CRM look completely empty.
+    leadsCollection.onSnapshot((snapshot) => {
         leads = [];
         snapshot.forEach(doc => {
             const data = doc.data();
             leads.push({ docId: doc.id, ...data });
         });
+        const sortTime = value => {
+            if (value && typeof value.toMillis === 'function') return value.toMillis();
+            const parsed = Date.parse(value || '');
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+        leads.sort((a, b) => sortTime(b.updatedAt || b.createdAt || b.leadDate) - sortTime(a.updatedAt || a.createdAt || a.leadDate));
+        setFirestoreReadNotice('crmLeadsReadNotice', '');
         renderMetrics();
         renderViews();
         renderDisbursedHubTable();
@@ -3697,6 +3728,9 @@
         if(reportPanel && reportModal && reportModal.style.display==='flex' && reportPanel.style.display!=='none'){
             window.generateManagementReport();
         }
+    }, (error) => {
+        console.error('Lead data listener failed:', error);
+        setFirestoreReadNotice('crmLeadsReadNotice', 'CRM data load nahi ho pa raha hai. Data delete nahi hua hai. Firebase project aur Firestore Rules/permissions check karein, phir refresh karein.');
     });
 
     function formatINR(val) {
