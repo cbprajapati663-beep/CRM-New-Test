@@ -3960,8 +3960,16 @@
         }
         resetForm();
         } catch (error) {
-            console.error('Lead save error:', error);
-            alert('❌ Lead save nahi hui. Internet/Firebase permission check karein.');
+            console.error('Lead save error:', { code: error && error.code, message: error && error.message, projectId: firebaseConfig.projectId });
+            const saveErrorCode = String(error && (error.code || error.message) || 'unknown').replace(/^firestore\\//i, '').replace(/[^a-zA-Z0-9_ -]/g, '').slice(0, 80);
+            const saveErrorLower = saveErrorCode.toLowerCase();
+            if (saveErrorLower.includes('permission-denied')) {
+                alert('❌ Lead save nahi hui: Firebase permission denied. Firestore Rules/auth configuration check karein. Project: ' + firebaseConfig.projectId + '.');
+            } else if (saveErrorLower.includes('unavailable') || saveErrorLower.includes('network')) {
+                alert('❌ Lead save nahi hui: Firebase connection unavailable. Internet check karke retry karein.');
+            } else {
+                alert('❌ Lead save nahi hui (' + saveErrorCode + '). Firebase project: ' + firebaseConfig.projectId + '.');
+            }
         } finally {
             if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = oldSaveText || 'Save to Cloud'; }
         }
