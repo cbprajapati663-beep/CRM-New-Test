@@ -225,35 +225,18 @@
     }
 
     async function ensureDefaultTenantAndMigrateLocalData() {
+        // Never create a tenant with a public/default password during page startup.
+        // Preserve all existing records and only refresh the tenant cache.
         try {
-            const snapshot = await tenantsCollection.get();
-            const existingIds = new Set();
-            snapshot.forEach(doc => existingIds.add((doc.data().tenantId || doc.id).toLowerCase()));
-
-            const defaultTenant = {
-                tenantId: "heritage auto finance",
-                agencyName: "Heritage Auto Finance (Chirag Prajapati)",
-                headOffice: "Mehsana, Gujarat",
-                contactPhone: "+91 7600211085",
-                role: "client",
-                password: "123",
-                rentAmount: 3500,
-                expiryDate: "2029-12-31",
-                status: "Active"
-            };
-
-            if (!existingIds.has(defaultTenant.tenantId)) {
-                await tenantsCollection.doc(defaultTenant.tenantId).set(defaultTenant);
-            }
             await loadTenantsFromFirestore();
         } catch (error) {
             console.error("Tenant initialization error:", error);
-            await loadTenantsFromFirestore();
         }
     }
 
     function getAdminPassword() {
-        return localStorage.getItem('haf_master_admin_pass') || 'admin123';
+        // A master password must be explicitly configured by the owner on this browser.
+        return localStorage.getItem('haf_master_admin_pass') || '';
     }
 
     function getCurrentSessionUser() {
@@ -410,10 +393,28 @@
                 .limit(1)
                 .get();
 
+            // Older tenant records may use the tenant ID as the Firestore document ID
+            // without storing a tenantId field. Check that legacy shape without creating
+            // a new account or weakening the password check.
+            let matched = null;
+            let matchedDocRef = null;
             if (!snapshot.empty) {
-                const doc = snapshot.docs[0];
-                const matched = { docId: doc.id, ...doc.data() };
+                const tenantDoc = snapshot.docs[0];
+                matched = { docId: tenantDoc.id, ...tenantDoc.data() };
+                matchedDocRef = tenantDoc.ref;
+            } else {
+                const legacyDoc = await tenantsCollection.doc(uid).get();
+                if (legacyDoc.exists) {
+                    const candidate = { docId: legacyDoc.id, ...legacyDoc.data() };
+                    const canonicalId = String(candidate.tenantId || legacyDoc.id).trim().toLowerCase();
+                    if (canonicalId === uid) {
+                        matched = candidate;
+                        matchedDocRef = legacyDoc.ref;
+                    }
+                }
+            }
 
+            if (matched) {
                 if (matched.password !== pass) {
                     throw new Error('INVALID_CREDENTIALS');
                 }
@@ -421,7 +422,7 @@
                 const licenseDays = getLicenseDaysRemaining(matched);
                 if (licenseDays !== null && licenseDays < 0 && matched.status !== 'Suspended') {
                     try {
-                        await doc.ref.update({
+                        await matchedDocRef.update({
                             status: 'Suspended',
                             suspensionReason: 'License expired',
                             suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -538,7 +539,27 @@
                 } else if (code === 'TENANT_NOT_FOUND') {
                     loginError.textContent = 'Staff workspace was not found.';
                 } else {
-                    loginError.textContent = 'Login service error. Check Firebase connection/rules and try again.';
+                    // Show a safe diagnostic code so Firebase failures can be fixed precisely.
+                    // Never display passwords, tokens, or raw backend responses in the UI.
+                    const firebaseCode = String(error && (error.code || error.message) || 'unknown')
+                        .replace(/^firestore\//i, '')
+                        .replace(/[^a-zA-Z0-9_ -]/g, '')
+                        .slice(0, 80);
+                    console.error('CRM login diagnostic:', {
+                        code: firebaseCode,
+                        projectId: firebaseConfig.projectId,
+                        authMode: currentAuthMode
+                    });
+                    const normalizedCode = firebaseCode.toLowerCase();
+                    if (normalizedCode.includes('permission-denied')) {
+                        loginError.textContent = 'Firebase access denied (permission-denied). Check Firestore Security Rules and confirm they have not expired. Project: ' + firebaseConfig.projectId + '.';
+                    } else if (normalizedCode.includes('unavailable') || normalizedCode.includes('network')) {
+                        loginError.textContent = 'Firebase is temporarily unreachable. Check your connection and retry. Project: ' + firebaseConfig.projectId + '.';
+                    } else if (normalizedCode.includes('failed-precondition')) {
+                        loginError.textContent = 'Firebase query/configuration issue (failed-precondition). Check Firestore indexes and project configuration. Project: ' + firebaseConfig.projectId + '.';
+                    } else {
+                        loginError.textContent = 'Login service error (' + firebaseCode + '). Firebase project: ' + firebaseConfig.projectId + '. Please share this code with support.';
+                    }
                 }
                 loginError.style.display = 'block';
             }
@@ -1947,9 +1968,10 @@
         const isOpen = lead => !['Disbursed','Rejected','Not Interested','Cancelled'].includes(String(lead.status || ''));
         const safeDateKey = value => String(value || '').slice(0, 10);
         let liveCount = 0, loginCount = 0, loginAmount = 0;
-        let disburseCount = 0, disbursedAmount = 0, totalHoldPending = 0;
+        let disburseCount = 0, disbursedAmount = 0, approvedAmountTotal = 0, totalHoldPending = 0;
         let overdueCount = 0, dueTodayCount = 0, noFollowUpCount = 0, docsPendingCount = 0;
         scopedLeads.forEach(l => {
+            approvedAmountTotal += Number(String(l.approvedAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             const amt = Number(String(l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             if (isOpen(l)) {
@@ -1983,7 +2005,7 @@
         setText('m-live-leads', liveCount); setText('badge-live-count', liveCount); setText('m-total-leads', scopedLeads.length);
         setText('m-login-leads', loginCount); setText('m-login-amount', formatINR(loginAmount));
         setText('m-disburse-leads', disburseCount); setText('badge-disbursed-count', disburseCount);
-        setText('m-month-business', formatINR(disbursedAmount));
+        setText('m-month-business', formatINR(approvedAmountTotal));
         setText('m-total-hold', formatINR(totalHoldPending)); setText('tab-total-hold', formatINR(totalHoldPending));
         setText('m-overdue-followups', overdueCount); setText('m-today-followups', dueTodayCount);
         setText('m-no-followups', noFollowUpCount); setText('m-docs-pending', docsPendingCount);
@@ -3663,6 +3685,7 @@
             tenantsCache.push({ docId: doc.id, ...doc.data() });
         });
         tenantsReady = true;
+        setFirestoreReadNotice('crmTenantReadNotice', '');
         renderAdminMasterUserCards();
 
         // The first permission pass can run before Firestore returns tenant plans.
@@ -3675,16 +3698,45 @@
         }
     }, (error) => {
         console.error("Tenant sync error:", error);
+        setFirestoreReadNotice('crmTenantReadNotice', 'Workspace data load nahi ho raha. Firebase project aur Firestore Rules/permissions check karein.');
     });
 
     ensureDefaultTenantAndMigrateLocalData();
 
-    leadsCollection.orderBy('updatedAt', 'desc').onSnapshot((snapshot) => {
+    function setFirestoreReadNotice(id, message) {
+        let notice = document.getElementById(id);
+        if (!message) {
+            if (notice) notice.style.display = 'none';
+            return;
+        }
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = id;
+            notice.setAttribute('role', 'status');
+            notice.style.cssText = 'margin:10px 14px;padding:12px 16px;border:1px solid #f59e0b;border-radius:10px;background:#451a03;color:#fff;font-weight:700;line-height:1.5;';
+            const header = document.querySelector('header');
+            if (header && header.parentNode) header.parentNode.insertBefore(notice, header.nextSibling);
+            else document.body.prepend(notice);
+        }
+        notice.textContent = message;
+        notice.style.display = 'block';
+    }
+
+    // Do not order at the Firestore query level: legacy leads without updatedAt
+    // are excluded by orderBy and can make a populated CRM look completely empty.
+    leadsCollection.onSnapshot((snapshot) => {
         leads = [];
         snapshot.forEach(doc => {
             const data = doc.data();
             leads.push({ docId: doc.id, ...data });
         });
+        const sortTime = value => {
+            if (value && typeof value.toMillis === 'function') return value.toMillis();
+            const parsed = Date.parse(value || '');
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+        leads.sort((a, b) => sortTime(b.updatedAt || b.createdAt || b.leadDate) - sortTime(a.updatedAt || a.createdAt || a.leadDate));
+        setFirestoreReadNotice('crmLeadsReadNotice', '');
         renderMetrics();
         renderViews();
         renderDisbursedHubTable();
@@ -3697,6 +3749,9 @@
         if(reportPanel && reportModal && reportModal.style.display==='flex' && reportPanel.style.display!=='none'){
             window.generateManagementReport();
         }
+    }, (error) => {
+        console.error('Lead data listener failed:', error);
+        setFirestoreReadNotice('crmLeadsReadNotice', 'CRM data load nahi ho pa raha hai. Data delete nahi hua hai. Firebase project aur Firestore Rules/permissions check karein, phir refresh karein.');
     });
 
     function formatINR(val) {
@@ -3906,8 +3961,16 @@
         }
         resetForm();
         } catch (error) {
-            console.error('Lead save error:', error);
-            alert('❌ Lead save nahi hui. Internet/Firebase permission check karein.');
+            console.error('Lead save error:', { code: error && error.code, message: error && error.message, projectId: firebaseConfig.projectId });
+            const saveErrorCode = String(error && (error.code || error.message) || 'unknown').replace(/^firestore\\//i, '').replace(/[^a-zA-Z0-9_ -]/g, '').slice(0, 80);
+            const saveErrorLower = saveErrorCode.toLowerCase();
+            if (saveErrorLower.includes('permission-denied')) {
+                alert('❌ Lead save nahi hui: Firebase permission denied. Firestore Rules/auth configuration check karein. Project: ' + firebaseConfig.projectId + '.');
+            } else if (saveErrorLower.includes('unavailable') || saveErrorLower.includes('network')) {
+                alert('❌ Lead save nahi hui: Firebase connection unavailable. Internet check karke retry karein.');
+            } else {
+                alert('❌ Lead save nahi hui (' + saveErrorCode + '). Firebase project: ' + firebaseConfig.projectId + '.');
+            }
         } finally {
             if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = oldSaveText || 'Save to Cloud'; }
         }
