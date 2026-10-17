@@ -1969,10 +1969,12 @@
                 loginCount++;
                 loginAmount += amt;
             }
-            if (l.status === 'Disbursed') {
+            // Normalize status so legacy records with casing/whitespace still count correctly.
+            if (String(l.status || '').trim().toLowerCase() === 'disbursed') {
                 disburseCount++;
                 disbursedAmount += disAmt;
-                // This dashboard card is specifically approved amount for disbursed files only.
+                // Only approvedAmount from a disbursed file contributes to this card.
+                // Never fall back to requested loanAmount or disbursedAmount.
                 approvedAmountTotal += Number(String(l.approvedAmount ?? 0).replace(/[^0-9.]/g, '')) || 0;
                 if (l.holdStatus === 'Hold Kept') totalHoldPending += Number(String(l.holdAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             }
