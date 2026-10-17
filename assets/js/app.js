@@ -1968,9 +1968,10 @@
         const isOpen = lead => !['Disbursed','Rejected','Not Interested','Cancelled'].includes(String(lead.status || ''));
         const safeDateKey = value => String(value || '').slice(0, 10);
         let liveCount = 0, loginCount = 0, loginAmount = 0;
-        let disburseCount = 0, disbursedAmount = 0, totalHoldPending = 0;
+        let disburseCount = 0, disbursedAmount = 0, approvedAmountTotal = 0, totalHoldPending = 0;
         let overdueCount = 0, dueTodayCount = 0, noFollowUpCount = 0, docsPendingCount = 0;
         scopedLeads.forEach(l => {
+            approvedAmountTotal += Number(String(l.approvedAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             const amt = Number(String(l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             const disAmt = Number(String(l.disbursedAmount || l.loanAmount || 0).replace(/[^0-9.]/g, '')) || 0;
             if (isOpen(l)) {
@@ -2004,7 +2005,7 @@
         setText('m-live-leads', liveCount); setText('badge-live-count', liveCount); setText('m-total-leads', scopedLeads.length);
         setText('m-login-leads', loginCount); setText('m-login-amount', formatINR(loginAmount));
         setText('m-disburse-leads', disburseCount); setText('badge-disbursed-count', disburseCount);
-        setText('m-month-business', formatINR(disbursedAmount));
+        setText('m-month-business', formatINR(approvedAmountTotal));
         setText('m-total-hold', formatINR(totalHoldPending)); setText('tab-total-hold', formatINR(totalHoldPending));
         setText('m-overdue-followups', overdueCount); setText('m-today-followups', dueTodayCount);
         setText('m-no-followups', noFollowUpCount); setText('m-docs-pending', docsPendingCount);
