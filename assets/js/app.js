@@ -539,7 +539,18 @@
                 } else if (code === 'TENANT_NOT_FOUND') {
                     loginError.textContent = 'Staff workspace was not found.';
                 } else {
-                    loginError.textContent = 'Login service error. Check Firebase connection/rules and try again.';
+                    // Show a safe diagnostic code so Firebase failures can be fixed precisely.
+                    // Never display passwords, tokens, or raw backend responses in the UI.
+                    const firebaseCode = String(error && (error.code || error.message) || 'unknown')
+                        .replace(/^firestore\//i, '')
+                        .replace(/[^a-zA-Z0-9_ -]/g, '')
+                        .slice(0, 80);
+                    console.error('CRM login diagnostic:', {
+                        code: firebaseCode,
+                        projectId: firebaseConfig.projectId,
+                        authMode: currentAuthMode
+                    });
+                    loginError.textContent = 'Login service error (' + firebaseCode + '). Firebase project: ' + firebaseConfig.projectId + '. Please share this code with support.';
                 }
                 loginError.style.display = 'block';
             }
