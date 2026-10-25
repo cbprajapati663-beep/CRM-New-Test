@@ -298,6 +298,89 @@
     applyPortalPermissions();
     }
 
+    // Security: automatically end the CRM session after 150 seconds without user activity.
+    // Applies to all roles, including IT Admin, Client, Manager, Viewer and Staff.
+    (function setupInactivityAutoLogout() {
+        const IDLE_LIMIT_MS = 150 * 1000;
+        const LAST_ACTIVITY_KEY = 'haf_crm_last_activity_v1';
+        let idleCheckTimer = null;
+        let hasLoggedOutForIdle = false;
+        const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'scroll', 'click'];
+
+        function currentUserIsLoggedIn() {
+            return !!getCurrentSessionUser() &&
+                document.getElementById('authOverlay')?.style.display !== 'flex';
+        }
+
+        function recordActivity() {
+            if (!currentUserIsLoggedIn() || hasLoggedOutForIdle) return;
+            try {
+                localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+            } catch (error) {
+                console.warn('Could not update CRM inactivity timer:', error);
+            }
+        }
+
+        function performIdleLogout(showMessage) {
+            if (hasLoggedOutForIdle || !getCurrentSessionUser()) return;
+            hasLoggedOutForIdle = true;
+            if (idleCheckTimer) clearInterval(idleCheckTimer);
+            try {
+                localStorage.removeItem(LAST_ACTIVITY_KEY);
+            } catch (error) {}
+            setCurrentSessionUser(null);
+            const overlay = document.getElementById('authOverlay');
+            if (overlay) overlay.style.display = 'flex';
+            if (showMessage) {
+                alert('Aapki security ke liye 2 minute 30 second inactivity ke baad aapko automatically logout kar diya gaya hai. Kripya dobara login karein.');
+            }
+            window.location.reload();
+        }
+
+        function checkIdleTimeout() {
+            if (!getCurrentSessionUser()) {
+                if (idleCheckTimer) {
+                    clearInterval(idleCheckTimer);
+                    idleCheckTimer = null;
+                }
+                return;
+            }
+            let lastActivity = 0;
+            try {
+                lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
+            } catch (error) {}
+            if (!lastActivity) {
+                lastActivity = Date.now();
+                try { localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivity)); } catch (error) {}
+            }
+            if (Date.now() - lastActivity >= IDLE_LIMIT_MS) {
+                performIdleLogout(true);
+            }
+        }
+
+        function startIdleTimerIfLoggedIn() {
+            if (!getCurrentSessionUser()) return;
+            if (!localStorage.getItem(LAST_ACTIVITY_KEY)) {
+                try { localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now())); } catch (error) {}
+            }
+            if (!idleCheckTimer) idleCheckTimer = window.setInterval(checkIdleTimeout, 5000);
+        }
+
+        activityEvents.forEach(eventName => {
+            document.addEventListener(eventName, recordActivity, { passive: true });
+        });
+        window.addEventListener('storage', event => {
+            if (event.key === 'haf_active_session_user_v2' && !event.newValue && getCurrentSessionUser()) {
+                performIdleLogout(false);
+            }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) checkIdleTimeout();
+        });
+        startIdleTimerIfLoggedIn();
+        checkIdleTimeout();
+    })();
+
     // User-initiated, tenant-scoped JSON backup. Credentials and tenant account records are intentionally excluded.
     window.downloadCRMBackup = function() {
         if (!isFeatureEnabled('backupExport')) { alert('CRM Backup aapke plan mein enabled nahi hai.'); return; }
