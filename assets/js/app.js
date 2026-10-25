@@ -338,13 +338,7 @@
         }
 
         function checkIdleTimeout() {
-            if (!getCurrentSessionUser()) {
-                if (idleCheckTimer) {
-                    clearInterval(idleCheckTimer);
-                    idleCheckTimer = null;
-                }
-                return;
-            }
+            if (!getCurrentSessionUser()) return;
             let lastActivity = 0;
             try {
                 lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
@@ -359,10 +353,11 @@
         }
 
         function startIdleTimerIfLoggedIn() {
-            if (!getCurrentSessionUser()) return;
-            if (!localStorage.getItem(LAST_ACTIVITY_KEY)) {
+            if (getCurrentSessionUser() && !localStorage.getItem(LAST_ACTIVITY_KEY)) {
                 try { localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now())); } catch (error) {}
             }
+            // Keep the lightweight checker alive while logged out too, so a login
+            // performed later on the same page is covered without a reload.
             if (!idleCheckTimer) idleCheckTimer = window.setInterval(checkIdleTimeout, 5000);
         }
 
