@@ -39,7 +39,8 @@
         </form>
 
         <div style="margin-top:14px; text-align:center;">
-            <a href="javascript:void(0)" onclick="openResetPasswordModal(); return false;" style="color:var(--info); font-size:0.78rem; text-decoration:none; display:inline-block; padding:6px; cursor:pointer;">🔑 Forgot Password / Reset PIN?</a>
+            <a id="forgotPasswordLink" href="javascript:void(0)" aria-disabled="true" aria-label="Forgot Password. Contact your administrator or support team." onclick="openResetPasswordModal(); return false;" style="color:var(--info); font-size:0.78rem; text-decoration:none; display:inline-block; padding:6px; cursor:not-allowed; opacity:0.55;">🔑 Forgot Password / Reset PIN?</a>
+        <div id="forgotPasswordHint" style="margin-top:2px;text-align:center;color:var(--text-muted);font-size:0.7rem;line-height:1.45;">Client / Staff: contact your administrator or support team to reset your password.</div>
         </div>
     </div>
 </div>
