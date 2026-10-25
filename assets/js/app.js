@@ -301,7 +301,7 @@
     // Security: automatically end the CRM session after 150 seconds without user activity.
     // Applies to all roles, including IT Admin, Client, Manager, Viewer and Staff.
     (function setupInactivityAutoLogout() {
-        const IDLE_LIMIT_MS = 150 * 1000;
+        const IDLE_LIMIT_MS = 90 * 1000;
         const LAST_ACTIVITY_KEY = 'haf_crm_last_activity_v1';
         let idleCheckTimer = null;
         let hasLoggedOutForIdle = false;
@@ -332,7 +332,7 @@
             const overlay = document.getElementById('authOverlay');
             if (overlay) overlay.style.display = 'flex';
             if (showMessage) {
-                alert('Aapki security ke liye 2 minute 30 second inactivity ke baad aapko automatically logout kar diya gaya hai. Kripya dobara login karein.');
+                alert('Aapki security ke liye 1 minute 30 second inactivity ke baad aapko automatically logout kar diya gaya hai. Kripya dobara login karein.');
             }
             window.location.reload();
         }
