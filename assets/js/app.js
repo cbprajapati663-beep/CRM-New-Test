@@ -298,22 +298,24 @@
     applyPortalPermissions();
     }
 
-    // Security: automatically end the CRM session after 150 seconds without user activity.
-    // Applies to all roles, including IT Admin, Client, Manager, Viewer and Staff.
+    // Security: automatically end the CRM session after 90 seconds without user activity.
+    // Redirect immediately to the login screen for every role. Do not call
+    // setCurrentSessionUser(null) here: that helper applies portal permissions,
+    // and a UI error there must never prevent the logout redirect.
     (function setupInactivityAutoLogout() {
         const IDLE_LIMIT_MS = 90 * 1000;
         const LAST_ACTIVITY_KEY = 'haf_crm_last_activity_v1';
+        const SESSION_KEY = 'haf_active_session_user_v2';
         let idleCheckTimer = null;
         let hasLoggedOutForIdle = false;
         const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'scroll', 'click'];
 
-        function currentUserIsLoggedIn() {
-            return !!getCurrentSessionUser() &&
-                document.getElementById('authOverlay')?.style.display !== 'flex';
+        function isSessionActive() {
+            return !!getCurrentSessionUser();
         }
 
         function recordActivity() {
-            if (!currentUserIsLoggedIn() || hasLoggedOutForIdle) return;
+            if (!isSessionActive() || hasLoggedOutForIdle) return;
             try {
                 localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
             } catch (error) {
@@ -321,24 +323,35 @@
             }
         }
 
-        function performIdleLogout(showMessage) {
-            if (hasLoggedOutForIdle || !getCurrentSessionUser()) return;
+        function performIdleLogout() {
+            if (hasLoggedOutForIdle || !isSessionActive()) return;
             hasLoggedOutForIdle = true;
-            if (idleCheckTimer) clearInterval(idleCheckTimer);
-            try {
-                localStorage.removeItem(LAST_ACTIVITY_KEY);
-            } catch (error) {}
-            setCurrentSessionUser(null);
+            if (idleCheckTimer) {
+                clearInterval(idleCheckTimer);
+                idleCheckTimer = null;
+            }
+
+            // Clear the auth state directly so an unrelated UI/permission
+            // exception cannot interrupt logout before the login page appears.
+            try { localStorage.removeItem(SESSION_KEY); } catch (error) {}
+            try { localStorage.removeItem(LAST_ACTIVITY_KEY); } catch (error) {}
+
             const overlay = document.getElementById('authOverlay');
             if (overlay) overlay.style.display = 'flex';
-            if (showMessage) {
-                alert('Aapki security ke liye 1 minute 30 second inactivity ke baad aapko automatically logout kar diya gaya hai. Kripya dobara login karein.');
-            }
-            window.location.reload();
+
+            // Reload without a blocking alert. The cleared session means the
+            // app boots directly into the login screen.
+            window.setTimeout(function () {
+                try {
+                    window.location.replace(window.location.href);
+                } catch (error) {
+                    window.location.reload();
+                }
+            }, 50);
         }
 
         function checkIdleTimeout() {
-            if (!getCurrentSessionUser()) return;
+            if (!isSessionActive()) return;
             let lastActivity = 0;
             try {
                 lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
@@ -348,31 +361,39 @@
                 try { localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivity)); } catch (error) {}
             }
             if (Date.now() - lastActivity >= IDLE_LIMIT_MS) {
-                performIdleLogout(true);
+                performIdleLogout();
             }
         }
 
-        function startIdleTimerIfLoggedIn() {
-            if (getCurrentSessionUser() && !localStorage.getItem(LAST_ACTIVITY_KEY)) {
-                try { localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now())); } catch (error) {}
+        function startIdleTimer() {
+            if (isSessionActive()) {
+                let lastActivity = 0;
+                try { lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0); } catch (error) {}
+                if (!lastActivity) {
+                    try { localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now())); } catch (error) {}
+                }
             }
-            // Keep the lightweight checker alive while logged out too, so a login
-            // performed later on the same page is covered without a reload.
-            if (!idleCheckTimer) idleCheckTimer = window.setInterval(checkIdleTimeout, 5000);
+            if (!idleCheckTimer) idleCheckTimer = window.setInterval(checkIdleTimeout, 1000);
         }
 
-        activityEvents.forEach(eventName => {
+        activityEvents.forEach(function (eventName) {
             document.addEventListener(eventName, recordActivity, { passive: true });
         });
-        window.addEventListener('storage', event => {
-            if (event.key === 'haf_active_session_user_v2' && !event.newValue && getCurrentSessionUser()) {
-                performIdleLogout(false);
+
+        window.addEventListener('storage', function (event) {
+            if (event.key === SESSION_KEY && !event.newValue && hasLoggedOutForIdle === false) {
+                // Another tab cleared the session; this tab must return to login too.
+                const overlay = document.getElementById('authOverlay');
+                if (overlay) overlay.style.display = 'flex';
+                window.location.reload();
             }
         });
-        document.addEventListener('visibilitychange', () => {
+
+        document.addEventListener('visibilitychange', function () {
             if (!document.hidden) checkIdleTimeout();
         });
-        startIdleTimerIfLoggedIn();
+
+        startIdleTimer();
         checkIdleTimeout();
     })();
 
