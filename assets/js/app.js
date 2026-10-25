@@ -71,6 +71,20 @@
         currentAuthMode = mode;
         document.getElementById('loginError').style.display = 'none';
         document.getElementById('loginPassword').value = '';
+
+        // Keep Forgot Password visible on both login tabs, but only allow
+        // the IT Admin tab to open the reset form.
+        const resetLink = document.getElementById('forgotPasswordLink');
+        if (resetLink) {
+            const isAdmin = mode === 'admin';
+            resetLink.setAttribute('aria-disabled', isAdmin ? 'false' : 'true');
+            resetLink.setAttribute('aria-label', isAdmin
+                ? 'Forgot Password / Reset Admin Password'
+                : 'Forgot Password. Contact your administrator or support team.');
+            resetLink.style.opacity = isAdmin ? '1' : '0.55';
+            resetLink.style.cursor = isAdmin ? 'pointer' : 'not-allowed';
+        }
+
         if (mode === 'admin') {
             document.getElementById('btnAuthAdmin').classList.add('active');
             document.getElementById('btnAuthClient').classList.remove('active');
@@ -1679,6 +1693,18 @@
     }
 
     function openResetPasswordModal() {
+        // Client/staff accounts must be reset by an administrator/support.
+        // This is a login-page-only message; no modal or account details are exposed.
+        if (currentAuthMode !== 'admin') {
+            alert('Password reset ke liye kripya apne CRM Administrator ya Support Team se sampark karein.\n\nPlease contact your CRM administrator or support team to reset your password.');
+            return;
+        }
+
+        const roleTarget = document.getElementById('resetRoleTarget');
+        if (roleTarget) {
+            roleTarget.value = 'admin';
+            roleTarget.disabled = true;
+        }
         document.getElementById('resetErrorMsg').style.display = 'none';
         document.getElementById('resetInputPhone').value = '';
         document.getElementById('resetInputNewPass').value = '';
@@ -1692,7 +1718,18 @@
 
     async function handleResetPasswordSubmit(e) {
         e.preventDefault();
+        // Defense in depth: even a manually opened modal cannot reset a
+        // client/staff password through this login-page flow.
+        if (currentAuthMode !== 'admin') {
+            closeResetPasswordModal();
+            alert('Password reset ke liye kripya apne CRM Administrator ya Support Team se sampark karein.\n\nPlease contact your CRM administrator or support team to reset your password.');
+            return;
+        }
         const role = document.getElementById('resetRoleTarget').value;
+        if (role !== 'admin') {
+            alert('Sirf IT Admin apna password is page se reset kar sakta hai. Client/staff users ko administrator ya support team se sampark karna hoga.');
+            return;
+        }
         const phone = document.getElementById('resetInputPhone').value.replace(/\D/g, '');
         const newPass = document.getElementById('resetInputNewPass').value.trim();
         const resetError = document.getElementById('resetErrorMsg');
