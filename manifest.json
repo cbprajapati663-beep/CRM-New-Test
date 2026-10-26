@@ -1,7 +1,7 @@
 {
-  "name": "Heritage Auto Finance CRM",
-  "short_name": "Heritage CRM",
-  "description": "Heritage FinTech Core — Auto Finance CRM",
+  "name": "Heritage FinTech Core",
+  "short_name": "FinTech Core",
+  "description": "Heritage FinTech Core — Smart CRM for Auto Finance Business",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
