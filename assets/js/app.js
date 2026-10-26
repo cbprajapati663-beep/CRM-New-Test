@@ -1154,6 +1154,14 @@
         const user = getCurrentSessionUser();
         const tenantId = inspectingTenantId || (user && user.role !== 'superadmin' ? user.tenantId : '');
         if (!tenantId) return user && user.role === 'superadmin' ? { role: 'superadmin' } : null;
+        // During a staff login, the tenant record was just fetched from Firestore.
+        // Prefer that fresh plan snapshot over an older tenant cached in localStorage;
+        // otherwise the UI can incorrectly claim that the tenant's plan disables a feature.
+        if (!inspectingTenantId && user && user.role !== 'superadmin' &&
+            String(user.tenantId || '').toLowerCase() === String(tenantId).toLowerCase() &&
+            user.subscriptionPlan) {
+            return { ...user, featureAccess: Array.isArray(user.tenantFeatureAccess) ? user.tenantFeatureAccess : user.featureAccess };
+        }
         const pool = typeof getStoredTenants === 'function' ? getStoredTenants() : [];
         return pool.find(t => String(t.tenantId || '').toLowerCase() === String(tenantId).toLowerCase()) || (user && String(user.tenantId || '').toLowerCase() === String(tenantId).toLowerCase() ? user : null);
     }
