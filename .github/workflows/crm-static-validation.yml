@@ -28,6 +28,7 @@ jobs:
           import re
 
           html = Path("index.html").read_text(encoding="utf-8")
+          admin_html = Path("admin/index.html").read_text(encoding="utf-8")
           css = Path("assets/css/styles.css").read_text(encoding="utf-8")
           js = Path("assets/js/app.js").read_text(encoding="utf-8")
           manifest = Path("manifest.json").read_text(encoding="utf-8")
