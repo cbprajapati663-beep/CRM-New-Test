@@ -4686,7 +4686,7 @@
         const list=document.getElementById('mhStaffFeatureAccessList'),summary=document.getElementById('mhStaffPlanSummary'),note=document.getElementById('mhStaffAccessNote');if(!list)return;
         const tenant=getManagementTenantRecord(),allowed=getManagementAllowedStaffFeatures(),role=document.getElementById('mhStaffRole')?.value||'Sales Executive';
         const roleDefaults=new Set(getStaffRoleDefaultFeatureKeys(role,allowed));
-        const chosen=new Set(Array.isArray(selected)?selected.filter(key=>allowed.includes(key)):roleDefaults);
+        const chosen=new Set(Array.isArray(selected)&&selected.length?selected.filter(key=>allowed.includes(key)):roleDefaults);
         if(summary)summary.textContent='Tenant plan: '+String(tenant?.subscriptionPlan||'Starter')+' · Role: '+role+' · '+allowed.length+' feature(s) available. Role defaults are auto-assigned; checkboxes can be edited.';
         list.innerHTML='';
         FEATURE_CATALOG.forEach(([key,label])=>{
@@ -4871,11 +4871,12 @@
         const selectedRole=String(field('Role')?.value||'Sales Executive');
         const roleChanged=!!existingStaff && originalRole!==selectedRole;
         const roleDefaultsForSelection=getStaffRoleDefaultFeatureKeys(selectedRole,tenantAllowed);
-        const featureAccess=(managementEditingStaffId && checkedFeatureAccess.length===0 &&
-            existingStaff && Array.isArray(existingStaff.featureAccess) && existingStaff.featureAccess.length>0 && !roleChanged)
-            ? existingStaff.featureAccess.filter(key=>tenantAllowed.includes(key))
-            : (roleChanged || (!managementEditingStaffId && checkedFeatureAccess.length===0)
-                ? roleDefaultsForSelection.filter(key=>tenantAllowed.includes(key))
+        const featureAccess=(checkedFeatureAccess.length===0 && roleDefaultsForSelection.length>0 &&
+            (roleChanged || !existingStaff || !Array.isArray(existingStaff.featureAccess) || existingStaff.featureAccess.length===0))
+            ? roleDefaultsForSelection.filter(key=>tenantAllowed.includes(key))
+            : (managementEditingStaffId && checkedFeatureAccess.length===0 &&
+                existingStaff && Array.isArray(existingStaff.featureAccess) && existingStaff.featureAccess.length>0 && !roleChanged
+                ? existingStaff.featureAccess.filter(key=>tenantAllowed.includes(key))
                 : checkedFeatureAccess);
         const payload={name,phone:String(field('Phone')?.value||'').trim(),email:String(field('Email')?.value||'').trim(),role:String(field('Role')?.value||'Sales Executive'),branchId:branchId||'',branchName:branch?branch.name:'',status:String(field('Status')?.value||'Active'),featureAccess,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
