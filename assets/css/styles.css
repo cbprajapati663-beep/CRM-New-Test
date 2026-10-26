@@ -1669,3 +1669,78 @@ body.admin-operational-hidden #adminMetricDocsPending,
 body.admin-operational-hidden #cardCustomerHold {
     display: none !important;
 }
+
+
+/* Responsive audit layer — fluid containers, zoom-safe layouts, and readable data tables. */
+html { width: 100%; max-width: 100%; }
+body { width: 100%; max-width: 100%; min-width: 0; padding: clamp(8px, 1.1vw, 18px); }
+body, #authOverlay, .login-box, header, .crm-container, .panel, .panel-header,
+.dashboard-grid, .crm-nav-tabs, .header-actions, .management-hub,
+#managementHubModal, #managementHubModal .modal-content,
+#managementHubModal .modal-card, .modal-content, .modal-card {
+  min-width: 0;
+  max-width: 100%;
+}
+h1, h2, h3, h4, p, label, .metric-title, .metric-value, .section-title {
+  overflow-wrap: anywhere;
+}
+img, video, canvas, svg { max-width: 100%; }
+input, select, textarea, button { max-width: 100%; }
+input, select, textarea { min-width: 0; }
+.crm-container { grid-template-columns: minmax(0, 390px) minmax(0, 1fr); }
+.crm-container > *, .dashboard-grid > *, .panel-header > * { min-width: 0; }
+.dashboard-grid { grid-template-columns: repeat(auto-fit, minmax(min(165px, 100%), 1fr)); }
+.table-responsive {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.table-responsive > table {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  table-layout: auto;
+}
+.table-responsive th { white-space: nowrap; }
+.table-responsive td { overflow-wrap: anywhere; }
+#managementHubModal, .modal, .modal-overlay {
+  max-width: 100vw;
+}
+#managementHubModal .modal-content, #managementHubModal .modal-card,
+.modal-content, .modal-card {
+  max-height: min(88dvh, 900px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media screen and (max-width: 1200px) {
+  .crm-container { grid-template-columns: minmax(0, 1fr); }
+  .crm-container > * { width: 100%; }
+  .header-actions { flex-wrap: wrap; }
+  body > header { flex-wrap: wrap; gap: 10px; }
+  body > header > div:first-child { min-width: 0; flex-wrap: wrap; }
+  body > header h1 { font-size: clamp(1rem, 2.2vw, 1.45rem); overflow-wrap: anywhere; }
+  .panel-header { align-items: flex-start; }
+  .panel-header > * { max-width: 100%; }
+}
+@media screen and (max-width: 760px) {
+  body { padding: 8px; }
+  .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .table-responsive { max-height: 68dvh; }
+  .table-responsive > table { min-width: 1100px; }
+  #managementHubModal, .modal, .modal-overlay { padding: 8px !important; }
+  #managementHubModal .modal-content, #managementHubModal .modal-card,
+  .modal-content, .modal-card { width: 100% !important; max-width: 100% !important; }
+  .form-row, .form-grid, .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr) !important; }
+  .header-actions .btn-action { max-width: 100%; white-space: normal; }
+}
+@media screen and (max-width: 420px) {
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .login-box { padding: clamp(14px, 5vw, 24px); }
+  .auth-toggle-group { flex-wrap: wrap; }
+  .auth-toggle-btn { min-width: 0; overflow-wrap: anywhere; }
+  .panel { padding: 10px; }
+}
