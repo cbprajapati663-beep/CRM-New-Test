@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heritage FinTech Core | Professional Auto Finance CRM</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b1728">
+    <link rel="stylesheet" href="assets/css/styles.css?v=pwa-install-visible-20261010-1">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- DUAL AUTHENTICATION SCREEN -->
+<div id="authOverlay" style="display: flex;">
+    <div class="login-box">
+        <div class="auth-toggle-group">
+            <button class="auth-toggle-btn active" id="btnAuthClient" onclick="setAuthTab('client')">🏢 Client / Staff Login</button>
+            <button class="auth-toggle-btn" id="btnAuthAdmin" onclick="setAuthTab('admin')">👑 IT Admin Master</button>
+        </div>
+
+        <h2 style="color:var(--primary); margin-bottom:4px;" id="authHeaderTitle">Client Tenant Portal</h2>
+        <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:18px;" id="authHeaderSub">Sign in to your auto finance workspace</p>
+        
+        <form onsubmit="handleUserLogin(event)">
+            <div class="form-group" style="text-align:left;" id="authFieldUserIdGroup">
+                <label id="authLabelUserId">Tenant ID / Username</label>
+                <input type="text" id="loginUserId" placeholder="e.g. heritage auto finance" value="heritage auto finance" required>
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter secure password" required>
+            </div>
+            <div id="loginError" style="color:var(--danger); font-size:0.75rem; margin-bottom:10px; display:none;">Invalid credentials!</div>
+            <button type="submit" class="btn-submit" id="authSubmitBtn">Launch Portal</button>
+        </form>
+
+        <div style="margin-top:14px; text-align:center;">
+            <a id="forgotPasswordLink" href="javascript:void(0)" aria-disabled="true" aria-label="Forgot Password. Contact your administrator or support team." onclick="openResetPasswordModal(); return false;" style="color:var(--info); font-size:0.78rem; text-decoration:none; display:inline-block; padding:6px; cursor:not-allowed; opacity:0.55;">🔑 Forgot Password / Reset PIN?</a>
+        <div id="forgotPasswordHint" style="margin-top:2px;text-align:center;color:var(--text-muted);font-size:0.7rem;line-height:1.45;">Client / Staff: contact your administrator or support team to reset your password.</div>
+        </div>
+    </div>
+</div>
+
+<header>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <h1 id="headerTenantBrand">🚗 Heritage Auto Finance CRM</h1>
+        <div class="sync-status"><span class="sync-dot"></span> Cloud Secure Live</div>
+    </div>
+    <div class="header-actions">
+        <span id="activeUserBadge" style="background:#1e2433; border:1px solid var(--primary); padding:5px 10px; border-radius:6px; font-size:0.75rem; color:var(--primary); font-weight:700;">👤 Admin</span>
+        <button class="btn-action" style="background:#0f766e;color:#fff;font-weight:700;" onclick="downloadCRMBackup()">🛡️ Backup Data</button>
+        <button class="btn-action" style="background:#7c3aed;color:#fff;font-weight:800;" onclick="openManagementHub()">🧭 Management & Reports</button>
+        <button id="btnChangeMyPass" class="btn-action" style="background:#38bdf8; color:#000; font-weight:700;" onclick="openChangeMyPasswordModal()">🔑 Change Password</button>
+        <button class="btn-action" type="button" disabled aria-disabled="true" style="background:#374151;color:#9ca3af;font-weight:700;cursor:not-allowed;opacity:.75;" title="Documents feature temporarily disabled">📁 Documents (Coming Soon)</button>
+        
+        <button class="btn-action" style="background:#d4af37;color:#111;font-weight:700;" onclick="openEmiCalculator()">🧮 EMI Calculator</button>
+        <button class="btn-action" style="background:#38bdf8;color:#082f49;font-weight:700;" onclick="openAffordabilityCalculator()">📊 Loan Affordability</button>
+        <button id="btnExitUserView" class="btn-action" style="background:#ef4444; color:#fff; display:none;" onclick="exitUserView()">↩ Exit to Admin Master Desk</button>
+        <button class="btn-action btn-install" id="btnInstallApp" onclick="installPWA()">📲 Install App</button>
+        <button class="btn-action" id="btnExportExcel" onclick="exportToCSV()" style="display:none;">📥 Export Excel</button>
+        <button class="btn-action" style="background:#ef4444; color:#fff;" onclick="logoutCurrentUser()">🚪 Logout</button>
+        <div style="color: var(--text-muted); font-size: 0.8rem;" id="current-date"></div>
+    </div>
+</header>
+
+<!-- CRM Navigation Tabs -->
+<div class="crm-nav-tabs" id="crmNavTabsBar">
+    <button class="tab-link active" id="tabPipeline" onclick="switchView('pipeline')">📊 Active Live Pipeline <span class="tab-badge" id="badge-live-count">0</span></button>
+    <button class="tab-link" id="tabRejected" onclick="switchView('rejected')">🚫 Rejected Leads <span class="tab-badge" id="badge-rejected-count">0</span></button>
+    <button class="tab-link" id="tabDisbursed" onclick="switchView('disbursedhub')">📑 Disbursed Files & Clearance Hub <span class="tab-badge" id="badge-disbursed-count">0</span></button>
+    <button class="tab-link" id="tabDealers" onclick="switchView('dealers')">🤝 Dealer / Broker Ledger <span class="tab-badge" id="badge-dealers-count">0</span></button>
+    <button class="tab-link" id="tabSecretPayouts" onclick="switchView('payoutdesk')">🔒 Secret DSA Payouts</button>
+    <button class="tab-link" id="tabFollowups" onclick="switchView('followups')">🔔 Today's Follow-ups <span class="tab-badge" id="badge-followup-count">0</span></button>
+    <button class="tab-link" id="tabDataHealth" onclick="switchView('datahealth')">🩺 Data Health <span class="tab-badge" id="badge-datahealth-count">0</span></button>
+    <button class="tab-link" id="tabWorkflow" onclick="switchView('workflow')">⚙️ Smart Workflow <span class="tab-badge" id="badge-workflow-count">0</span></button>
+</div>
+
+<!-- Operational Stats Bar -->
+<div class="dashboard-grid" id="dashboardOperationalMetrics">
+    <div class="metric-card">
+        <div class="metric-title">Total Leads (Selected Month)</div>
+        <div class="metric-value" id="m-total-leads">0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-live-leads">Live Open Files</div>
+        <div class="metric-value" id="m-live-leads">0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-login-leads">Login Files</div>
+        <div class="metric-value" id="m-login-leads">0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-login-amount">Total Login Amount (₹)</div>
+        <div class="metric-value metric-gold" id="m-login-amount">₹0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-disburse-leads">Disbursed (Closed)</div>
+        <div class="metric-value" id="m-disburse-leads">0</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-title" id="lbl-month-business">Total Disbursed Amount (₹)</div>
+        <div class="metric-value metric-gold" id="m-month-business">₹0</div>
+    </div>
+    <div class="metric-card" id="cardCustomerHold">
+        <div class="metric-title">Customer Hold Pending</div>
+        <div class="metric-value" style="color:var(--danger);" id="m-total-hold">₹0</div>
+    </div>
+    <div class="metric-card" id="adminMetricOverdue"><div class="metric-title">Overdue Follow-ups</div><div class="metric-value" style="color:var(--danger);" id="m-overdue-followups">0</div></div>
+    <div class="metric-card" id="adminMetricDueToday"><div class="metric-title">Due Today</div><div class="metric-value" style="color:#fbbf24;" id="m-today-followups">0</div></div>
+    <div class="metric-card" id="adminMetricNoFollowup"><div class="metric-title">No Follow-up Scheduled</div><div class="metric-value" id="m-no-followups">0</div></div>
+    <div class="metric-card" id="adminMetricDocsPending"><div class="metric-title">Documents Pending</div><div class="metric-value" id="m-docs-pending">0</div></div>
+</div>
+
+<!-- VIEW 1: Main Container -->
+<div id="view-pipeline" class="crm-container">
+    <div id="colAddLeadForm">
+        <div class="panel">
+            <div class="panel-title" id="form-heading">Add New Lead</div>
+            <form id="leadForm">
+                <input type="hidden" id="editDocId" value="">
+                
+                <div class="form-group">
+                    <label>Customer Name *</label>
+                    <input type="text" id="custName" required placeholder="Full Name">
+                </div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Mobile Number *</label>
+                        <input type="tel" id="mobile" required placeholder="10-digit">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>City</label>
+                        <input type="text" id="city" placeholder="e.g. Mehsana">
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Vehicle Model</label>
+                        <input type="text" id="vehModel" placeholder="e.g. Swift / Bolero">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Vehicle Registration No.</label>
+                        <input type="text" id="vehRegNo" placeholder="e.g. GJ02AB1234" maxlength="15" autocomplete="off" style="text-transform:uppercase;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Vehicle Type</label>
+                        <select id="vehType">
+                            <option value="New">New</option>
+                            <option value="Used">Used</option>
+                            <option value="Commercial">Commercial</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Requested Loan (₹) *</label>
+                        <input type="number" id="loanAmount" required placeholder="e.g. 500000" oninput="syncApproveAmountDefault()">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Bank & NBFC (Login)</label>
+                        <input type="text" id="bankNbfc" placeholder="e.g. AU / Chola / HDFC">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                        <label style="color:#c084fc; margin-bottom:0;">Dealer / Sub-Broker (Sourcing Partner)</label>
+                        <div style="display:flex; gap:6px;">
+                            <button type="button" onclick="promptAddNewDealer()" style="background:none; border:none; color:#10b981; font-size:0.75rem; cursor:pointer; font-weight:700;">➕ Add New</button>
+                            <button type="button" onclick="openManageDealersModal()" style="background:none; border:none; color:#fbbf24; font-size:0.75rem; cursor:pointer; font-weight:700;">⚙️ Manage</button>
+                        </div>
+                    </div>
+                    <select id="dealerNameSelect">
+                        <option value="Direct Customer">Direct Customer (No Dealer)</option>
+                    </select>
+                </div>
+
+                <div class="section-title">📌 Status & Follow-up</div>
+
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <label>Lead Status</label>
+                        <select id="status" onchange="handleStatusChange()">
+                            <option value="New">🟡 New</option>
+                            <option value="Contacted">🔵 Contacted</option>
+                            <option value="Documents Pending">🟠 Documents Pending</option>
+                            <option value="Login Done">🟣 Login Done</option>
+                            <option value="Sanctioned">🟢 Sanctioned</option>
+                            <option value="Disbursed">✅ Disbursed (Moves to Disbursed Hub)</option>
+                            <option value="Rejected">🔴 Rejected</option>
+                            <option value="Not Interested">⚫ Not Interested</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Next Follow-up</label>
+                        <input type="date" id="followDate">
+                    </div>
+                </div>
+
+                <div id="sanctionedBox" style="display: none; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(74, 222, 128, 0.35); padding: 12px; border-radius: 8px; margin: 10px 0;">
+                    <div class="section-title" style="margin-top: 0; color: #4ade80;">🟢 Sanctioned & Disbursed Details</div>
+                    <div class="form-group" style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label style="color:#4ade80; font-weight:600;">Approved Amount (₹) *</label>
+                            <input type="number" id="approvedAmount" placeholder="Sanctioned Amt">
+                        </div>
+                        <div style="flex: 1;">
+                            <label>Disbursed Amount (₹)</label>
+                            <input type="number" id="disbursedAmount" placeholder="Net Disbursed Amt">
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label style="color:#c084fc; font-weight:600;">Dealer Cut / Payout (₹)</label>
+                            <input type="number" id="formDealerCut" placeholder="e.g. 5000">
+                        </div>
+                        <div style="flex: 1;" id="disbursedDateGroup">
+                            <label style="color:var(--primary); font-weight:600;">Disbursement Date *</label>
+                            <input type="date" id="disbursedDate">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="docChecklistSection" style="display: none; margin: 10px 0;">
+                    <div class="section-title">📋 Document Received Checklist</div>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-item"><input type="checkbox" id="chkAadhaar"> Aadhaar Card</label>
+                        <label class="checkbox-item"><input type="checkbox" id="chkPan"> PAN Card</label>
+                        <label class="checkbox-item"><input type="checkbox" id="chkBank"> Bank Statement</label>
+                        <label class="checkbox-item"><input type="checkbox" id="chkRc"> RC Book / Valuation</label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Remarks / Notes</label>
+                    <textarea id="lastConv" rows="2" placeholder="Discussion notes..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">Save to Cloud</button>
+                <button type="button" class="btn-submit" id="cancelBtn" style="background:#334155; color:#fff; display:none; margin-top:6px;" onclick="resetForm()">Cancel Edit</button>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <!-- ADMIN VIEW: Rented Users Cards -->
+        <div id="adminUserMasterDeck" style="display:none;">
+            <div class="panel" style="border: 1px solid #a855f7;">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title" style="color:#c084fc; font-size:1.15rem;">🏢 Rented Clients & Agency Master Cards</div>
+                        <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Manage licenses, active/inactive status, rent bills & performance reports</div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="exportAllClientsToCSV()">📥 Export All Agency Data</button>
+                        <button class="btn-action" style="background:#a855f7; color:#000; font-weight:700;" onclick="openAddTenantModal()">➕ Onboard New Client</button>
+                    </div>
+                </div>
+                <div class="dashboard-grid saas-kpi-grid" style="margin:16px 0;">
+                    <div class="metric-card"><div class="metric-title">Total Tenants</div><div class="metric-value" id="saasMetricTenants">0</div></div>
+                    <div class="metric-card"><div class="metric-title">Active Subscriptions</div><div class="metric-value" id="saasMetricActive">0</div></div>
+                    <div class="metric-card"><div class="metric-title">Monthly Recurring Revenue</div><div class="metric-value metric-gold" id="saasMetricMRR">₹0</div></div>
+                    <div class="metric-card"><div class="metric-title">Expiring in 7 Days</div><div class="metric-value" style="color:#fbbf24;" id="saasMetricExpiring">0</div></div>
+                    <div class="metric-card"><div class="metric-title">Inactive / Suspended</div><div class="metric-value" style="color:#f87171;" id="saasMetricSuspended">0</div></div>
+                </div>
+                <div id="userCardsContainer"></div>
+            </div>
+        </div>
+
+        <!-- CLIENT VIEW: Active Live Pipeline Table -->
+        <div id="clientPipelineTablePanel">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title" id="pipelineTableTitle">Active Live Pipeline (In-Process Files Only)</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <div>
+                            <input type="month" id="liveMonthFilter" onchange="onReportingMonthChanged('liveMonthFilter')" style="width:140px; padding:5px 8px;">
+                        </div>
+                        <button class="btn-action" onclick="document.getElementById('liveMonthFilter').value=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0'); renderMetrics(); renderViews();" style="padding:5px 10px;">Current Month</button>
+                        <button class="btn-action" onclick="clearPipelineFilters()" style="padding:5px 10px;">✕ Clear Filters</button>
+                        <select id="dashboardBranchFilter" onchange="renderViews()" style="width:160px;padding:5px 8px;display:none;"><option value="">All Branches</option></select>
+                        <button class="btn-action" id="btnViewerBranchCsv" onclick="exportViewerBranchCSV()" style="padding:5px 10px;display:none;">📥 Export CSV</button>
+                        <input type="text" id="searchQuery" placeholder="🔍 Name / Mobile / Reg No / Dealer..." oninput="renderViews()" style="width:190px;">
+                        <select id="filterStatus" onchange="renderViews()" style="width:130px;">
+                            <option value="All">All Live Files</option>
+                            <option value="Sanctioned">🟢 Sanctioned</option>
+                            <option value="Login Done">🟣 Login Done</option>
+                            <option value="Documents Pending">🟠 Documents Pending</option>
+                            <option value="Contacted">🔵 Contacted</option>
+                            <option value="New">🟡 New</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Vehicle</th>
+                                <th>Lead Date</th>
+                                <th>Requested Loan</th>
+                                <th>Approved Amt</th>
+                                <th>Dealer/Partner</th>
+                                <th>Branch</th>
+                                <th>Status</th>
+                                <th>Documents Status</th>
+                                <th>Remarks</th>
+                                <th>Manage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leadsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW: CRM Data Health -->
+<div id="view-datahealth" style="display:none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">🩺 CRM Data Health & Duplicate Check</div>
+                <div style="color:var(--text-muted);font-size:.8rem;margin-top:4px;">Current tenant ke records mein missing details, duplicate mobile/vehicle number aur overdue follow-up check karein.</div>
+            </div>
+            <button class="btn-action" onclick="renderDataHealth()">↻ Refresh Scan</button>
+        </div>
+        <div class="dashboard-grid" style="margin:12px 0;">
+            <div class="metric-card"><div class="metric-title">Records Scanned</div><div class="metric-value" id="dh-scanned">0</div></div>
+            <div class="metric-card"><div class="metric-title">Missing Details</div><div class="metric-value" id="dh-missing">0</div></div>
+            <div class="metric-card"><div class="metric-title">Possible Duplicates</div><div class="metric-value" id="dh-duplicates">0</div></div>
+            <div class="metric-card"><div class="metric-title">Overdue Follow-ups</div><div class="metric-value" id="dh-overdue">0</div></div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th>Issue</th><th>Customer</th><th>Mobile</th><th>Vehicle No.</th><th>Lead Status</th><th>Details</th></tr></thead>
+                <tbody id="dataHealthTableBody"><tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);">Scan start karne ke liye Refresh Scan dabayein.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- SMART WORKFLOW: automatically surfaced next actions -->
+<div id="view-workflow" style="display:none;">
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">⚙️ Smart Workflow & Action Center</div><div style="color:var(--text-muted);font-size:.8rem;margin-top:4px;">Lead status aur follow-up date ke basis par system-generated action suggestions. Ye tasks records ko khud se update nahi karte.</div></div><button class="btn-action" onclick="renderSmartWorkflow()">↻ Refresh</button></div>
+    <div class="dashboard-grid" style="margin:12px 0;">
+      <div class="metric-card"><div class="metric-title">Overdue Follow-ups</div><div class="metric-value" id="wf-overdue">0</div></div>
+      <div class="metric-card"><div class="metric-title">Due Today</div><div class="metric-value" id="wf-today">0</div></div>
+      <div class="metric-card"><div class="metric-title">Documents Pending</div><div class="metric-value" id="wf-docs">0</div></div>
+      <div class="metric-card"><div class="metric-title">No Follow-up Scheduled</div><div class="metric-value" id="wf-unscheduled">0</div></div>
+    </div>
+    <div class="table-responsive"><table><thead><tr><th>Priority</th><th>Suggested Action</th><th>Customer</th><th>Mobile</th><th>Status</th><th>Follow-up</th><th>Action</th></tr></thead><tbody id="smartWorkflowBody"><tr><td colspan="7" style="text-align:center;padding:18px;color:var(--text-muted);">Workflow scan loading...</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- VIEW 2: Disbursed Files & Clearance Hub -->
+<div id="view-disbursedhub" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">📑 Disbursed Files & Clearance Hub</div>
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Monitor RTO & Customer Hold with Month Filter</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div>
+                    <input type="month" id="disbursedMonthFilter" onchange="onReportingMonthChanged('disbursedMonthFilter')" style="width:150px; padding:5px 8px;">
+                </div>
+                <button class="btn-action" onclick="document.getElementById('disbursedMonthFilter').value=''; renderDisbursedHubTable();">All Months</button>
+                <div style="background:#1e2433; border:1px solid var(--danger); padding:6px 14px; border-radius:8px;">
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Hold Pending: </span>
+                    <strong style="color:var(--danger); font-size:1rem;" id="tab-total-hold">₹0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Vehicle & Financier</th>
+                        <th>Disbursed Date</th>
+                        <th>Approved Amt</th>
+                        <th>Disbursed Amt</th>
+                        <th>Customer Hold Amt</th>
+                        <th>Reason for Hold</th>
+                        <th>Hold Remarks</th>
+                        <th>Hold Status</th>
+                        <th>RTO Charges</th>
+                        <th>RTO Process Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="disbursedHubTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 3: DEALER / BROKER LEDGER -->
+<div id="view-dealers" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title" style="color:#c084fc;">🤝 Sourcing Partner / Car Dealer Ledger</div>
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Track individual customer files and generate printable PDF statement</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <select id="dealerSelectFilter" onchange="renderDealerLedgerTable()" style="width:180px; padding:6px 10px; background:#0f121a; border:1px solid #a855f7; color:#f3f4f6; border-radius:6px;">
+                    <option value="All">All Dealers / Partners</option>
+                </select>
+                <button class="btn-action" onclick="openDealerStatementModal()" style="background:#a855f7; color:#000; font-weight:700;">📄 View & Print PDF Statement</button>
+                <div style="background:#1e2433; border:1px solid #a855f7; padding:6px 14px; border-radius:8px;">
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Total Dealer Payable Cut: </span>
+                    <strong style="color:#c084fc; font-size:1.1rem;" id="tab-dealer-payout-total">₹0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dealer / Partner</th>
+                        <th>Customer Name</th>
+                        <th>Vehicle Model</th>
+                        <th>File Status</th>
+                        <th>Approved Loan</th>
+                        <th>Disbursed Loan</th>
+                        <th>Dealer Cut / Payable (₹)</th>
+                        <th>Manage</th>
+                    </tr>
+                </thead>
+                <tbody id="dealerLedgerTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 4: SECRET DSA COMMISSIONS & PAYOUT DESK -->
+<div id="view-payoutdesk" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title" style="color:var(--primary);">🔒 Private DSA Commission & Bank Payout Desk</div>
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-top:3px;">Payouts calculated on <strong>Approved Sanctioned Amount</strong></div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div>
+                    <input type="month" id="payoutMonthFilter" onchange="renderPayoutDeskTable()" style="width:150px; padding:5px 8px;">
+                </div>
+                <button class="btn-action" onclick="document.getElementById('payoutMonthFilter').value=''; renderPayoutDeskTable();">All Months</button>
+                <button class="btn-action" onclick="openPayoutSecurityModal()">🔑 Password Settings</button>
+                <button class="btn-action" onclick="lockPayoutDesk()">🔒 Lock Desk</button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" style="margin-bottom: 20px;">
+            <div class="metric-card" style="border-color: rgba(212,175,55,0.4);">
+                <div class="metric-title">Total Gross Commission</div>
+                <div class="metric-value metric-gold" id="sec-gross-comm">₹0</div>
+            </div>
+            <div class="metric-card" style="border-color: rgba(239,68,68,0.4);">
+                <div class="metric-title">Dealer / Broker Cuts</div>
+                <div class="metric-value" style="color:var(--danger);" id="sec-dealer-cuts">₹0</div>
+            </div>
+            <div class="metric-card" style="border-color: rgba(16,185,129,0.4);">
+                <div class="metric-title">Total Net Earning</div>
+                <div class="metric-value" style="color:var(--success);" id="sec-net-comm">₹0</div>
+            </div>
+            <div class="metric-card" style="border-color: rgba(56,189,248,0.4);">
+                <div class="metric-title">Received in Bank</div>
+                <div class="metric-value" style="color:var(--info);" id="sec-received-payout">₹0</div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Financier</th>
+                        <th>Dealer/Partner</th>
+                        <th>Disbursed Date</th>
+                        <th>Approved Amt (Base)</th>
+                        <th>Comm Rate</th>
+                        <th>Gross Payout</th>
+                        <th>Dealer Cut</th>
+                        <th>Net Earning</th>
+                        <th>Payout Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="payoutDeskTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 5: Today's Follow-ups -->
+<div id="view-followups" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">📈 Follow-up Performance Dashboard</div>
+            <div style="color:var(--text-muted);font-size:0.8rem;">Live counts for current tenant</div>
+        </div>
+        <div class="dashboard-grid" style="margin:12px 0;">
+            <div class="metric-card"><div class="metric-title">Pending Follow-ups</div><div class="metric-value" id="fu-metric-pending">0</div></div>
+            <div class="metric-card"><div class="metric-title">Overdue</div><div class="metric-value" id="fu-metric-overdue" style="color:#f87171;">0</div></div>
+            <div class="metric-card"><div class="metric-title">Due Today</div><div class="metric-value" id="fu-metric-today" style="color:#fbbf24;">0</div></div>
+            <div class="metric-card"><div class="metric-title">Next 7 Days</div><div class="metric-value" id="fu-metric-upcoming" style="color:#4ade80;">0</div></div>
+            <div class="metric-card"><div class="metric-title">Escalated (3+ days)</div><div class="metric-value" id="fu-metric-escalated" style="color:#fb7185;">0</div></div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">🔔 Urgent & Scheduled Follow-ups</div>
+            <div style="color:var(--text-muted); font-size:0.8rem;">Clients needing attention today</div>
+        </div>
+        <div class="followup-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;">
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('urgent')">⚠️ Overdue + Today</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('overdue')">Overdue</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('today')">Today</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('upcoming')">Next 7 Days</button>
+            <button type="button" class="btn-quick" onclick="setFollowupFilter('all')">All Pending</button>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;">
+            <input id="followupSearchInput" type="search" placeholder="Search customer, mobile, city, vehicle or dealer..." aria-label="Search follow-ups" oninput="setFollowupSearch(this.value)" style="width:100%;max-width:520px;box-sizing:border-box;">
+            <button type="button" class="btn-quick" onclick="enableFollowupNotifications()">🔔 Notify Due Follow-ups</button>
+            <button type="button" class="btn-quick" onclick="enableDailyFollowupReminder()">🗓️ Enable Daily Reminder (9 AM)</button>
+            <button type="button" class="btn-quick" onclick="disableDailyFollowupReminder()">⏹️ Disable Daily Reminder</button>
+            <button type="button" class="btn-quick" onclick="exportFollowupsCSV()">📥 Export Filtered CSV</button>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Mobile & Action</th>
+                        <th>Loan Amount</th>
+                        <th>Status</th>
+                        <th>Follow-up Date</th>
+                        <th>Latest Remarks & Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="followupsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: FULL LEAD EDIT — opened from the current section -->
+<div id="leadEditModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="leadEditModalTitle" style="z-index:1000002;">
+  <div class="modal-card" style="width:100%;max-width:900px;max-height:92vh;overflow:auto;text-align:left;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;">
+      <h3 id="leadEditModalTitle" style="color:var(--primary);margin:0;">✏️ Edit Lead</h3>
+      <button type="button" class="btn-quick" onclick="closeLeadEditModal()" aria-label="Close lead editor">✕</button>
+    </div>
+    <div id="leadEditFormHost"></div>
+  </div>
+</div>
+
+<!-- MODAL: FOLLOW-UP ONLY EDIT — stays in Follow-ups / Smart Workflow -->
+<div id="followupEditModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="followupEditTitle" style="z-index:1000003;">
+  <div class="modal-card" style="max-width:520px;text-align:left;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
+      <h3 id="followupEditTitle" style="color:var(--primary);margin:0;">🔔 Edit Follow-up</h3>
+      <button type="button" class="btn-quick" onclick="closeFollowupEditModal()" aria-label="Close follow-up editor">✕</button>
+    </div>
+    <p id="followupEditCustomer" style="color:var(--text-muted);font-size:.85rem;margin:0 0 16px;"></p>
+    <form onsubmit="handleSaveFollowupEdit(event)">
+      <input type="hidden" id="followupEditDocId">
+      <div class="form-group">
+        <label for="followupEditDate">Next Follow-up Date</label>
+        <input type="date" id="followupEditDate" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div class="form-group">
+        <label for="followupEditRemarks">Follow-up Notes / Latest Remarks</label>
+        <textarea id="followupEditRemarks" rows="4" placeholder="Call details, customer response, next action..." style="width:100%;box-sizing:border-box;"></textarea>
+      </div>
+      <div id="followupEditError" role="alert" style="display:none;color:var(--danger);font-size:.82rem;margin:10px 0;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+        <button type="submit" id="followupEditSaveBtn" class="btn-submit" style="flex:1;">Save Follow-up</button>
+        <button type="button" class="btn-submit" onclick="closeFollowupEditModal()" style="background:#334155;color:#fff;flex:1;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: PASSWORD GATE FOR SECRET PAYOUTS -->
+<div id="passwordGateModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px; text-align: center;">
+        <h3 style="color: var(--primary); margin-bottom: 8px;">🔒 Secure Payout Desk</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Apna individual payout password ya admin ka universal password enter karein.</p>
+        <form onsubmit="handlePinSubmit(event)">
+            <div class="form-group" style="text-align: left;">
+                <label>Payout Password</label>
+                <input type="password" id="secretPinInput" placeholder="Enter payout password" maxlength="128" autocomplete="current-password" style="text-align: center; font-size: 1.05rem;" required>
+            </div>
+            <div id="pinErrorMsg" role="alert" style="color: var(--danger); font-size: 0.78rem; margin-bottom: 10px; display: none;">Invalid payout password.</div>
+            <button type="submit" class="btn-submit">Unlock Desk</button>
+            <button type="button" class="btn-submit" style="background:#7c3aed;color:#fff;margin-top:6px;" onclick="openPayoutSecurityModal()">🔑 Set / Change Password</button>
+            <button type="button" class="btn-submit" style="background: #334155; color: #fff; margin-top: 6px;" onclick="closePasswordGate()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: PAYOUT PASSWORD MANAGEMENT -->
+<div id="payoutSecurityModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="payoutSecurityTitle">
+  <div class="modal-card" style="max-width:560px;max-height:92vh;overflow:auto;text-align:left;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+      <h3 id="payoutSecurityTitle" style="color:var(--primary);margin:0;">🔐 Payout Password Settings</h3>
+      <button type="button" class="btn-quick" onclick="document.getElementById('payoutSecurityModal').style.display='none'">✕</button>
+    </div>
+    <form onsubmit="handleSaveOwnPayoutPassword(event)">
+      <h4 style="margin:8px 0;color:#38bdf8;">👤 My Individual Payout Password</h4>
+      <div id="payoutOwnCurrentWrap" class="form-group">
+        <label>Current Password</label>
+        <input type="password" id="payoutOwnCurrentPass" autocomplete="current-password" placeholder="Current password">
+      </div>
+      <div class="form-group">
+        <label>New Password (minimum 8 characters, letter + number)</label>
+        <input type="password" id="payoutOwnNewPass" autocomplete="new-password" minlength="8" required>
+      </div>
+      <div class="form-group">
+        <label>Confirm New Password</label>
+        <input type="password" id="payoutOwnConfirmPass" autocomplete="new-password" minlength="8" required>
+      </div>
+      <div id="payoutOwnPassError" role="alert" style="display:none;color:var(--danger);font-size:.8rem;margin:8px 0;"></div>
+      <button type="submit" class="btn-submit" style="background:#0284c7;color:#fff;">Save My Password</button>
+    </form>
+
+    <div id="payoutAdminSecuritySection" style="display:none;border-top:1px solid var(--card-border);margin-top:20px;padding-top:16px;">
+      <form onsubmit="handleSavePayoutMasterPassword(event)">
+        <h4 style="margin:0 0 10px;color:#fbbf24;">👑 Admin Universal Password</h4>
+        <p style="font-size:.78rem;color:var(--text-muted);">Universal password se kisi bhi tenant ka payout desk unlock ho sakta hai. Isse secure aur private rakhein.</p>
+        <div id="payoutMasterCurrentWrap" class="form-group">
+          <label>Current Universal Password</label>
+          <input type="password" id="payoutMasterCurrentPass" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label>New Universal Password</label>
+          <input type="password" id="payoutMasterNewPass" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div class="form-group">
+          <label>Confirm Universal Password</label>
+          <input type="password" id="payoutMasterConfirmPass" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div id="payoutMasterPassError" role="alert" style="display:none;color:var(--danger);font-size:.8rem;margin:8px 0;"></div>
+        <button type="submit" class="btn-submit" style="background:#b45309;color:#fff;">Set / Change Universal Password</button>
+      </form>
+
+      <form onsubmit="handleAdminResetPayoutPassword(event)" style="border-top:1px solid var(--card-border);margin-top:18px;padding-top:16px;">
+        <h4 style="margin:0 0 10px;color:#c084fc;">🛠️ Change Any User's Payout Password</h4>
+        <div class="form-group">
+          <label>Select User / Tenant</label>
+          <select id="payoutAdminTargetTenant" required style="width:100%;box-sizing:border-box;"><option value="">Select user / tenant</option></select>
+        </div>
+        <div class="form-group">
+          <label>New User Password</label>
+          <input type="password" id="payoutAdminResetPass" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div class="form-group">
+          <label>Confirm New User Password</label>
+          <input type="password" id="payoutAdminResetConfirm" autocomplete="new-password" minlength="8" required>
+        </div>
+        <div id="payoutAdminResetError" role="alert" style="display:none;color:var(--danger);font-size:.8rem;margin:8px 0;"></div>
+        <button type="submit" class="btn-submit" style="background:#7c3aed;color:#fff;">Admin: Reset Selected User Password</button>
+      </form>
+    </div>
+    <button type="button" class="btn-submit" style="background:#334155;color:#fff;margin-top:10px;" onclick="document.getElementById('payoutSecurityModal').style.display='none'">Close</button>
+  </div>
+</div>
+
+<!-- MODAL: CLIENT CHANGE OWN PASSWORD -->
+<div id="changeMyPasswordModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+        <h3 style="color: var(--info); margin-bottom: 8px;">🔑 Change My Password</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px;">Update your login password securely:</p>
+        <form onsubmit="handleSaveMyPassword(event)">
+            <div class="form-group">
+                <label>Current Password *</label>
+                <input type="password" id="cmp_oldPass" placeholder="Enter current password" required>
+            </div>
+            <div class="form-group">
+                <label>New Password *</label>
+                <input type="password" id="cmp_newPass" placeholder="Enter new password" required>
+            </div>
+            <div id="cmpError" style="color: var(--danger); font-size: 0.75rem; margin-bottom: 10px; display: none;">Current password incorrect!</div>
+            <button type="submit" class="btn-submit" style="background: var(--info); color: #000;">Update Password</button>
+            <button type="button" class="btn-submit" style="background: #334155; color: #fff; margin-top: 6px;" onclick="document.getElementById('changeMyPasswordModal').style.display='none';">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: EDIT PAYOUT STATUS & COMMISSION SETTINGS -->
+<div id="editPayoutModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 440px;">
+        <h3 style="color:var(--primary); margin-bottom:10px;" id="ep_modalTitle">💰 Edit Payout & Commission Calculator</h3>
+        <form onsubmit="handleSavePayoutData(event)">
+            <input type="hidden" id="ep_docId">
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Customer: <strong id="ep_custName" style="color:var(--text);"></strong></p>
+            
+            <div class="form-group">
+                <label style="color:#4ade80; font-weight:600;">Approved Amount (₹) [Base]</label>
+                <input type="number" id="ep_approvedAmt" oninput="recalcPayoutModal()" required>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label style="color:var(--primary); font-weight:600;">Bank Comm (%)</label>
+                    <input type="number" step="0.01" id="ep_commRate" oninput="recalcPayoutModal()" required placeholder="e.g. 3.75">
+                </div>
+                <div style="flex:1;">
+                    <label>Gross Payout (₹)</label>
+                    <input type="text" id="ep_calcGross" readonly style="background:#1a1e2b; font-weight:700; color:var(--primary);">
+                </div>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label style="color:#c084fc; font-weight:600;">Dealer Cut Type</label>
+                    <select id="ep_cutType" onchange="toggleCutTypeInput()">
+                        <option value="amount">₹ Fixed Amount</option>
+                        <option value="percent">% Percentage</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="color:#c084fc; font-weight:600;" id="ep_cutLabel">Dealer Cut Value</label>
+                    <input type="number" step="0.01" id="ep_dealerCutVal" oninput="recalcPayoutModal()" required placeholder="e.g. 5000">
+                </div>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label>Calculated Cut (₹)</label>
+                    <input type="text" id="ep_calcCutAmt" readonly style="background:#1a1e2b; color:var(--danger); font-weight:700;">
+                </div>
+                <div style="flex:1;">
+                    <label style="color:var(--success); font-weight:600;">Net DSA Payout (₹)</label>
+                    <input type="text" id="ep_calcNet" readonly style="background:#1a1e2b; color:var(--success); font-weight:700;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:6px;">
+                <label>Payout Status</label>
+                <select id="ep_status">
+                    <option value="Pending">🟡 Pending</option>
+                    <option value="Processing">🔵 Processing</option>
+                    <option value="Received">🟢 Received in Bank</option>
+                    <option value="Cleared">✅ Cleared</option>
+                    <option value="On Hold">🔴 On Hold</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit" style="background:var(--primary); color:#000; margin-top:10px;">Save Payout Record</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="document.getElementById('editPayoutModal').style.display='none';">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: MANAGE DEALERS / SUB-BROKERS LIST -->
+<div id="manageDealersModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:#fbbf24; margin-bottom:12px;">⚙️ Manage Dealers / Sub-Brokers</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">List of saved sourcing partners:</p>
+        <div id="dealersListContainer" style="max-height: 250px; overflow-y: auto; margin-bottom: 14px;"></div>
+        <button type="button" class="btn-submit" style="background:#334155; color:#fff;" onclick="closeManageDealersModal()">Close</button>
+    </div>
+</div>
+
+<!-- MODAL: ADD / EDIT RENTED CLIENT TENANT -->
+<div id="saasTenantModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:#c084fc; margin-bottom:12px;" id="tenantModalTitle">➕ Onboard New Client (Tenant Agency)</h3>
+        <form onsubmit="handleSaveTenantClient(event)">
+            <input type="hidden" id="isEditingTenant" value="false">
+            <div class="form-group">
+                <label>Client Tenant ID (Username) *</label>
+                <input type="text" id="t_tenantId" placeholder="e.g. shreeji_auto, bhavani_finance" required>
+            </div>
+            <div class="form-group">
+                <label>Agency / Client Name *</label>
+                <input type="text" id="t_agencyName" placeholder="e.g. Shree Auto Consultant" required>
+            </div>
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label>Head Office Address *</label>
+                    <input type="text" id="t_headOffice" placeholder="e.g. Mehsana, Gujarat" required>
+                </div>
+                <div style="flex:1;">
+                    <label>Contact Phone number *</label>
+                    <input type="tel" id="t_contactPhone" placeholder="e.g. +91 7600211085" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Login Password *</label>
+                <input type="text" id="t_password" placeholder="Set secure password" required>
+            </div>
+            <div class="form-group">
+                <label>Subscription Plan</label>
+                <select id="t_subscriptionPlan" onchange="handleSubscriptionPlanChange()">
+                    <option value="Starter">Starter</option>
+                    <option value="Professional">Professional</option>
+                    <option value="Business">Business</option>
+                    <option value="Enterprise">Enterprise</option>
+                    <option value="Custom">Custom</option>
+                </select>
+                <small style="display:block;color:var(--text-muted);font-size:.72rem;margin-top:5px;">Plan ke hisaab se features automatically apply honge. Custom plan mein admin feature-wise access set kar sakta hai.</small>
+                <div id="customFeatureAccessWrap" style="display:none;margin-top:12px;padding:12px;border:1px solid #a855f7;border-radius:9px;">
+                    <strong style="display:block;margin-bottom:8px;color:#c084fc;">🧩 Custom Plan — Feature Access</strong>
+                    <div id="customFeatureAccessList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px;"></div>
+                    <small id="customFeatureAccessSummary" style="display:block;color:var(--text-muted);margin-top:9px;">Custom plan: sirf checked features user ko milenge.</small>
+                </div>
+            </div>
+            <div class="form-group" style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label>Monthly Rent (₹)</label>
+                    <input type="number" id="t_monthlyRent" placeholder="e.g. 3000" value="3000" required>
+                </div>
+                <div style="flex:1;">
+                    <label>Rent Expiry Date</label>
+                    <input type="date" id="t_expiryDate" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>License Status</label>
+                <select id="t_status">
+                    <option value="Active">🟢 Active (Running)</option>
+                    <option value="Suspended">🔴 Suspended / Inactive (Payment Due)</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-submit" style="background:#a855f7; color:#000;">Save Client License</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="closeAddTenantModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: DEDICATED PASSWORD RESET -->
+<div id="passwordResetModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:var(--primary); margin-bottom:6px;">🔑 Reset Credentials / Password</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:14px;">Verify your Registered Mobile to set a new password:</p>
+        
+        <form onsubmit="handleResetPasswordSubmit(event)">
+            <div class="form-group">
+                <label>Select Target Role</label>
+                <select id="resetRoleTarget" onchange="toggleResetUserField()">
+                    <option value="client">Client / Staff Account</option>
+                    <option value="admin">IT Admin Master Key</option>
+                </select>
+            </div>
+            <div class="form-group" id="resetUserIdField">
+                <label>Tenant ID / Username</label>
+                <input type="text" id="resetInputUserId" placeholder="e.g. heritage auto finance">
+            </div>
+            <div class="form-group">
+                <label>Registered Verification Phone</label>
+                <input type="tel" id="resetInputPhone" placeholder="Enter 10-digit mobile" required>
+            </div>
+            <div class="form-group">
+                <label>New Password / Master PIN</label>
+                <input type="password" id="resetInputNewPass" placeholder="Set new password" required>
+            </div>
+            <div id="resetErrorMsg" style="color:var(--danger); font-size:0.75rem; margin-bottom:10px; display:none;">Invalid Phone Number or User ID!</div>
+            <button type="submit" class="btn-submit">Reset & Update Password</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="closeResetPasswordModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: RENT BILL / INVOICE GENERATOR -->
+<div id="adminRentBillModal" class="modal-overlay">
+    <div class="modal-card do-modal-card" style="max-width: 680px; max-height: calc(100vh - 30px); overflow-y: auto;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="printSelectedDocument('printableRentBillArea')">🖨️ Print / Save Bill as PDF</button>
+            <button class="btn-action" onclick="document.getElementById('adminRentBillModal').style.display='none';">✕ Close</button>
+        </div>
+        
+        <div id="printableRentBillArea" class="do-paper printable-section rent-bill-paper official-document">
+            <h2 style="color:#a855f7;">HERITAGE FINTECH CORE</h2>
+            <h4 class="official-document-subtitle">OFFICIAL RENT INVOICE & SUBSCRIPTION BILL</h4>
+            <div class="official-document-ribbon">RENT INVOICE <span>•</span> SUBSCRIPTION STATEMENT</div>
+            
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Invoice Date:</strong> <span id="billDate"></span></div>
+                <div class="do-grid-item"><strong>Invoice Number:</strong> <span id="billInvNo"></span></div>
+                <div class="do-grid-item"><strong>Client Agency Name:</strong> <span id="billAgencyName" style="color:#b89628; font-weight:700;"></span></div>
+                <div class="do-grid-item"><strong>Tenant Username:</strong> <span id="billTenantId"></span></div>
+                <div class="do-grid-item"><strong>Subscription Plan:</strong> <span id="billPlan">Starter</span></div>
+                <div class="do-grid-item"><strong>Billing Period:</strong> <span id="billPeriod"></span></div>
+                <div class="do-grid-item"><strong>License Valid Upto:</strong> <span id="billExpiry"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Software Subscription Particulars</th>
+                        <th style="text-align:right;">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Heritage FinTech Core - Multi-Tenant Monthly SaaS License Rent</td>
+                        <td style="text-align:right; font-weight:700;" id="billRentAmt">₹0</td>
+                    </tr>
+                    <tr>
+                        <td>Cloud Database Storage & Realtime Firebase Sync Support</td>
+                        <td style="text-align:right;">Included (Free)</td>
+                    </tr>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td style="color:#0f5132; font-size:1rem;">TOTAL RENT PAYABLE DUE</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1.15rem;" id="billTotalPayable">₹0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="invoice-amount-words"><strong>Amount in Words:</strong> <span id="billAmountWords">Rupees Zero Only</span></p>
+
+            <p style="font-size:0.75rem; color:#444; line-height:1.4; margin-bottom: 30px;">
+                * Note: Please make your monthly rent payment via UPI / Bank Transfer before the expiry date to avoid automatic account suspension. Thank you for your business!
+            </p>
+
+            <div class="official-document-signatures" style="display:flex; justify-content:space-between; margin-top:35px; font-size:0.82rem;">
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>Client Acknowledgment</strong>
+                </div>
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>Authorized Signatory (IT Company)</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ADMIN AUDIT REPORT GENERATOR -->
+<div id="adminTenantReportModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 820px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; gap:8px; align-items:center;">
+                <label style="font-size:0.78rem; color:var(--text-muted);">Scope:</label>
+                <select id="admRptScope" onchange="generateAdminTenantReportView()" style="width:150px; padding:5px 8px;">
+                    <option value="All">All Files (Combined)</option>
+                    <option value="Live">Live Pipeline Only</option>
+                    <option value="Disbursed">Disbursed Files Only</option>
+                </select>
+                <label style="font-size:0.78rem; color:var(--text-muted); margin-left:6px;">Month:</label>
+                <input type="month" id="admRptMonth" onchange="generateAdminTenantReportView()" style="width:140px; padding:4px 8px;">
+                <button class="btn-action" onclick="document.getElementById('admRptMonth').value=''; generateAdminTenantReportView();" style="padding:4px 8px;">All Months</button>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button class="btn-action" style="background:#10b981; color:#000; font-weight:700;" onclick="printSelectedDocument('printableAdminTenantReport')">🖨️ Print A4 / Save PDF</button>
+                <button class="btn-action" onclick="document.getElementById('adminTenantReportModal').style.display='none';">✕ Close</button>
+            </div>
+        </div>
+
+        <div id="printableAdminTenantReport" class="do-paper printable-section">
+            <h2 id="admRptAgencyTitle">AGENCY PERFORMANCE AUDIT REPORT</h2>
+            <h4 style="color:#a855f7; letter-spacing:1px; margin-bottom:14px;">POWERED BY HERITAGE FINTECH CORE</h4>
+            
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Generated On:</strong> <span id="admRptDate"></span></div>
+                <div class="do-grid-item"><strong>Agency Tenant ID:</strong> <span id="admRptTenantId" style="color:#b89628; font-weight:700;"></span></div>
+                <div class="do-grid-item"><strong>Report Filter:</strong> <span id="admRptFilterStatus"></span></div>
+                <div class="do-grid-item"><strong>Total Records:</strong> <span id="admRptTotalCount"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Customer Name</th>
+                        <th>Vehicle</th>
+                        <th>Lead Date</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Approved Loan</th>
+                        <th style="text-align:right;">Disbursed Loan</th>
+                        <th>Dealer / Sourcing</th>
+                    </tr>
+                </thead>
+                <tbody id="admRptTableBody"></tbody>
+                <tfoot>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td colspan="4" style="text-align:right; color:#0f5132;">TOTAL APPROVED VOLUME:</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1rem;" id="admRptSumApproved">₹0</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1rem;" id="admRptSumDisbursed">₹0</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="display:flex; justify-content:space-between; margin-top:35px; font-size:0.8rem;">
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>Authorized Agency Signatory</strong>
+                </div>
+                <div style="text-align:center;">
+                    <div style="margin-bottom:35px;">_________________________</div>
+                    <strong>IT SaaS Platform Administrator</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EDIT DEALER CUT IN LEDGER -->
+<div id="editDealerCutModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="color:#c084fc; margin-bottom:8px;">💰 Manage Dealer Cut</h3>
+        <form id="editDealerCutForm" onsubmit="handleSaveDealerCutFromLedger(event)">
+            <input type="hidden" id="dc_leadDocId">
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Customer: <strong id="dc_custName" style="color:var(--text);"></strong></p>
+            <div class="form-group">
+                <label>Dealer / Sub-Broker Name</label>
+                <input type="text" id="dc_dealerName" readonly style="background:#1a1e2b;">
+            </div>
+            <div class="form-group">
+                <label>Approved Loan Amount (₹)</label>
+                <input type="number" id="dc_approvedAmt" readonly style="background:#1a1e2b; color:#4ade80; font-weight:700;">
+            </div>
+            <div class="form-group">
+                <label style="color:#c084fc; font-weight:700;">Dealer Cut / Payable Brokerage (₹) *</label>
+                <input type="number" id="dc_dealerCut" placeholder="Enter cut amount" required>
+            </div>
+            <button type="submit" class="btn-submit" style="background:#a855f7; color:#000;">Save Dealer Cut</button>
+            <button type="button" class="btn-submit" style="background:#334155; color:#fff; margin-top:6px;" onclick="document.getElementById('editDealerCutModal').style.display='none';">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: PRINTABLE DEALER STATEMENT -->
+<div id="dealerStatementModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 780px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <button class="btn-action" style="background:#10b981; color:#000;" onclick="printSelectedDocument('printableDOArea')">🖨️ Print / Save as PDF</button>
+            <button class="btn-action" onclick="closeDealerStatementModal()">✕ Close</button>
+        </div>
+        
+        <div id="printableDealerArea" class="do-paper printable-section">
+            <h2 id="stmt_brand_title">HERITAGE AUTO FINANCE</h2>
+            <h4>PARTNER COMMISSION STATEMENT & FILE SUMMARY</h4>
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Statement Date:</strong> <span id="stmt_date"></span></div>
+                <div class="do-grid-item"><strong>Dealer / Partner Name:</strong> <span id="stmt_dealer" style="color:#b89628; font-weight:700;"></span></div>
+                <div class="do-grid-item"><strong>Total Files Processed:</strong> <span id="stmt_total_files"></span></div>
+                <div class="do-grid-item"><strong>Total Approved Business:</strong> <span id="stmt_total_approved"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Customer Name</th>
+                        <th>Vehicle Model</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Approved Amt</th>
+                        <th style="text-align:right;">Disbursed Amt</th>
+                        <th style="text-align:right;">Dealer Cut (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="stmt_table_body"></tbody>
+                <tfoot>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td colspan="5" style="text-align:right; color:#0f5132;">TOTAL PAYABLE COMMISSION TO DEALER:</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1.05rem;" id="stmt_total_payable">₹0</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RTO & HOLD CLEARANCE -->
+<div id="rtoHoldModal" class="modal-overlay">
+    <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--card-border); padding-bottom:8px;">
+            <div style="color:var(--primary); font-weight:700; font-size:1rem;" id="modalCustTitle">Manage Clearance</div>
+            <button onclick="closeRtoHoldModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        
+        <form id="rtoHoldForm">
+            <input type="hidden" id="modalDocId" value="">
+
+            <div class="section-title" style="color:#4ade80; margin-top:0;">💳 Sanctioned & Disbursed Amounts</div>
+            <div class="form-group" style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <label>Approved Amount (₹)</label>
+                    <input type="number" id="m_approvedAmount" placeholder="Approved Amt">
+                </div>
+                <div style="flex: 1;">
+                    <label>Disbursed Amount (₹)</label>
+                    <input type="number" id="m_disbursedAmount" placeholder="Disbursed Amt">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="color:var(--primary);">Disbursement Date</label>
+                <input type="date" id="m_disbursedDate">
+            </div>
+
+            <div class="section-title" style="color:#fbbf24; margin-top:14px;">📑 RTO Work Management</div>
+            <div class="form-group" style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <label>RTO Charges / Fee (₹)</label>
+                    <input type="number" id="m_rtoCharges" placeholder="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>RTO Process Status</label>
+                    <select id="m_rtoStatus">
+                        <option value="Pending">🟡 Pending (Not Applied)</option>
+                        <option value="File Submitted">🔵 File Submitted to RTO</option>
+                        <option value="Passing In-Progress">🟠 Passing / Fitness In-Progress</option>
+                        <option value="RC Dispatched">🟣 RC Dispatched / Generated</option>
+                        <option value="Completed">✅ Completed & Cleared</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-title" style="color:#f87171; margin-top:14px;">🛑 Customer Payment Hold Management</div>
+            <div class="form-group" style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <label>Hold Amount (₹)</label>
+                    <input type="number" id="m_holdAmount" placeholder="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>Reason for Hold</label>
+                    <select id="m_holdReason">
+                        <option value="None">None (No Hold)</option>
+                        <option value="RC Book Transfer">RC Book Transfer</option>
+                        <option value="Original Invoice / Bill">Original Invoice / Bill</option>
+                        <option value="Insurance Policy">Insurance Policy</option>
+                        <option value="NOC / Form 35 Clearance">NOC / Form 35 Clearance</option>
+                        <option value="Other">Other Reason</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Hold Remarks (Kyu roka hai)</label>
+                <input type="text" id="m_holdRemarks" placeholder="e.g. RC transfer hone par release karenge">
+            </div>
+
+            <div class="form-group">
+                <label>Hold Payment Status</label>
+                <select id="m_holdStatus">
+                    <option value="Hold Kept">🔴 Hold Kept (Payment Pending)</option>
+                    <option value="Released">🟢 Released to Customer</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit" style="margin-top:15px;">Update Clearance Records</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: LEAD AUDIT / RECORD INFO -->
+<div id="leadAuditModal" class="modal-overlay">
+    <div class="modal-card" style="max-width:760px;max-height:calc(100vh - 40px);overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;">
+            <div>
+                <div class="panel-title">🧾 Lead Audit & Record Info</div>
+                <div style="font-size:.7rem;color:var(--text-muted);margin-top:3px;">Cloud timestamps, record metadata & activity timeline</div>
+            </div>
+            <div style="display:flex;gap:7px;">
+                <button class="btn-action" onclick="loadLeadActivity()">🔄 Refresh History</button>
+                <button class="btn-action" onclick="closeLeadAudit()">✕ Close</button>
+            </div>
+        </div>
+        <input type="hidden" id="leadAuditDocId">
+        <div id="leadAuditBody" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;"></div>
+        <div style="margin-top:16px;padding:13px;border:1px solid #2b3342;border-radius:10px;background:rgba(15,18,26,.55);">
+            <div style="font-weight:800;font-size:.85rem;color:var(--primary);margin-bottom:10px;">📝 Add Customer Note / Interaction</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <select id="leadActivityNoteType" aria-label="Interaction type" style="flex:1;min-width:150px;">
+                    <option value="General">General Note</option>
+                    <option value="Call">Phone Call</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Document">Document Update</option>
+                    <option value="Bank">Bank / NBFC Update</option>
+                </select>
+                <span id="leadActivityNoteCount" style="font-size:.72rem;color:var(--text-muted);align-self:center;">0/1000</span>
+            </div>
+            <textarea id="leadActivityNoteText" maxlength="1000" rows="3" placeholder="Customer se baat, document update, bank response ya important note likhein…" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                <button type="button" id="btnSaveLeadActivityNote" class="btn-action" onclick="addLeadActivityNote()" style="background:#10b981;color:#062b1b;font-weight:800;">➕ Save Note</button>
+            </div>
+        </div>
+        <script>
+        (function(){
+            const note=document.getElementById('leadActivityNoteText');
+            const count=document.getElementById('leadActivityNoteCount');
+            if(note&&count&&!note.dataset.counterBound){
+                note.dataset.counterBound='1';
+                note.addEventListener('input',()=>count.textContent=note.value.length+'/1000');
+            }
+        })();
+        </script>
+        <div style="margin-top:16px;border-top:1px solid #2b3342;padding-top:13px;">
+            <div style="font-weight:800;font-size:.82rem;color:var(--primary);margin-bottom:8px;">🕒 Activity Timeline</div>
+            <div id="leadActivityTimeline" style="display:flex;flex-direction:column;gap:7px;">
+                <div style="font-size:.75rem;color:var(--text-muted);padding:12px;background:#0f121a;border:1px solid #242938;border-radius:8px;">History load karne ke liye Refresh History dabayein.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: PRINTABLE DELIVERY ORDER (DO) -->
+<div id="doModal" class="modal-overlay">
+    <div class="modal-card do-modal-card" style="max-width: 680px; max-height: calc(100vh - 30px); overflow-y: auto;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <button class="btn-action" style="background:#10b981; color:#000;" onclick="printSelectedDocument('printableDOArea')">🖨️ Print / Save as PDF</button>
+            <button class="btn-action" onclick="closeDoModal()">✕ Close</button>
+        </div>
+        
+        <div id="printableDOArea" class="do-paper printable-section delivery-order-paper official-document">
+            <h2 id="do_brand_title">HERITAGE AUTO FINANCE</h2>
+            <h4 id="do_brand_sub">HEAD OFFICE: MEHSANA, GUJARAT | CONTACT: +91 7600211085</h4>
+            <div style="display:flex; justify-content:space-between; gap:10px; font-size:8pt; color:#444; margin-bottom:8px;">
+                <span><strong>Document:</strong> Original Delivery Order</span>
+                <span><strong>Print Time:</strong> <span id="do_print_time"></span></span>
+            </div>
+            <div class="official-document-ribbon">
+                VEHICLE DELIVERY ORDER (D.O.)
+            </div>
+
+            <div class="do-grid">
+                <div class="do-grid-item"><strong>Date:</strong> <span id="do_date"></span></div>
+                <div class="do-grid-item"><strong>DO Reference No:</strong> <span id="do_ref"></span></div>
+                <div class="do-grid-item"><strong>Application No:</strong> <span id="do_application"></span></div>
+                <div class="do-grid-item"><strong>Branch Name:</strong> <span id="do_branch"></span></div>
+                <div class="do-grid-item"><strong>Customer Name:</strong> <span id="do_cust"></span></div>
+                <div class="do-grid-item"><strong>Mobile Number:</strong> <span id="do_mobile"></span></div>
+                <div class="do-grid-item"><strong>Vehicle Registration No:</strong> <span id="do_regno" style="font-weight:700;"></span></div>
+                <div class="do-grid-item"><strong>Vehicle Model:</strong> <span id="do_vehicle"></span></div>
+                <div class="do-grid-item"><strong>Financier (Bank/NBFC):</strong> <span id="do_bank"></span></div>
+                <div class="do-grid-item"><strong>Dealer / Sub-broker:</strong> <span id="do_dealer"></span></div>
+                <div class="do-grid-item"><strong>City:</strong> <span id="do_city"></span></div>
+            </div>
+
+            <table class="do-table">
+                <thead>
+                    <tr>
+                        <th>Payment Particulars & Deductions</th>
+                        <th style="text-align:right;">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Sanctioned / Approved Loan Amount</strong></td>
+                        <td style="text-align:right; font-weight:700; color:#111;" id="do_approved">₹0</td>
+                    </tr>
+                    <tr>
+                        <td>Less: Bank Charges / Processing Deductions</td>
+                        <td style="text-align:right; color:#d9534f;" id="do_bank_charges">₹0</td>
+                    </tr>
+                    <tr style="background:#fdfdfd; font-weight:600;">
+                        <td>Gross Disbursed Loan Amount</td>
+                        <td style="text-align:right; color:#2563eb;" id="do_gross_disbursed">₹0</td>
+                    </tr>
+                    <tr>
+                        <td>Less: RTO Passing, Fitness & Registration Charges</td>
+                        <td style="text-align:right; color:#d9534f;" id="do_rto">₹0</td>
+                    </tr>
+                    <tr style="background:#f4fbf7; font-weight:700; border-top:2px solid #10b981;">
+                        <td style="color:#0f5132; font-size:0.95rem;">NET PAYABLE TO DEALER</td>
+                        <td style="text-align:right; color:#0f5132; font-size:1.15rem;" id="do_net_dealer_payable">₹0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="invoice-amount-words"><strong>Net Payable in Words:</strong> <span id="do_net_words">Rupees Zero Only</span></p>
+
+            <p style="font-size:0.75rem; color:#444; line-height:1.4; margin-bottom: 30px;">
+                * This document authorizes the dealership to deliver the above mentioned vehicle to the customer. All bank deduction and RTO registration charges have been factored as per advice. Hypothecation must be endorsed in favor of the financier bank.
+            </p>
+
+            <div class="do-signatures official-document-signatures" style="display:flex; justify-content:space-between; margin-top:30px; font-size:0.82rem;">
+                <div style="text-align:center;">
+                    <div style="margin-bottom:40px;">_________________________</div>
+                    <strong>Customer Signature</strong>
+                </div>
+                <div style="text-align:center;">
+                    <div style="margin-bottom:40px;">_________________________</div>
+                    <strong>Authorized Signatory</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loan EMI Calculator -->
+<div id="emiCalculatorModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:10050;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;" role="dialog" aria-modal="true" aria-labelledby="emiCalcTitle">
+    <div class="modal-content" style="width:100%;max-width:520px;max-height:90vh;overflow:auto;background:var(--panel-bg,#111827);border:1px solid var(--primary);border-radius:14px;padding:22px;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+            <h2 id="emiCalcTitle" style="margin:0;">🧮 Vehicle Loan EMI Calculator</h2>
+            <button type="button" class="btn-quick" onclick="closeEmiCalculator()" aria-label="Close EMI calculator">✕</button>
+        </div>
+        <label for="emiLoanAmount">Loan Amount (₹)</label>
+        <input id="emiLoanAmount" type="number" min="1" step="1000" placeholder="e.g. 500000" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="emiInterestRate">Annual Interest Rate (%)</label>
+        <input id="emiInterestRate" type="number" min="0" max="100" step="0.1" placeholder="e.g. 10.5" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="emiTenureMonths">Loan Tenure (Months)</label>
+        <input id="emiTenureMonths" type="number" min="1" max="600" step="1" placeholder="e.g. 60" style="width:100%;box-sizing:border-box;margin:6px 0 16px;">
+        <button type="button" class="btn-action" style="width:100%;background:var(--primary);color:#111;font-weight:800;" onclick="calculateLoanEMI()">Calculate EMI</button>
+        <div id="emiCalcError" role="alert" style="display:none;color:#f87171;margin-top:12px;"></div>
+        <div id="emiCalcResult" aria-live="polite" style="display:none;margin-top:18px;padding:16px;border:1px solid var(--primary);border-radius:10px;">
+            <div style="color:var(--text-muted);font-size:.85rem;">Estimated Monthly EMI</div>
+            <div id="emiMonthlyValue" style="font-size:1.8rem;font-weight:800;color:var(--primary);margin:4px 0 12px;">₹0</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><small>Total Interest</small><div id="emiTotalInterest" style="font-weight:700;">₹0</div></div>
+                <div><small>Total Repayment</small><div id="emiTotalPayment" style="font-weight:700;">₹0</div></div>
+            </div>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin:14px 0 0;">Estimate only. Actual EMI may vary due to lender terms, fees, insurance, and rounding.</p>
+    </div>
+</div>
+
+<!-- Loan affordability calculator -->
+<div id="affordabilityModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:10050;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;" role="dialog" aria-modal="true" aria-labelledby="affordabilityTitle">
+    <div class="modal-content" style="width:100%;max-width:540px;max-height:90vh;overflow:auto;background:var(--panel-bg,#111827);border:1px solid var(--primary);border-radius:14px;padding:22px;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+            <h2 id="affordabilityTitle" style="margin:0;">📊 Loan Eligibility & Affordability</h2>
+            <button type="button" class="btn-quick" onclick="closeAffordabilityCalculator()" aria-label="Close affordability calculator">✕</button>
+        </div>
+        <label for="affMonthlyIncome">Net Monthly Income (₹)</label>
+        <input id="affMonthlyIncome" type="number" min="1" step="1000" placeholder="e.g. 50000" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="affExistingEmi">Existing Monthly EMI (₹)</label>
+        <input id="affExistingEmi" type="number" min="0" step="500" value="0" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="affLoanAmount">Requested Loan Amount (₹)</label>
+        <input id="affLoanAmount" type="number" min="1" step="1000" placeholder="e.g. 500000" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="affInterestRate">Annual Interest Rate (%)</label>
+        <input id="affInterestRate" type="number" min="0" max="100" step="0.1" placeholder="e.g. 10.5" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="affTenureMonths">Tenure (Months)</label>
+        <input id="affTenureMonths" type="number" min="1" max="600" step="1" placeholder="e.g. 60" style="width:100%;box-sizing:border-box;margin:6px 0 14px;">
+        <label for="affFoirLimit">Maximum EMI-to-Income Ratio (%)</label>
+        <input id="affFoirLimit" type="number" min="1" max="100" step="1" value="40" style="width:100%;box-sizing:border-box;margin:6px 0 16px;">
+        <button type="button" class="btn-action" style="width:100%;background:var(--primary);color:#111;font-weight:800;" onclick="calculateAffordability()">Calculate Affordability</button>
+        <div id="affCalcError" role="alert" style="display:none;color:#f87171;margin-top:12px;"></div>
+        <div id="affCalcResult" aria-live="polite" style="display:none;margin-top:18px;padding:16px;border:1px solid var(--primary);border-radius:10px;">
+            <div style="color:var(--text-muted);font-size:.85rem;">Estimated EMI for Requested Loan</div>
+            <div id="affMonthlyEmi" style="font-size:1.8rem;font-weight:800;color:var(--primary);margin:4px 0 12px;">₹0</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><small>Total Monthly EMI After Loan</small><div id="affTotalEmi" style="font-weight:700;">₹0</div></div>
+                <div><small>EMI-to-Income Ratio</small><div id="affFoirValue" style="font-weight:700;">0%</div></div>
+                <div><small>Estimated EMI Capacity</small><div id="affCapacity" style="font-weight:700;">₹0</div></div>
+                <div><small>Estimated Maximum Loan</small><div id="affMaxLoan" style="font-weight:700;">₹0</div></div>
+            </div>
+            <div id="affEligibilityStatus" style="margin-top:14px;font-weight:800;"></div>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin:14px 0 0;">Indicative estimate only, not lender approval. Actual eligibility depends on lender policy, credit profile, income verification, fees, and other obligations.</p>
+    </div>
+</div>
+
+
+<!-- Customer Document Checklist & Verification Tracker -->
+<div id="documentTrackerModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:20020;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;" role="dialog" aria-modal="true" aria-labelledby="documentTrackerTitle">
+ <div class="modal-content" style="width:100%;max-width:760px;max-height:92vh;overflow:auto;background:var(--panel-bg,#111827);border:1px solid var(--primary);border-radius:14px;padding:20px;box-sizing:border-box;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+   <div><h2 id="documentTrackerTitle" style="margin:0;">📁 Customer Document Tracker</h2><p style="margin:6px 0 0;color:var(--text-muted);font-size:.82rem;">Lead-wise checklist, Pending/Received status aur remarks.</p></div>
+   <button type="button" class="btn-quick" onclick="closeDocumentTracker()" aria-label="Close document tracker">✕</button>
+  </div>
+  <label for="docTrackerLead">Select Customer / Lead</label>
+  <select id="docTrackerLead" onchange="loadDocumentChecklist()" style="width:100%;box-sizing:border-box;margin:6px 0 14px;"></select>
+  <div id="docTrackerSummary" style="padding:12px;border:1px solid var(--card-border);border-radius:10px;margin-bottom:12px;">Customer select karein.</div>
+  <div id="docTrackerRows" style="display:flex;flex-direction:column;gap:10px;"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+   <button type="button" class="btn-action" onclick="saveDocumentChecklist()" style="background:var(--primary);color:#111;font-weight:800;">💾 Save Checklist</button>
+   <button type="button" class="btn-action" id="btnShareChecklistDocuments" onclick="shareChecklistDocuments()" style="background:#16a34a;color:#fff;font-weight:800;">📤 Share Documents</button>
+   <button type="button" class="btn-action" onclick="exportDocumentChecklist()">📄 Export Checklist CSV</button>
+   <button type="button" class="btn-action" onclick="closeDocumentTracker()">Close</button>
+  </div>
+  <p style="font-size:.76rem;color:var(--text-muted);margin:12px 0 0;">PDF, JPG/JPEG, PNG, WEBP, Word, Excel, TXT aur CSV files (max 15 MB/file). “Aadhaar Card” aur “Other” category mein multiple files ek saath select kar sakte hain. Upload pehle Firebase Cloud mein save hoga; cloud upload fail hone par file isi device/browser ke local storage mein save ho sakti hai. Local files doosre device par sync nahi hoti. Share checkbox optional hai: agar koi checkbox select nahi hai to sabhi uploaded documents share ke liye select honge. Share mein ek file original format mein jaayegi; multiple files ZIP ban kar share hongi. Agar device file-sharing support nahi karta, file/ZIP download hogi. Cloud access Firebase Storage rules aur permissions par depend karta hai.</p>
+ </div>
+</div>
+
+
+<!-- MANAGEMENT & REPORTS HUB -->
+<div id="managementHubModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="managementHubTitle" style="display:none;z-index:1001000;padding:14px;box-sizing:border-box;">
+ <div class="modal-content" style="width:100%;max-width:1180px;max-height:94vh;overflow:auto;background:var(--panel-bg,#111827);border:1px solid #7c3aed;border-radius:16px;padding:22px;box-sizing:border-box;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;">
+   <div><div style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#a78bfa;font-weight:800;">Workspace Control Center</div><h2 id="managementHubTitle" style="margin:5px 0 4px;">🧭 Management & Reports</h2><p style="margin:0;color:var(--text-muted);font-size:.85rem;">Staff, branches, lead assignment, reports aur permissions ek hi control center mein.</p></div>
+   <button type="button" class="btn-quick" onclick="closeManagementHub()" aria-label="Close management hub">✕</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));gap:10px;margin-bottom:16px;">
+   <button type="button" class="btn-action management-module-tab" data-management-module="staff" onclick="showManagementModule('staff')" style="background:#075985;color:#e0f2fe;padding:14px;text-align:left;">👥 Staff Accounts <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="branches" onclick="showManagementModule('branches')" style="background:#065f46;color:#d1fae5;padding:14px;text-align:left;">🏢 Branches <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="leads" onclick="showManagementModule('leads')" style="background:#92400e;color:#fef3c7;padding:14px;text-align:left;">📋 Lead Management <small style="display:block;margin-top:5px;">Standard + Advanced Controls</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="reports" onclick="showManagementModule('reports')" style="background:#5b21b6;color:#ede9fe;padding:14px;text-align:left;">📊 Reports <small style="display:block;margin-top:5px;">Basic + Advanced Reports</small></button>
+   <button type="button" class="btn-action management-module-tab" data-management-module="permissions" onclick="showManagementModule('permissions')" style="background:#9f1239;color:#ffe4e6;padding:14px;text-align:left;">🔐 User Permissions <small style="display:block;margin-top:5px;">Standard Roles + Detailed Access</small></button>
+  </div>
+  <!-- Staff editor opens inline for create and in a modal for edit. -->
+<div id="managementPanelStaff" role="region" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #38bdf8;">
+   <h3 style="margin:0 0 6px;color:#7dd3fc;">👥 Staff Accounts</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(56,189,248,.10);border:1px solid rgba(56,189,248,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Profile, contact, role, branch aur active/inactive status.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: profile, contact, active status. Advanced: role, branch, access overview.</p>
+   <div id="mhStaffEditor" style="display:block;">
+    <div id="mhStaffEditorTitle" style="font-weight:800;color:#7dd3fc;margin-bottom:10px;">➕ Create Staff</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;">
+    <div><label for="mhStaffName">Staff name *</label><input id="mhStaffName" placeholder="Full name" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhStaffPhone">Mobile</label><input id="mhStaffPhone" type="tel" placeholder="Mobile number" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhStaffEmail">Email</label><input id="mhStaffEmail" type="email" placeholder="Email (optional)" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhStaffRole">Role</label><select id="mhStaffRole" onchange="applyStaffRoleDefaultFeatureAccess(true)" style="width:100%;box-sizing:border-box;"><option>Sales Executive</option><option>Manager</option><option>Branch Manager</option><option>Operations</option><option>Viewer</option><option>Administrator</option></select></div>
+    <div><label for="mhStaffBranch">Branch</label><select id="mhStaffBranch" style="width:100%;box-sizing:border-box;"><option value="">Unassigned</option></select></div>
+    <div><label for="mhStaffStatus">Status</label><select id="mhStaffStatus" style="width:100%;box-sizing:border-box;"><option>Active</option><option>Inactive</option></select></div>
+    <div><label for="mhStaffLoginId">Staff Login ID *</label><input id="mhStaffLoginId" autocomplete="off" placeholder="e.g. rahul.sales" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhStaffLoginPassword">Login Password <span id="mhStaffPasswordRequired">*</span></label><input id="mhStaffLoginPassword" type="password" autocomplete="new-password" placeholder="Edit: blank = keep current password" style="width:100%;box-sizing:border-box;"></div>
+   </div>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;">
+    <strong>🔐 LOGIN & FEATURE ACCESS</strong>
+    <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff isi portal ke Client / Staff Login se apne Login ID + Password se login karega. Role select karte hi us role ke default features automatically check honge. Checkbox se admin individual access edit kar sakta hai. Sirf current tenant ke subscription plan mein available features hi assign kiye ja sakte hain.</div>
+   </div>
+   <div id="mhStaffPlanSummary" style="margin:0 0 10px;color:var(--text-muted);font-size:.8rem;"></div>
+   <div id="mhStaffFeatureAccessList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;"></div>
+   <div id="mhStaffAccessNote" style="margin-top:9px;color:var(--text-muted);font-size:.75rem;"></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="btn-action" type="button" onclick="saveManagementStaff()" style="background:#0284c7;color:#fff;">💾 Save Staff Changes</button><button class="btn-action" type="button" onclick="resetManagementStaffForm()">Cancel / Clear</button></div>
+   </div>
+   <div id="mhStaffEditModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:18px;">
+    <div style="width:min(900px,96vw);max-height:92vh;overflow:auto;background:var(--card-bg,#111827);border:1px solid #38bdf8;border-radius:14px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.5);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;"><strong style="font-size:1rem;color:#7dd3fc;">✏️ Edit Staff</strong><button type="button" class="btn-action" onclick="closeManagementStaffEdit()">✕ Close</button></div>
+      <div id="mhStaffEditMount"></div>
+    </div>
+   </div>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:9px;"><strong>ADVANCED CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff search, role/branch overview aur account status management.</div></div><div><label for="mhStaffSearch">Search staff</label><input id="mhStaffSearch" placeholder="Name, mobile, email, role..." oninput="renderManagementStaff()" style="width:100%;box-sizing:border-box;"></div><div id="mhStaffList" style="margin-top:14px;overflow:auto;"></div><p style="margin:8px 0 0;font-size:.74rem;color:var(--text-muted);">Staff login ID/password aur feature access yahin manage hoga. Password edit karte waqt blank chhodne par existing password same rahega.</p>
+  </div>
+  <section id="managementPanelBranches" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #34d399;">
+   <h3 style="margin:0 0 6px;color:#6ee7b7;">🏢 Branches</h3><div id="mhBranchNotice" role="status" aria-live="polite" style="display:none;margin:10px 0 14px;padding:12px 14px;border:1px solid #f59e0b;border-radius:10px;background:rgba(245,158,11,.12);color:#fde68a;font-size:.88rem;line-height:1.5;font-weight:600;"></div><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Branch profile, contact, address aur active/inactive status.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: branch profile, contact, active status. Advanced: staff mapping and branch-wise lead allocation.</p>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;">
+    <div><label for="mhBranchName">Branch name *</label><input id="mhBranchName" placeholder="e.g. Ahmedabad Branch" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhBranchCode">Branch code</label><input id="mhBranchCode" placeholder="e.g. AMD01" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhBranchPhone">Contact number</label><input id="mhBranchPhone" type="tel" placeholder="Phone" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhBranchStatus">Status</label><select id="mhBranchStatus" style="width:100%;box-sizing:border-box;"><option>Active</option><option>Inactive</option></select></div>
+    <div style="grid-column:1/-1;"><label for="mhBranchAddress">Address</label><input id="mhBranchAddress" placeholder="Branch address" style="width:100%;box-sizing:border-box;"></div>
+   </div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="btn-action" type="button" onclick="saveManagementBranch()" style="background:#059669;color:#fff;">➕ Save Branch</button><button class="btn-action" type="button" onclick="resetManagementBranchForm()">Clear</button></div>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.28);border-radius:9px;"><strong>ADVANCED CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Branch-wise staff mapping and lead assignment controls.</div></div><div id="mhBranchList" style="margin-top:14px;overflow:auto;"></div>
+  </section>
+  <section id="managementPanelLeads" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #f59e0b;">
+   <h3 style="margin:0 0 6px;color:#fcd34d;">📋 Lead Management</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.35);border-radius:9px;"><strong>STANDARD CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Lead status aur follow-up CRM pipeline mein manage karein.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard: lead status and follow-up are available in the CRM. Advanced: assign a lead to staff/branch and export the filtered list.</p>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.28);border-radius:9px;"><strong>ADVANCED CONTROLS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Staff/branch assignment, search and filtered lead export.</div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;margin-bottom:10px;"><div><label for="mhLeadSearch">Search lead</label><input id="mhLeadSearch" placeholder="Customer name or mobile" oninput="renderManagementLeadOptions()" style="width:100%;box-sizing:border-box;"></div><div><label for="mhLeadStatusFilter">Filter by status</label><select id="mhLeadStatusFilter" onchange="renderManagementLeadOptions()" style="width:100%;box-sizing:border-box;"><option value="">All statuses</option></select></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;">
+    <div><label for="mhLeadSelect">Customer / Lead</label><select id="mhLeadSelect" style="width:100%;box-sizing:border-box;"></select></div>
+    <div><label for="mhLeadStaff">Assign staff</label><select id="mhLeadStaff" style="width:100%;box-sizing:border-box;"><option value="">Unassigned</option></select></div>
+    <div><label for="mhLeadBranch">Assign branch</label><select id="mhLeadBranch" style="width:100%;box-sizing:border-box;"><option value="">Unassigned</option></select></div>
+   </div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="btn-action" type="button" onclick="saveManagementLeadAssignment()" style="background:#d97706;color:#111;">💾 Save Assignment</button><button class="btn-action" type="button" onclick="exportManagementLeadList()">📥 Export Lead List CSV</button></div>
+   <div id="mhLeadSummary" style="margin-top:14px;color:var(--text-muted);font-size:.82rem;"></div>
+  </section>
+  <section id="managementPanelReports" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #a78bfa;">
+   <h3 style="margin:0 0 6px;color:#c4b5fd;">📊 Report Center</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(167,139,250,.10);border:1px solid rgba(167,139,250,.35);border-radius:9px;"><strong>BASIC BUSINESS REPORTS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Pipeline total, disbursed files aur disbursed amount ka summary.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Basic: pipeline and disbursement summaries. Advanced: date range, status, branch/staff filters and detailed CSV export.</p>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.28);border-radius:9px;"><strong>ADVANCED REPORTS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Date range, status, staff/branch filters and detailed CSV export.</div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;">
+    <div><label for="mhReportFrom">From date</label><input id="mhReportFrom" type="date" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhReportTo">To date</label><input id="mhReportTo" type="date" style="width:100%;box-sizing:border-box;"></div>
+    <div><label for="mhReportStatus">Lead status</label><select id="mhReportStatus" style="width:100%;box-sizing:border-box;"><option value="">All statuses</option></select></div>
+    <div><label for="mhReportStaff">Staff</label><select id="mhReportStaff" style="width:100%;box-sizing:border-box;"><option value="">All staff</option></select></div>
+    <div><label for="mhReportBranch">Branch</label><select id="mhReportBranch" style="width:100%;box-sizing:border-box;"><option value="">All branches</option></select></div>
+   </div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="btn-action" type="button" onclick="generateManagementReport()" style="background:#7c3aed;color:#fff;">🔎 Generate Report</button><button class="btn-action" type="button" onclick="exportManagementReport()">📥 Export Report CSV</button></div>
+   <div id="mhReportSummary" style="margin-top:14px;"></div><div id="mhReportTable" style="margin-top:12px;overflow:auto;"></div>
+  </section>
+  <section id="managementPanelPermissions" class="panel management-module-panel" style="display:none;margin:0 0 14px;border:1px solid #fb7185;">
+   <h3 style="margin:0 0 6px;color:#fda4af;">🔐 User Permissions</h3><div class="management-section-label" style="margin:14px 0 8px;padding:10px 12px;background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.35);border-radius:9px;"><strong>STANDARD ROLES</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Administrator, Manager, Sales Executive aur Viewer ke default access profiles.</div></div><p style="margin:0 0 14px;color:var(--text-muted);font-size:.82rem;">Standard roles + detailed module permissions. Saved as a role-policy configuration. Important: client-side settings alone are not a security boundary; server-side rules must enforce them.</p>
+   <div class="management-section-label" style="margin:16px 0 8px;padding:10px 12px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.28);border-radius:9px;"><strong>DETAILED ROLE-BASED ACCESS</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">Har role ke liye module/action-wise permissions select karein.</div></div><div style="overflow:auto;"><table id="mhPermissionTable" style="width:100%;border-collapse:collapse;min-width:650px;"><thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid var(--card-border);">Module / Action</th><th>Administrator</th><th>Manager</th><th>Sales Executive</th><th>Viewer</th></tr></thead><tbody id="mhPermissionBody"></tbody></table></div>
+   <button type="button" class="btn-action" onclick="saveManagementPermissions()" style="margin-top:12px;background:#e11d48;color:#fff;">💾 Save Role Permissions</button>
+   <div id="mhPermissionNote" style="margin-top:10px;font-size:.78rem;color:var(--text-muted);"></div>
+  </section>
+  <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--card-border);"><button type="button" class="btn-action" onclick="closeManagementHub()">Close Module Center</button></div>
+ </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* Management Hub module controls must remain clickable above nested panels. */
+#managementHubModal { pointer-events: auto; }
+#managementHubModal .management-module-tab {
+  position: relative;
+  z-index: 1001005;
+  pointer-events: auto;
+  cursor: pointer;
+}
+</style>
+<script>
+/* Route module clicks in capture phase, but preserve app-level access checks. */
+(function () {
+  document.addEventListener('click', function (event) {
+    var button = event.target && event.target.closest
+      ? event.target.closest('#managementHubModal .management-module-tab')
+      : null;
+    if (!button) return;
+    var module = button.getAttribute('data-management-module');
+    if (!module || typeof window.showManagementModule !== 'function') return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    window.showManagementModule(module);
+  }, true);
+})();
+</script>
+
+<script src="assets/js/app.js?v=role-default-zero-access-fix-20261026-1"></script>
+<script>
+  // Keep the public CRM URL client-only; expose the IT Admin login only at /admin/.
+  (function () {
+    var isAdminRoute = /^\/admin\/?$/.test(window.location.pathname);
+    var clientButton = document.getElementById('btnAuthClient');
+    var adminButton = document.getElementById('btnAuthAdmin');
+    if (clientButton) clientButton.style.display = isAdminRoute ? 'none' : '';
+    if (adminButton) adminButton.style.display = isAdminRoute ? '' : 'none';
+    if (typeof window.setAuthTab === 'function') {
+      window.setAuthTab(isAdminRoute ? 'admin' : 'client');
+    }
+  })();
+</script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .catch(function (error) { console.warn('CRM service worker registration failed:', error); });
+    });
+  }
+</script>
+</body>
+</html>
