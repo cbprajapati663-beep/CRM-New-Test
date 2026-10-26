@@ -13,6 +13,9 @@ The CRM should be treated as **not yet secure for sensitive multi-tenant custome
 ### Critical — Client-side privileged access fallbacks
 The existing `SECURITY.md` review records a hard-coded default tenant credential, a client-side master-admin password fallback, and a payout PIN fallback. Treat these as exposed. Removing them before a tested replacement is ready may lock out the owner and is not a sufficient fix by itself.
 
+### Critical — Firebase Auth SDK is loaded but not used for sign-in
+The main page loads the Firebase Auth compat SDK, but static inspection of the main application script found no Firebase Auth sign-in call. The current tenant login still relies on reading tenant documents and comparing a password in browser code. This means the SDK being present does not provide an authentication boundary.
+
 ### Critical — Tenant/role authorization is not proven server-side
 Lead scoping such as `getLeadScopedList()` happens in the browser. Frontend filters are not a security boundary. Repository review did not find root-level `firestore.rules` or `firebase.json`; the deployed Firestore rules, Storage rules, Firebase Auth settings, and hosting configuration remain unverified.
 
@@ -21,6 +24,10 @@ The code review recorded multiple dynamic `innerHTML` assignments and a `documen
 
 ### Hardening — Public client configuration
 Firebase web configuration (including the API key) is expected to be visible in a browser and is not by itself a server secret. Security depends on Authentication, restrictive Firestore/Storage rules, App Check where appropriate, and not embedding privileged credentials in client code.
+
+## Additional staging discovery
+- A staging Firebase web configuration file exists at `assets/js/staging/firebase-config.js` and identifies the `heritage-crm-staging` project. This only confirms that a client configuration is committed; it does **not** prove the project is isolated, that its deployed rules are safe, or that test data is present.
+- The main HTML loads Firebase Auth compatibility SDK, but the current `assets/js/app.js` does not call Firebase Auth sign-in methods. A migration needs a planned tenant/staff identity mapping and recovery path.
 
 ## Verification status
 - The static-validation workflow on branch `security/audit-phase1-20261026` passed after correcting the PWA icon check to ignore its cache-busting query string.
