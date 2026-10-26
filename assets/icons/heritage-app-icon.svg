@@ -1,11 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<defs><linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6f18ff"/><stop offset=".55" stop-color="#3100a8"/><stop offset="1" stop-color="#100044"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff1a8"/><stop offset=".42" stop-color="#ffc642"/><stop offset="1" stop-color="#b86a00"/></linearGradient><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter></defs>
+<defs>
+ <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#721cff"/><stop offset=".55" stop-color="#3100a8"/><stop offset="1" stop-color="#100044"/></linearGradient>
+ <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff4b4"/><stop offset=".4" stop-color="#ffc642"/><stop offset="1" stop-color="#b86a00"/></linearGradient>
+ <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
 <rect width="512" height="512" rx="112" fill="#fff"/>
 <rect x="22" y="22" width="468" height="468" rx="100" fill="url(#p)"/>
-<rect x="28" y="28" width="456" height="456" rx="94" fill="none" stroke="#9b5cff" stroke-width="5"/>
-<path d="M112 116h64v280h-64zM336 116h64v280h-64zM176 116h160v62H176zM176 226h160v60H176zM176 334h160v62H176z" fill="#fff" opacity=".98"/>
-<path d="M82 320C154 294 220 240 278 181c35-35 68-58 105-65-29 44-48 75-77 106-51 55-109 98-188 130-18 7-32 10-48 10z" fill="url(#g)" stroke="#fff0a5" stroke-width="4" stroke-linejoin="round"/>
-<path d="M90 357c83-20 168-80 232-147 24-25 42-47 61-77-6 44-25 84-54 116-62 70-145 112-239 129z" fill="#f6b51c" opacity=".9"/>
-<circle cx="392" cy="104" r="23" fill="url(#g)" stroke="#fff0a5" stroke-width="4"/>
-<path d="M112 432h288" stroke="url(#g)" stroke-width="8" stroke-linecap="round"/>
+<rect x="28" y="28" width="456" height="456" rx="94" fill="none" stroke="#a46aff" stroke-width="5"/>
+<!-- Bold, unmistakable H monogram -->
+<path d="M105 106H184V211H328V106H407V406H328V284H184V406H105Z" fill="#fff"/>
+<!-- Gold signature ribbon crosses the H without hiding its letterform -->
+<path d="M62 325C133 299 195 244 253 190C291 155 335 124 398 109C374 151 350 185 319 215C259 274 184 323 94 356C79 361 67 364 54 364C74 350 89 337 102 322Z" fill="url(#g)" stroke="#fff0a5" stroke-width="4" stroke-linejoin="round"/>
+<path d="M75 362C163 338 247 280 315 211C348 178 374 148 397 113C391 158 368 196 336 230C273 298 190 343 96 370Z" fill="#f6b51c" opacity=".9"/>
+<circle cx="402" cy="100" r="21" fill="url(#g)" stroke="#fff0a5" stroke-width="4"/>
+<path d="M126 431H386" stroke="url(#g)" stroke-width="8" stroke-linecap="round"/>
 </svg>
