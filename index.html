@@ -1507,6 +1507,19 @@
 
 <script src="assets/js/app.js?v=role-default-zero-access-fix-20261026-1"></script>
 <script>
+  // Keep the public CRM URL client-only; expose the IT Admin login only at /admin/.
+  (function () {
+    var isAdminRoute = /^\/admin\/?$/.test(window.location.pathname);
+    var clientButton = document.getElementById('btnAuthClient');
+    var adminButton = document.getElementById('btnAuthAdmin');
+    if (clientButton) clientButton.style.display = isAdminRoute ? 'none' : '';
+    if (adminButton) adminButton.style.display = isAdminRoute ? '' : 'none';
+    if (typeof window.setAuthTab === 'function') {
+      window.setAuthTab(isAdminRoute ? 'admin' : 'client');
+    }
+  })();
+</script>
+<script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('./sw.js', { scope: './' })
