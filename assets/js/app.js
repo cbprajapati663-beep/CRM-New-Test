@@ -4752,10 +4752,15 @@
                     }
                     if(!snap.exists)return [staff.id,{}];
                     const account=snap.data()||{};
+                    const profileFeatures=Array.isArray(staff.featureAccess)?staff.featureAccess:[];
+                    const accountFeatures=Array.isArray(account.featureAccess)?account.featureAccess:[];
+                    // An empty/stale account array must not mask valid permissions
+                    // already saved on the tenant staff profile.
+                    const mergedFeatures=accountFeatures.length?accountFeatures:profileFeatures;
                     return [staff.id,{
                         loginId:account.loginId||'',
                         staffAccountStatus:account.status||'',
-                        featureAccess:Array.isArray(account.featureAccess)?account.featureAccess:[]
+                        featureAccess:mergedFeatures
                     }];
                 }catch(error){
                     console.warn('Staff account lookup failed for',staff.id,error);
@@ -4858,10 +4863,14 @@
             ? managementStaff.find(item=>String(item.id)===String(managementEditingStaffId))
             : null;
         const checkedFeatureAccess=checked.filter(key=>tenantAllowed.includes(key));
-        const featureAccess=(managementEditingStaffId && loginPassword && checkedFeatureAccess.length===0 &&
-            existingStaff && Array.isArray(existingStaff.featureAccess) && existingStaff.featureAccess.length>0)
+        const originalRole=String(existingStaff?.role||'');
+        const selectedRole=String(field('Role')?.value||'Sales Executive');
+        const roleChanged=!!existingStaff && originalRole!==selectedRole;
+        const roleDefaultsForSelection=getStaffRoleDefaultFeatureKeys(selectedRole,tenantAllowed);
+        const featureAccess=(managementEditingStaffId && checkedFeatureAccess.length===0 &&
+            existingStaff && Array.isArray(existingStaff.featureAccess) && existingStaff.featureAccess.length>0 && !roleChanged)
             ? existingStaff.featureAccess.filter(key=>tenantAllowed.includes(key))
-            : checkedFeatureAccess;
+            : (roleChanged ? roleDefaultsForSelection.filter(key=>tenantAllowed.includes(key)) : checkedFeatureAccess);
         const payload={name,phone:String(field('Phone')?.value||'').trim(),email:String(field('Email')?.value||'').trim(),role:String(field('Role')?.value||'Sales Executive'),branchId:branchId||'',branchName:branch?branch.name:'',status:String(field('Status')?.value||'Active'),featureAccess,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
             let staffId=managementEditingStaffId;
@@ -4921,9 +4930,10 @@
             const roleSelect=editForm.querySelector('#mhStaffEditRole');
             if(roleSelect){
                 roleSelect.onchange=function(){
-                    const selected=Array.from(editForm.querySelectorAll('#mhStaffEditFeatureAccessList input[type="checkbox"]:checked')).map(el=>el.value);
+                    // Changing the staff role should load that role's default features,
+                    // not carry the previous role's checkbox selection forward.
                     const mainRole=document.getElementById('mhStaffRole');if(mainRole)mainRole.value=roleSelect.value;
-                    renderManagementStaffFeatureAccess(selected);
+                    renderManagementStaffFeatureAccess();
                     const mainList=document.getElementById('mhStaffFeatureAccessList'),editList=document.getElementById('mhStaffEditFeatureAccessList');
                     if(mainList&&editList)editList.innerHTML=mainList.innerHTML;
                     const mainSummary=document.getElementById('mhStaffPlanSummary'),editSummary=document.getElementById('mhStaffEditPlanSummary');
