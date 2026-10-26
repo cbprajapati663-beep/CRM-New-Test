@@ -4754,13 +4754,17 @@
                     const account=snap.data()||{};
                     const profileFeatures=Array.isArray(staff.featureAccess)?staff.featureAccess:[];
                     const accountFeatures=Array.isArray(account.featureAccess)?account.featureAccess:[];
-                    // An empty/stale account array must not mask valid permissions
-                    // already saved on the tenant staff profile.
-                    const mergedFeatures=accountFeatures.length?accountFeatures:profileFeatures;
+                    // The tenant staff profile is the canonical source for the
+                    // visible Access count; account data can be stale after legacy edits.
+                    // Use account permissions only when the profile has no saved array.
+                    const mergedFeatures=Array.isArray(staff.featureAccess)
+                        ? profileFeatures
+                        : accountFeatures;
                     return [staff.id,{
                         loginId:account.loginId||'',
                         staffAccountStatus:account.status||'',
-                        featureAccess:mergedFeatures
+                        featureAccess:mergedFeatures,
+                        accountFeatureAccess:accountFeatures
                     }];
                 }catch(error){
                     console.warn('Staff account lookup failed for',staff.id,error);
@@ -4870,7 +4874,9 @@
         const featureAccess=(managementEditingStaffId && checkedFeatureAccess.length===0 &&
             existingStaff && Array.isArray(existingStaff.featureAccess) && existingStaff.featureAccess.length>0 && !roleChanged)
             ? existingStaff.featureAccess.filter(key=>tenantAllowed.includes(key))
-            : (roleChanged ? roleDefaultsForSelection.filter(key=>tenantAllowed.includes(key)) : checkedFeatureAccess);
+            : (roleChanged || (!managementEditingStaffId && checkedFeatureAccess.length===0)
+                ? roleDefaultsForSelection.filter(key=>tenantAllowed.includes(key))
+                : checkedFeatureAccess);
         const payload={name,phone:String(field('Phone')?.value||'').trim(),email:String(field('Email')?.value||'').trim(),role:String(field('Role')?.value||'Sales Executive'),branchId:branchId||'',branchName:branch?branch.name:'',status:String(field('Status')?.value||'Active'),featureAccess,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
             let staffId=managementEditingStaffId;
@@ -4878,6 +4884,8 @@
             else {payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();staffId=(await ref.collection('staff').add(payload)).id;}
             const accountPayload={staffId,tenantId:tenant.tenantId,loginId,name,role:payload.role,staffRole:payload.role,phone:payload.phone||'',email:payload.email||'',branchId:payload.branchId||'',branchName:payload.branchName||'',agencyName:tenant.agencyName||'',subscriptionPlan:tenant.subscriptionPlan||'Starter',featureAccess,status:payload.status,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
             if(!managementEditingStaffId)accountPayload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+            // Keep both profile and login account permissions aligned on every save.
+            accountPayload.featureAccess=featureAccess;
             if(loginPassword){const hashed=await makeStaffPasswordHash(loginPassword);accountPayload.passwordHash=hashed.hash;accountPayload.salt=hashed.salt;}
             if(!staffAccountRef)staffAccountRef=staffAccountsCollection.doc(staffId);
             await staffAccountRef.set(accountPayload,{merge:true});
