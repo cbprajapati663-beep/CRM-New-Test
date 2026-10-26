@@ -513,6 +513,23 @@
             const overlay = document.getElementById('authOverlay');
             if (overlay) overlay.style.display = 'none';
             setCurrentSessionUser(user);
+
+            // Firestore tenant/lead snapshots may resolve after the first login UI
+            // pass. Re-apply permissions and render the lead pipeline after those
+            // initial reads settle, so staff don't need to manually refresh.
+            [250, 800, 1600].forEach(delay => window.setTimeout(() => {
+                const current = getCurrentSessionUser();
+                if (!current || String(current.tenantId || '').toLowerCase() !== String(user.tenantId || '').toLowerCase()) return;
+                try {
+                    applyPortalPermissions();
+                    applyPlanFeatureGates();
+                    if (typeof switchView === 'function') switchView('pipeline');
+                    renderMetrics();
+                    renderViews();
+                } catch (refreshError) {
+                    console.warn('Post-login CRM refresh skipped:', refreshError);
+                }
+            }, delay));
         };
 
         try {
@@ -1937,10 +1954,16 @@
         const user = getCurrentSessionUser();
         if (!user || user.role !== 'staff') return true;
 
-        const staffId = String(user.staffId || user.docId || '');
+        const staffIds = new Set([
+            user.staffId, user.docId, user.staffAccountDocId
+        ].map(value => String(value || '').trim()).filter(Boolean));
         const role = getCurrentStaffRoleName(user);
-        const ownLead = !!staffId && String(lead.createdByUserId || '') === staffId;
-        const assignedLead = !!staffId && String(lead.assignedStaffId || '') === staffId;
+        // Older assignments may store the profile ID, while newer/legacy account
+        // flows may store the staff-account document ID. Accept either stable ID.
+        const ownLead = [lead.createdByUserId, lead.createdByStaffId]
+            .some(value => staffIds.has(String(value || '').trim()));
+        const assignedLead = [lead.assignedStaffId, lead.assignedToStaffId, lead.assignedTo]
+            .some(value => staffIds.has(String(value || '').trim()));
 
         // Viewer is a read-only dashboard role: show all leads within the staff member's tenant.
         // Tenant filtering is already applied by getLeadScopedList() before this check.
