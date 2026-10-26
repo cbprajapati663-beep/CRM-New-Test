@@ -1915,7 +1915,12 @@
         const role = getCurrentStaffRoleName(user);
         // Viewer is the read-only cross-branch reporting role.
         if (role === 'Viewer' && permission === 'Reports · View/Export') return true;
-        if (Array.isArray(matrix[role])) return matrix[role].includes(permission);
+        // Treat the saved role matrix as an explicit grant list when it contains
+        // the requested permission. Older tenant matrices may exist but omit newer
+        // lead permissions; in that case fall back to the role defaults below so
+        // Sales Executive staff do not lose Create/Edit simply because the matrix
+        // predates this permission. Feature-level tenant/staff plan checks still apply.
+        if (Array.isArray(matrix[role]) && matrix[role].includes(permission)) return true;
         const defaults = {
             'Leads · View': ['Administrator','Manager','Branch Manager','Sales Executive','Viewer'].includes(role),
             'Leads · Create/Edit': ['Administrator','Manager','Branch Manager','Sales Executive'].includes(role),
