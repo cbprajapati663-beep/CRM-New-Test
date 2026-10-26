@@ -9,7 +9,7 @@
   "theme_color": "#0b1728",
   "icons": [
     {
-      "src": "assets/icons/heritage-app-icon.svg",
+      "src": "assets/icons/heritage-app-icon.svg?v=20261026-3",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
