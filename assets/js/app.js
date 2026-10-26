@@ -4851,7 +4851,17 @@
         const featureListSelector=managementEditingStaffId&&document.getElementById('mhStaffEditFeatureAccessList')
             ? '#mhStaffEditFeatureAccessList input[type="checkbox"]:checked'
             : '#mhStaffFeatureAccessList input[type="checkbox"]:checked';
-        const checked=Array.from(document.querySelectorAll(featureListSelector)).map(el=>el.value),tenantAllowed=getManagementAllowedStaffFeatures(),featureAccess=checked.filter(key=>tenantAllowed.includes(key));
+        const checked=Array.from(document.querySelectorAll(featureListSelector)).map(el=>el.value),tenantAllowed=getManagementAllowedStaffFeatures();
+        // Password-only edits must never wipe existing feature permissions if a
+        // cloned edit form renders its checkbox list empty/not yet synced.
+        const existingStaff=managementEditingStaffId
+            ? managementStaff.find(item=>String(item.id)===String(managementEditingStaffId))
+            : null;
+        const checkedFeatureAccess=checked.filter(key=>tenantAllowed.includes(key));
+        const featureAccess=(managementEditingStaffId && loginPassword && checkedFeatureAccess.length===0 &&
+            existingStaff && Array.isArray(existingStaff.featureAccess) && existingStaff.featureAccess.length>0)
+            ? existingStaff.featureAccess.filter(key=>tenantAllowed.includes(key))
+            : checkedFeatureAccess;
         const payload={name,phone:String(field('Phone')?.value||'').trim(),email:String(field('Email')?.value||'').trim(),role:String(field('Role')?.value||'Sales Executive'),branchId:branchId||'',branchName:branch?branch.name:'',status:String(field('Status')?.value||'Active'),featureAccess,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         try{
             let staffId=managementEditingStaffId;
