@@ -2882,7 +2882,14 @@
     };
 
     function renderSmartWorkflow() {
-        if (!requireFeatureAccess('smartWorkflow', 'Smart Workflow')) return;
+        // This renderer also runs in the background after every Firestore lead
+        // snapshot. A disabled optional module must never interrupt lead create/edit
+        // with a subscription alert; access messaging belongs to explicit navigation.
+        if (!isFeatureEnabled('smartWorkflow')) {
+            const body = document.getElementById('smartWorkflowBody');
+            if (body) body.textContent = '';
+            return;
+        }
         const scoped = getLeadScopedList();
         const active = scoped.filter(l => !['Disbursed','Rejected','Not Interested'].includes(l.status));
         const overdue = active.filter(l => l.followDate && l.followDate < todayStr);
