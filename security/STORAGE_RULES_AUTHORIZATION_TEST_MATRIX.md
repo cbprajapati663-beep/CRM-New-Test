@@ -61,3 +61,31 @@ A follow-up commit updates the proposal to check membership and lead document ex
 - Firestore lookups have limits and may be billed; validate rule lookup count/caching and costs in the actual Firebase environment before broad rollout.
 - Rules Playground checks should be followed by emulator/integration tests for authenticated identities and real path shapes.
 - Do not claim this matrix passed until each test is run and evidence is recorded.
+
+
+## Additional Rules Playground observations — 2026-10-27
+
+The following were reported with screenshots by the project owner while the editor still showed **unpublished changes**. These are simulations only, not deployed-rule or actual object-operation tests.
+
+| Observed check | Simulated context/action | Screenshot/result reported | Assessment |
+|---|---|---|---|
+| P-06 | Inactive sales member UID `1UQ2aFCrSMNq8accU71u6IJURx72`, get tenant-a/lead-a | Simulated read denied | Matches expected; synthetic account UID and membership record should be kept aligned in final test evidence |
+| P-07 retest | Authenticated UID with no membership document, get tenant-a/lead-a | Simulated read denied; prior null-value error not shown in retest | Matches expected in Playground; still requires Emulator validation |
+| P-08 | Viewer UID `Gyx1jn3PEbcM3TCzUvCw0wqNEft1`, get tenant-a/lead-a | Simulated read allowed | Matches expected; confirm membership/lead fixtures remain unchanged |
+| P-09 | Same Viewer, create `customer-documents/tenant-a/lead-a/test.pdf`, metadata size 1024 and contentType application/pdf | Simulated write denied | Matches expected |
+| P-10 | Same Viewer, delete `customer-documents/tenant-a/lead-a/test.pdf` | Simulated write denied | Matches expected |
+| P-11 | Owner UID `AlJhW4PmD1WUfcUJWsFNnWl73nU2`, delete tenant-a/lead-a | Simulated write allowed | Matches expected; confirm membership and lead fixture before relying on it |
+| P-12 | Manager UID `6Fe8vrLA1afkgKzDuOU48M7KEva2`, create tenant-a/lead-a PDF, metadata size 1024 | Simulated write allowed | Matches expected |
+| P-13 | Viewer UID `Gyx1jn3PEbcM3TCzUvCw0wqNEft1`, get path using deliberately missing lead ID `lead-missing-20261027` | User confirmed exact path used; simulated read denied | Matches expected |
+
+### Still outstanding before any staging publish
+
+- [ ] Sales member: own created/assigned lead allowed; unrelated same-tenant lead denied.
+- [ ] Inactive membership: deny read, create, update, and delete (only read denial has been shown in this run).
+- [ ] Manager on unauthorized branch: deny read/upload.
+- [ ] Owner/manager/sales cross-tenant paths and cross-tenant lead IDs: deny.
+- [ ] Unsupported MIME type denied.
+- [ ] Size at or above 25 MiB denied; test below-limit allowed for permitted roles.
+- [ ] Run Firebase Emulator Suite authorization tests; Rules Playground alone is not enough.
+- [ ] Verify actual deployed staging rules and keep a rollback copy before publish.
+
