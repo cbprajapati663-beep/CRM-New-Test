@@ -34,6 +34,20 @@ Target: `heritage-crm-staging` only. Never select production for these tests.
 | S-17 | Missing lead document | Read/upload/delete | DENY |
 | S-18 | Any role | Access any path outside customer-documents | DENY |
 
+## Rules Playground observations — 2026-10-27
+
+These are manual simulations against the **unpublished rules currently shown in the Firebase Console editor** for project `heritage-crm-staging`. They are not emulator tests, actual file operations, or evidence of deployed rules.
+
+| Observed check | Simulated context/action | Screenshot result | Assessment |
+|---|---|---|---|
+| P-01 | Viewer UID `Gyx1jn3PEbcM3TCzUvCw0wqNEft1`, create at `customer-documents/tenant-a/lead-a/test.pdf` | Simulated write denied | Matches expected |
+| P-02 | Same Viewer, get at tenant-b/lead-b path | Simulated read denied | Matches expected |
+| P-03 | Owner UID `AlJhW4PmD1WUfcUJWsFNnWl73nU2`, delete at tenant-a/lead-a path | Simulated write allowed | Matches expected; underlying membership/lead records still need independent confirmation |
+| P-04 | Same Viewer, update at tenant-a/lead-a path | Simulated write denied | Matches expected |
+| P-05 | Unauthenticated get at tenant-a/lead-a path | Simulated read denied | Matches expected |
+
+These observations only record the visible Playground results. They do not prove the rules are syntactically/runtime-valid in the Emulator or deployed to Firebase. The exact test object path may be simulated without an actual object existing.
+
 ## Important review notes
 - Test create and update separately. Storage `request.resource` is the new object for writes; delete has no new object, so delete must not rely on `request.resource`.
 - MIME type checks are not file-content validation. If files are high-risk, consider trusted backend validation/scanning.
