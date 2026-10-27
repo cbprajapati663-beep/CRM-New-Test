@@ -6,14 +6,20 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function membershipPath() {
+      return /databases/(default)/documents/memberships/$(request.auth.uid);
+    }
+
+    function membershipExists() {
+      return signedIn() && firestore.exists(membershipPath());
+    }
+
     function membership() {
-      return firestore.get(
-        /databases/(default)/documents/memberships/$(request.auth.uid)
-      ).data;
+      return firestore.get(membershipPath()).data;
     }
 
     function activeMember() {
-      return signedIn()
+      return membershipExists()
         && membership().status == 'Active'
         && membership().tenantStatus == 'Active';
     }
@@ -27,14 +33,20 @@ service firebase.storage {
         || (branchId != null && branchId in membership().branchIds);
     }
 
+    function leadPath(leadId) {
+      return /databases/(default)/documents/leads/$(leadId);
+    }
+
+    function leadExists(leadId) {
+      return firestore.exists(leadPath(leadId));
+    }
+
     function leadData(leadId) {
-      return firestore.get(
-        /databases/(default)/documents/leads/$(leadId)
-      ).data;
+      return firestore.get(leadPath(leadId)).data;
     }
 
     function leadBelongsToTenant(tenantId, leadId) {
-      return leadData(leadId).tenantId == tenantId;
+      return leadExists() && leadData(leadId).tenantId == tenantId;
     }
 
     function canAccessLeadFile(tenantId, leadId) {
