@@ -46,7 +46,7 @@ service firebase.storage {
     }
 
     function leadBelongsToTenant(tenantId, leadId) {
-      return leadExists() && leadData(leadId).tenantId == tenantId;
+      return leadExists(leadId) && leadData(leadId).tenantId == tenantId;
     }
 
     function canAccessLeadFile(tenantId, leadId) {
