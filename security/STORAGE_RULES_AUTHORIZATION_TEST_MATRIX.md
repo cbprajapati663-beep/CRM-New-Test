@@ -93,3 +93,16 @@ Before running S-06/S-07, verify the exact active Sales UID in Firestore `member
 - [ ] Run Firebase Emulator Suite authorization tests; Rules Playground alone is not enough.
 - [ ] Verify actual deployed staging rules and keep a rollback copy before publish.
 
+
+### Additional Rules Playground observations — 2026-10-27 (continued)
+
+These checks were observed in screenshots after the previous update. The Console editor continued to show **unpublished changes**. Results are simulations only.
+
+| Observed check | Simulated context/action | Screenshot/result reported | Assessment |
+|---|---|---|---|
+| P-14 | Viewer UID `Gyx1jn3PEbcM3TCzUvCw0wqNEft1`, create `customer-documents/tenant-a/lead-a/test.pdf`, metadata size 1024 and contentType application/pdf | Simulated write denied | Matches expected; own-tenant Viewer upload restriction confirmed in Playground |
+| P-15 | Viewer UID `Gyx1jn3PEbcM3TCzUvCw0wqNEft1`, delete tenant-a/lead-a | Simulated write denied | Matches expected; own-tenant Viewer delete restriction confirmed in Playground |
+| P-16 | Owner UID `AlJhW4PmD1WUfcUJWsFNnWl73nU2`, delete tenant-a/lead-a | Simulated write allowed | Matches expected; staging membership and lead fixture should still be verified |
+| P-17 | Manager UID `6Fe8vrLA1afkgKzDuOU48M7KEva2`, create tenant-a/lead-a PDF with metadata size 1024 and contentType application/pdf | Simulated write allowed | Matches expected for allowed PDF upload in Playground |
+| P-18 | Viewer UID `Gyx1jn3PEbcM3TCzUvCw0wqNEft1`, get `customer-documents/tenant-a/lead-missing-20261027/test.pdf` | User confirmed exact path was used; simulated read denied | Matches expected; missing-lead guard behaves as expected in this Playground simulation |
+
