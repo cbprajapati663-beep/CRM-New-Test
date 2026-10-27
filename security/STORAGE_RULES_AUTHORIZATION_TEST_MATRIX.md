@@ -78,6 +78,10 @@ The following were reported with screenshots by the project owner while the edit
 | P-12 | Manager UID `6Fe8vrLA1afkgKzDuOU48M7KEva2`, create tenant-a/lead-a PDF, metadata size 1024 | Simulated write allowed | Matches expected |
 | P-13 | Viewer UID `Gyx1jn3PEbcM3TCzUvCw0wqNEft1`, get path using deliberately missing lead ID `lead-missing-20261027` | User confirmed exact path used; simulated read denied | Matches expected |
 
+### Sales test identity/fixture gate
+
+Before running S-06/S-07, verify the exact active Sales UID in Firestore `memberships/{uid}` and compare it character-for-character with the UID in the test-user list and the `createdByUserId` / `assignedStaffId` fields on the selected lead. The supplied test-user list contains Sales UID `nITnx5yfktW1WL9WU444ZmvONXI2`; a previously observed lead assignment value appears different. Firebase UIDs are case-sensitive, so do not assume the lead is assigned to this account until the values match. Do not use inactive Sales UID `1UQ2aFCrSMNq8accU71u6IJURx72` for the active-Sales allow test. If no matching active fixture exists, fix the staging test fixture only, then rerun the simulation. Do not change production data.
+
 ### Still outstanding before any staging publish
 
 - [ ] Sales member: own created/assigned lead allowed; unrelated same-tenant lead denied.
