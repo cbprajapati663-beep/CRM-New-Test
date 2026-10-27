@@ -1,0 +1,53 @@
+name: Proposed Storage Rules Static Review
+
+on:
+  push:
+    branches: ["security/**"]
+    paths:
+      - "security/proposed-storage-rules-staging.rules"
+      - "security/PROPOSED_STORAGE_RULES_NOTES.md"
+      - ".github/workflows/storage-rules-static-review.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "security/proposed-storage-rules-staging.rules"
+      - "security/PROPOSED_STORAGE_RULES_NOTES.md"
+      - ".github/workflows/storage-rules-static-review.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  static-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check proposed rules contain required safety controls
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          rules = Path("security/proposed-storage-rules-staging.rules").read_text(encoding="utf-8")
+          notes = Path("security/PROPOSED_STORAGE_RULES_NOTES.md").read_text(encoding="utf-8")
+
+          checks = {
+              "Rules are explicitly version 2": "rules_version = '2';" in rules,
+              "Default-deny catch-all exists": "match /{allPaths=**}" in rules and "allow read, write: if false;" in rules,
+              "Read permission is separate": "allow read: if canAccessLeadFile" in rules,
+              "Upload/update permission is separate": "allow create, update: if canUploadLeadFile" in rules,
+              "Delete permission is separate": "allow delete: if sameTenant(tenantId)" in rules,
+              "Viewer is not in upload role allowlist": "membership().role in ['owner', 'manager', 'sales']" in rules,
+              "Upload size limit exists": "request.resource.size < 25 * 1024 * 1024" in rules,
+              "PDF/JPEG content types are restricted": "'application/pdf'" in rules and "'image/jpeg'" in rules,
+              "Tenant match is checked": "leadBelongsToTenant(tenantId, leadId)" in rules,
+              "Notes warn proposal is not deployed": "has not been deployed" in notes,
+              "Notes require staging tests before deployment": "publish to staging only" in notes,
+          }
+
+          for label, passed in checks.items():
+              print(f"{'PASS' if passed else 'FAIL'}: {label}")
+          if not all(checks.values()):
+              raise SystemExit(1)
+          PY

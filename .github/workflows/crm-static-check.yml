@@ -85,7 +85,7 @@ jobs:
           ]);
           const missingHandlers = handlers.filter(name => !declared.has(name));
           assert.deepEqual(missingHandlers, [], 'Inline event handlers missing from app.js: ' + missingHandlers.join(', '));
-          assert.ok(manifest.icons.some(icon => icon.src === 'assets/icons/heritage-app-icon.svg'), 'PWA app icon is missing from manifest');
+          assert.ok(manifest.icons.some(icon => String(icon.src || '').split('?')[0] === 'assets/icons/heritage-app-icon.svg'), 'PWA app icon is missing from manifest');
           assert.ok(js.includes("if (typeof value !== 'number' && /^[\\s]*[=+@\\-]/.test(text))"), 'CSV export formula sanitization is missing');
           console.log('CRM static navigation and export checks passed.');
           NODE

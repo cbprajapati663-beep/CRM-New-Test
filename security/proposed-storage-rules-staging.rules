@@ -1,0 +1,101 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function membershipPath() {
+      return /databases/(default)/documents/memberships/$(request.auth.uid);
+    }
+
+    function membershipExists() {
+      return signedIn() && firestore.exists(membershipPath());
+    }
+
+    function membership() {
+      return firestore.get(membershipPath()).data;
+    }
+
+    function activeMember() {
+      return membershipExists()
+        && membership().status == 'Active'
+        && membership().tenantStatus == 'Active';
+    }
+
+    function sameTenant(tenantId) {
+      return activeMember() && tenantId == membership().tenantId;
+    }
+
+    function branchAllowed(branchId) {
+      return membership().role == 'owner'
+        || (branchId != null && branchId in membership().branchIds);
+    }
+
+    function leadPath(leadId) {
+      return /databases/(default)/documents/leads/$(leadId);
+    }
+
+    function leadExists(leadId) {
+      return firestore.exists(leadPath(leadId));
+    }
+
+    function leadData(leadId) {
+      return firestore.get(leadPath(leadId)).data;
+    }
+
+    function leadBelongsToTenant(tenantId, leadId) {
+      return leadExists(leadId) && leadData(leadId).tenantId == tenantId;
+    }
+
+    function canAccessLeadFile(tenantId, leadId) {
+      return sameTenant(tenantId)
+        && leadBelongsToTenant(tenantId, leadId)
+        && (
+          membership().role == 'owner'
+          || (
+            membership().role in ['manager', 'viewer']
+            && branchAllowed(leadData(leadId).branchId)
+          )
+          || (
+            membership().role == 'sales'
+            && (
+              leadData(leadId).createdByUserId == request.auth.uid
+              || leadData(leadId).assignedStaffId == request.auth.uid
+            )
+          )
+        );
+    }
+
+    function canUploadLeadFile(tenantId, leadId) {
+      return canAccessLeadFile(tenantId, leadId)
+        && membership().role in ['owner', 'manager', 'sales']
+        && request.resource != null
+        && request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType in [
+          'application/pdf',
+          'image/jpeg',
+          'image/jpg'
+        ];
+    }
+
+    match /customer-documents/{tenantId}/{leadId}/{allPaths=**} {
+      // Read is separate from write/delete so viewer access never grants delete.
+      allow read: if canAccessLeadFile(tenantId, leadId);
+
+      // Upload/update allowed only for active owner, manager, or sales
+      // users who can access this lead. Viewer is explicitly excluded.
+      allow create, update: if canUploadLeadFile(tenantId, leadId);
+
+      // Conservative default: only an active tenant owner may delete files.
+      allow delete: if sameTenant(tenantId)
+        && membership().role == 'owner'
+        && leadBelongsToTenant(tenantId, leadId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
