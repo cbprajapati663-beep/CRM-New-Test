@@ -48,6 +48,12 @@ These are manual simulations against the **unpublished rules currently shown in 
 
 These observations only record the visible Playground results. They do not prove the rules are syntactically/runtime-valid in the Emulator or deployed to Firebase. The exact test object path may be simulated without an actual object existing.
 
+
+| P-07 | Authenticated synthetic UID with no membership document, get at tenant-a/lead-a path | Playground raised null-value error while evaluating `membership().status` | Not a pass; proposal now adds `firestore.exists()` guards and must be retested |
+
+A follow-up commit updates the proposal to check membership and lead document existence before reading their fields. This is a source change only; it has not yet been validated by Emulator or deployed. Retry P-07 against the refreshed unpublished editor rules and confirm the result is a normal deny, not a simulator error.
+
+
 ## Important review notes
 - Test create and update separately. Storage `request.resource` is the new object for writes; delete has no new object, so delete must not rely on `request.resource`.
 - MIME type checks are not file-content validation. If files are high-risk, consider trusted backend validation/scanning.
